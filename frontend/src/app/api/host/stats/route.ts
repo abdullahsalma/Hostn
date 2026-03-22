@@ -34,10 +34,10 @@ export async function GET(request: NextRequest) {
     });
 
     const stats: HostStats = {
-      properties: {}
+      properties: {
       total: hostProperties.length,
       active: hostProperties.filter((p) => p.isActive).length,
-      inactive: hostProperties.filter(() => !p.isActive).length,
+      inactive: hostProperties.filter((p) => !p.isActive).length,
     },
     bookings: {
       total: hostBookings.length,
