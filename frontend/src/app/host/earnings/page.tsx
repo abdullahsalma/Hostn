@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { EarningsData } from '@/types';
+import { EarningsData, MonthlyEarning } from '@/types';
 import { hostApi } from '@/lib/api';
 import { formatPrice } from '@/lib/utils';
 import toast from 'react-hot-toast';
@@ -10,6 +10,7 @@ import ErrorState from '@/components/ui/ErrorState';
 import {
   DollarSign,
   TrendingUp,
+  TrendingDown,
   Calendar,
   BarChart3,
   ChevronLeft,
