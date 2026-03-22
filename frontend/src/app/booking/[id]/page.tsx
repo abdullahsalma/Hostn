@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
@@ -141,7 +141,7 @@ function BookingContent() {
                         <div>
                           <p className="text-sm font-medium text-gray-800">Dates</p>
                           <p className="text-xs text-gray-500">
-                            {formatDate(checkIn)} \u2192 {formatDate(checkOut)}
+                            {formatDate(checkIn)} â {formatDate(checkOut)}
                           </p>
                         </div>
                       </div>
@@ -235,7 +235,7 @@ function BookingContent() {
                   <div className="space-y-3 text-sm mb-6">
                     <h3 className="font-bold text-gray-900">Price details</h3>
                     <div className="flex justify-between text-gray-600">
-                      <span>{formatPrice(pricePerNight)} \u00d7 {nights} night{nights !== 1 ? 's' : ''}</span>
+                      <span>{formatPrice(pricePerNight)} Ã {nights} night{nights !== 1 ? 's' : ''}</span>
                       <span>{formatPrice(subtotal)}</span>
                     </div>
                     {cleaningFee > 0 && (
@@ -288,19 +288,7 @@ function BookingContent() {
 
 export default function BookingPage() {
   return (
-    <Suspense fallback={
-      <>
-        <Header />
-        <main className="container-custom py-12">
-          <div className="max-w-2xl mx-auto animate-pulse space-y-4">
-            <div className="h-8 bg-gray-200 rounded w-1/3" />
-            <div className="h-40 bg-gray-200 rounded-2xl" />
-            <div className="h-60 bg-gray-100 rounded-2xl" />
-          </div>
-        </main>
-        <Footer />
-      </>
-    }>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-pulse text-gray-400">Loading...</div></div>}>
       <BookingContent />
     </Suspense>
   );
