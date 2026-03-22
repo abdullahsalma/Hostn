@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -9,7 +9,7 @@ import Input from '@/components/ui/Input';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login } = useAuth();
@@ -110,7 +110,7 @@ export default function LoginPage() {
           </form>
 
           <p className="mt-6 text-center text-sm text-gray-600">
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <Link href="/auth/register" className="font-semibold text-primary-600 hover:text-primary-700">
               Create one free
             </Link>
@@ -129,11 +129,19 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-gradient-to-br from-primary-900/70 to-primary-700/50" />
         <div className="absolute inset-0 flex flex-col justify-center p-16 text-white">
           <blockquote className="text-2xl font-semibold leading-relaxed mb-4">
-            "Hostn made booking my family vacation effortless and the property was absolutely stunning."
+            &quot;Hostn made booking my family vacation effortless and the property was absolutely stunning.&quot;
           </blockquote>
-          <p className="text-primary-200 font-medium">â Nora A., Jeddah</p>
+          <p className="text-primary-200 font-medium">&mdash; Nora A., Jeddah</p>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }
