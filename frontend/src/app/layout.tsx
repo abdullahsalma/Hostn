@@ -4,13 +4,13 @@ import { AuthProvider } from '@/context/AuthContext';
 import { Toaster } from 'react-hot-toast';
 
 export const metadata: Metadata = {
-  title: 'Hostn – Find Your Perfect Getaway',
+  title: 'Hostn – Luxury Vacation Rentals in Saudi Arabia',
   description:
-    'Discover and book unique chalets, villas, apartments, farms, and more. Your perfect stay is just a search away.',
-  keywords: 'vacation rental, chalet, villa, apartment, booking, getaway, hostn',
+    'Discover extraordinary chalets, villas, and exclusive retreats across Saudi Arabia. Curated luxury stays for unforgettable experiences.',
+  keywords: 'luxury vacation rental, Saudi Arabia, chalet, villa, premium stays, hostn, exclusive getaway',
   openGraph: {
-    title: 'Hostn – Find Your Perfect Getaway',
-    description: 'Discover unique stays across the region',
+    title: 'Hostn – Luxury Vacation Rentals in Saudi Arabia',
+    description: 'Curated luxury stays for unforgettable experiences',
     type: 'website',
   },
 };
@@ -31,7 +31,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 padding: '12px 16px',
                 fontSize: '14px',
               },
-              success: { iconTheme: { primary: '#7c3aed', secondary: '#fff' } },
+              success: { iconTheme: { primary: '#d4af37', secondary: '#fff' } },
+              error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
             }}
           />
           {children}
