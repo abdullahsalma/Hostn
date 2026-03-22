@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
 
     if (nights < property.rules.minNights || nights > property.rules.maxNights) {
       return NextResponse.json(
-        {*        success: false,
+        {        success: false,
           message: `Booking must be between ${property.rules.minNights} and ${property.rules.maxNights} nights`,
         },
         { status: 400 }
