@@ -7,7 +7,7 @@ export interface User {
   role: 'guest' | 'host' | 'admin';
   isVerified: boolean;
   wishlist: string[];
-  createdAt: string;
+  createdAt: string;h
 }
 
 export interface PropertyImage {
@@ -119,8 +119,8 @@ export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed' 
 
 export interface Booking {
   _id: string;
-  property: Property;
-  guest: User;
+  property: Property | string;
+  guest: User | string;
   checkIn: string;
   checkOut: string;
   guests: GuestCount;
@@ -135,9 +135,9 @@ export type PaymentStatus = 'pending' | 'processing' | 'paid' | 'failed' | 'refu
 
 export interface Payment {
   _id: string;
-  booking: Booking;
-  user: User;
-  property: Property;
+  booking: Booking | string;
+  user: User | string;
+  property: Property | string;
   amount: number;
   currency: string;
   provider: 'moyasar' | 'stripe' | 'manual';
