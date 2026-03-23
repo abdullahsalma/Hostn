@@ -6,4 +6,14 @@ declare module 'bcryptjs' {
   export function compareSync(data: string, encrypted: string): boolean;
   export function compare(data: string, encrypted: string): Promise<boolean>;
   export function getRounds(encrypted: string): number;
+  const bcrypt: {
+    genSaltSync: typeof genSaltSync;
+    genSalt: typeof genSalt;
+    hashSync: typeof hashSync;
+    hash: typeof hash;
+    compareSync: typeof compareSync;
+    compare: typeof compare;
+    getRounds: typeof getRounds;
+  };
+  export default bcrypt;
 }
