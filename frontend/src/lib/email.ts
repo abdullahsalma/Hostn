@@ -96,7 +96,7 @@ async function sendEmail(params: EmailParams): Promise<boolean> {
   return false;
 }
 
-// ── Email Templates ──
+// ââ Email Templates ââ
 
 const baseTemplate = (content: string) => `
 <!DOCTYPE html>
@@ -289,6 +289,80 @@ export async function sendPasswordResetEmail(params: {
   return sendEmail({
     to: email,
     subject: 'Reset Your Hostn Password',
+    html,
+  });
+}
+
+/**
+ * Send payment failure notification to guest.
+ */
+export async function sendPaymentFailureEmail(params: {
+  guestEmail: string;
+  guestName: string;
+  propertyTitle: string;
+  total: number;
+  reason?: string;
+  bookingId: string;
+}): Promise<boolean> {
+  const { guestEmail, guestName, propertyTitle, total, reason, bookingId } = params;
+
+  const html = baseTemplate(`
+    <h2 style="margin:0 0 16px;color:#DC2626;font-size:20px;">Payment Failed</h2>
+    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.6;">
+      Hi ${guestName},<br><br>
+      Unfortunately, your payment of <strong>${total} SAR</strong> for <strong>${propertyTitle}</strong> could not be processed.
+    </p>
+    ${reason ? `<p style="margin:0 0 16px;color:#6b7280;font-size:13px;background:#fef2f2;padding:12px;border-radius:6px;">Reason: ${reason}</p>` : ''}
+    <p style="margin:0 0 16px;color:#374151;font-size:14px;">
+      Please try again or use a different payment method.
+    </p>
+    <p style="margin:16px 0 0;">
+      <a href="${APP_URL}/dashboard/bookings/${bookingId}" style="display:inline-block;background-color:#2E75B6;color:#ffffff;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;">Retry Payment</a>
+    </p>
+  `);
+
+  return sendEmail({
+    to: guestEmail,
+    subject: `Payment Failed - ${propertyTitle}`,
+    html,
+  });
+}
+
+/**
+ * Send refund confirmation email to guest.
+ */
+export async function sendRefundEmail(params: {
+  guestEmail: string;
+  guestName: string;
+  propertyTitle: string;
+  refundAmount: number;
+  originalTotal: number;
+  isPartial: boolean;
+  reason?: string;
+  paymentId: string;
+}): Promise<boolean> {
+  const { guestEmail, guestName, propertyTitle, refundAmount, originalTotal, isPartial, reason, paymentId } = params;
+
+  const html = baseTemplate(`
+    <h2 style="margin:0 0 16px;color:#1B3A5C;font-size:20px;">Refund Processed</h2>
+    <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.6;">
+      Hi ${guestName},<br><br>
+      A ${isPartial ? 'partial ' : ''}refund has been processed for your booking at <strong>${propertyTitle}</strong>.
+    </p>
+    <table role="presentation" width="100%" cellpadding="8" cellspacing="0" style="background-color:#f0fdf4;border-radius:6px;margin:16px 0;">
+      <tr><td style="color:#6b7280;font-size:13px;border-bottom:1px solid #dcfce7;">Refund Amount</td><td style="color:#16a34a;font-size:13px;font-weight:700;border-bottom:1px solid #dcfce7;">${refundAmount} SAR</td></tr>
+      <tr><td style="color:#6b7280;font-size:13px;border-bottom:1px solid #dcfce7;">Original Payment</td><td style="color:#111827;font-size:13px;border-bottom:1px solid #dcfce7;">${originalTotal} SAR</td></tr>
+      ${reason ? `<tr><td style="color:#6b7280;font-size:13px;">Reason</td><td style="color:#111827;font-size:13px;">${reason}</td></tr>` : ''}
+    </table>
+    <p style="margin:0 0 16px;color:#374151;font-size:14px;">
+      The refund will appear in your account within 5-10 business days, depending on your bank.
+    </p>
+    <p style="margin:24px 0 0;color:#9ca3af;font-size:12px;">Payment ID: ${paymentId}</p>
+  `);
+
+  return sendEmail({
+    to: guestEmail,
+    subject: `Refund Processed - ${refundAmount} SAR for ${propertyTitle}`,
     html,
   });
 }
