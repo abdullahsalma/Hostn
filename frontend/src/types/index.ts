@@ -119,8 +119,8 @@ export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed' 
 
 export interface Booking {
   _id: string;
-  property: Property | string;
-  guest: User | string;
+  property: Property;
+  guest: User;
   checkIn: string;
   checkOut: string;
   guests: GuestCount;
@@ -135,9 +135,9 @@ export type PaymentStatus = 'pending' | 'processing' | 'paid' | 'failed' | 'refu
 
 export interface Payment {
   _id: string;
-  booking: Booking | string;
-  user: User | string;
-  property: Property | string;
+  booking: Booking;
+  user: User;
+  property: Property;
   amount: number;
   currency: string;
   provider: 'moyasar' | 'stripe' | 'manual';
