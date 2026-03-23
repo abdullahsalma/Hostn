@@ -4,7 +4,7 @@ import Payment from '@/lib/models/Payment';
 import Booking from '@/lib/models/Booking';
 import User from '@/lib/models/User';
 import { getPaymentProvider } from '@/lib/payment';
-import { verifyWebhookSignature } from '@/lib/webhook-verify';
+import { verifyWebhookToken } from '@/lib/webhook-verify';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import { logPaymentEvent } from '@/lib/logger';
 import { sendPaymentReceipt, sendPaymentFailureEmail } from '@/lib/email';
@@ -14,8 +14,8 @@ import { sendPaymentReceipt, sendPaymentFailureEmail } from '@/lib/email';
  * Receives webhook notifications from Moyasar payment provider.
  *
  * SECURITY:
- * 1. Verifies HMAC signature from Moyasar headers
- * 2. Rate limited to prevent webhook flooding
+ * 1. Rate limited to prevent webhook flooding
+ * 2. Verifies secret_token from webhook payload body (set via shared_secret)
  * 3. Always re-verifies payment with Moyasar API (defense in depth)
  */
 export async function POST(request: NextRequest) {
@@ -27,17 +27,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Rate limit exceeded' }, { status: 429 });
     }
 
-    // Read raw body for signature verification
-    const rawBody = await request.text();
-
-    // SECURITY: Verify webhook HMAC signature — hard reject on failure
-    const signature = request.headers.get('x-moyasar-signature') ||
-                      request.headers.get('x-signature') ||
-                      request.headers.get('signature');
-
-    let signatureValid: boolean;
+    // Parse webhook JSON body
+    let body: any;
     try {
-      signatureValid = verifyWebhookSignature(rawBody, signature);
+      const rawBody = await request.text();
+      body = JSON.parse(rawBody);
+    } catch {
+      return NextResponse.json(
+        { success: false, message: 'Invalid JSON payload' },
+        { status: 400 }
+      );
+    }
+
+    // SECURITY: Verify secret_token from Moyasar webhook payload
+    let tokenValid: boolean;
+    try {
+      tokenValid = verifyWebhookToken(body.secret_token);
     } catch (error) {
       // MOYASAR_WEBHOOK_SECRET is not configured — refuse to process any webhooks
       console.error('Webhook processing disabled:', (error as Error).message);
@@ -47,18 +52,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!signatureValid) {
-      console.warn('Webhook REJECTED: invalid signature. IP:', ip);
+    if (!tokenValid) {
+      console.warn('Webhook REJECTED: invalid secret_token. IP:', ip);
       return NextResponse.json(
-        { success: false, message: 'Invalid webhook signature' },
+        { success: false, message: 'Invalid webhook token' },
         { status: 401 }
       );
     }
 
     await dbConnect();
-
-    // Parse webhook payload
-    const body = JSON.parse(rawBody);
 
     // Extract payment ID and status from Moyasar webhook
     const moyasarPaymentId = body.id || body.payment_id;
