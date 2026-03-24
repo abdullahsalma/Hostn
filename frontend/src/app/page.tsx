@@ -18,14 +18,14 @@ export default function HomePage() {
         <HeroSearch />
         <CategoryNav />
         <FeaturedListings
-          title="Featured Stays"
-          subtitle="Exceptional properties handpicked for you"
+          title={t('featured.title')}
+          subtitle={t('featured.subtitle')}
           featured={true}
         />
         <CityBrowse />
         <FeaturedListings
-          title="Popular in Riyadh"
-          subtitle="Top-rated stays in the capital"
+          title={t('featured.popularTitle')}
+          subtitle={t('featured.popularSubtitle')}
           city="Riyadh"
         />
         <WhyHostn />
