@@ -5,20 +5,20 @@ import { LanguageProvider } from '@/context/LanguageContext';
 import { Toaster } from 'react-hot-toast';
 
 export const metadata: Metadata = {
-  title: 'Hostn â Luxury Vacation Rentals in Saudi Arabia',
+  title: 'Hostn — إيجارات عطلات فاخرة في السعودية',
   description:
-    'Discover extraordinary chalets, villas, and exclusive retreats across Saudi Arabia. Curated luxury stays for unforgettable experiences.',
-  keywords: 'luxury vacation rental, Saudi Arabia, chalet, villa, premium stays, hostn, exclusive getaway',
+    'اكتشف شاليهات، فلل، واستراحات مميزة في جميع أنحاء المملكة العربية السعودية. احجز إقامتك المثالية مع هوستن.',
+  keywords: 'إيجار عطلات, شاليهات, فلل, استراحات, السعودية, hostn, حجز, vacation rental, Saudi Arabia, chalet, villa',
   openGraph: {
-    title: 'Hostn â Luxury Vacation Rentals in Saudi Arabia',
-    description: 'Curated luxury stays for unforgettable experiences',
+    title: 'Hostn — إيجارات عطلات فاخرة في السعودية',
+    description: 'احجز شاليهات، فلل، واستراحات مختارة بعناية في السعودية',
     type: 'website',
   },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="ar" dir="rtl">
       <body>
         <LanguageProvider>
           <AuthProvider>
