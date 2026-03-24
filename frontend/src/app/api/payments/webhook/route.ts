@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
       }
     } else if (
       verificationResult.status === 'failed' ||
-      verificationResult.status === 'cancelled'
+      (verificationResult.status as string) === 'cancelled'
     ) {
       // Update Payment record as failed
       payment.status = 'failed';
