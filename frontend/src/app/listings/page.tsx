@@ -9,9 +9,11 @@ import PropertyCard from '@/components/listings/PropertyCard';
 import { Property } from '@/types';
 import { propertiesApi } from '@/lib/api';
 import { ChevronLeft, ChevronRight, SearchX } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
 
 function ListingsContent() {
   const searchParams = useSearchParams();
+  const { t } = useLanguage();
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ total: 0, page: 1, pages: 1 });
@@ -42,14 +44,6 @@ function ListingsContent() {
     window.location.href = `/listings?${params.toString()}`;
   };
 
-  const getTitle = () => {
-    const parts = [];
-    if (paramsObj.city) parts.push(`in ${paramsObj.city}`);
-    if (paramsObj.type) parts.push(paramsObj.type + 's');
-    if (paramsObj.guests) parts.push(`for ${paramsObj.guests}+ guests`);
-    return parts.length > 0 ? `Stays ${parts.join(' ')}` : 'All Properties';
-  };
-
   return (
     <>
       <SearchFilters />
@@ -57,10 +51,10 @@ function ListingsContent() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{getTitle()}</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{t('listings.title')}</h1>
             {!loading && (
               <p className="text-gray-500 text-sm mt-1">
-                {pagination.total} propert{pagination.total !== 1 ? 'ies' : 'y'} found
+                {pagination.total} {t('filters.propertiesFound')}
               </p>
             )}
           </div>
@@ -83,10 +77,10 @@ function ListingsContent() {
         ) : properties.length === 0 ? (
           <div className="text-center py-20">
             <SearchX className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">No properties found</h3>
-            <p className="text-gray-500 mb-6">Try adjusting your filters or search in a different area.</p>
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">{t('listings.noResults')}</h3>
+            <p className="text-gray-500 mb-6">{t('listings.noResultsDesc')}</p>
             <a href="/listings" className="btn-primary inline-flex">
-              Clear filters
+              {t('filters.clearFilters')}
             </a>
           </div>
         ) : (
@@ -152,7 +146,7 @@ export default function ListingsPage() {
     <>
       <Header />
       <main className="min-h-screen bg-gray-50/30">
-        <Suspense fallback={<div className="container-custom py-8 text-center">Loading...</div>}>
+        <Suspense fallback={<div className="container-custom py-8 text-center">{/* Loading */}</div>}>
           <ListingsContent />
         </Suspense>
       </main>
