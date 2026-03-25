@@ -171,7 +171,7 @@ export default function Header() {
                           {t('nav.wishlist')}
                         </Link>
                         <Link
-                          href="/dashboard/profile"
+                          href="/dashboard/settings"
                           onClick={() => setUserMenuOpen(false)}
                           className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 text-sm text-gray-700 transition-colors"
                         >
