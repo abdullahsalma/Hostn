@@ -37,25 +37,25 @@ import { useLanguage } from '@/context/LanguageContext';
 // ─── Bilingual helpers ──────────────────────────────────────────────
 function getPropTypes(isAr: boolean): { label: string; value: PropertyType; icon: string; desc: string }[] {
   return [
-    { label: isAr ? 'شاليه' : 'Chalet', value: 'chalet', icon: '🏔️', desc: isAr ? 'استراحة في الطبيعة' : 'Mountain or nature retreat' },
-    { label: isAr ? 'شقة' : 'Apartment', value: 'apartment', icon: '🏢', desc: isAr ? 'شقة في المدينة' : 'City or urban flat' },
-    { label: isAr ? 'فيلا' : 'Villa', value: 'villa', icon: '🏡', desc: isAr ? 'منزل خاص واسع' : 'Spacious private home' },
-    { label: isAr ? 'استوديو' : 'Studio', value: 'studio', icon: '🏠', desc: isAr ? 'وحدة غرفة واحدة' : 'Compact one-room unit' },
-    { label: isAr ? 'مزرعة' : 'Farm', value: 'farm', icon: '🌾', desc: isAr ? 'إقامة ريفية' : 'Rural farm stay' },
-    { label: isAr ? 'مخيم' : 'Camp', value: 'camp', icon: '⛺', desc: isAr ? 'تخييم أو تخييم فاخر' : 'Camping or glamping site' },
-    { label: isAr ? 'غرفة فندقية' : 'Hotel Room', value: 'hotel', icon: '🏨', desc: isAr ? 'إقامة فندقية' : 'Hotel-style accommodation' },
+    { label: isAr ? 'شاليه' : 'Chalet', value: 'chalet', icon: '\u{1F3D4}\uFE0F', desc: isAr ? 'استراحة في الطبيعة' : 'Mountain or nature retreat' },
+    { label: isAr ? 'شقة' : 'Apartment', value: 'apartment', icon: '\u{1F3E2}', desc: isAr ? 'شقة في المدينة' : 'City or urban flat' },
+    { label: isAr ? 'فيلا' : 'Villa', value: 'villa', icon: '\u{1F3E1}', desc: isAr ? 'منزل خاص واسع' : 'Spacious private home' },
+    { label: isAr ? 'استوديو' : 'Studio', value: 'studio', icon: '\u{1F3E0}', desc: isAr ? 'وحدة غرفة واحدة' : 'Compact one-room unit' },
+    { label: isAr ? 'مزرعة' : 'Farm', value: 'farm', icon: '\u{1F33E}', desc: isAr ? 'إقامة ريفية' : 'Rural farm stay' },
+    { label: isAr ? 'مخيم' : 'Camp', value: 'camp', icon: '\u26FA', desc: isAr ? 'تخييم أو تخييم فاخر' : 'Camping or glamping site' },
+    { label: isAr ? 'غرفة فندقية' : 'Hotel Room', value: 'hotel', icon: '\u{1F3E8}', desc: isAr ? 'إقامة فندقية' : 'Hotel-style accommodation' },
   ];
 }
 
 // ─── Constants ──────────────────────────────────────────────────────
 const PROPERTY_TYPES: { label: string; value: PropertyType; icon: string; desc: string }[] = [
-  { label: 'Chalet', value: 'chalet', icon: '🏔️', desc: 'Mountain or nature retreat' },
-  { label: 'Apartment', value: 'apartment', icon: '🏢', desc: 'City or urban flat' },
-  { label: 'Villa', value: 'villa', icon: '🏡', desc: 'Spacious private home' },
-  { label: 'Studio', value: 'studio', icon: '🏠', desc: 'Compact one-room unit' },
-  { label: 'Farm', value: 'farm', icon: '🌾', desc: 'Rural farm stay' },
-  { label: 'Camp', value: 'camp', icon: '⛺', desc: 'Camping or glamping site' },
-  { label: 'Hotel Room', value: 'hotel', icon: '🏨', desc: 'Hotel-style accommodation' },
+  { label: 'Chalet', value: 'chalet', icon: '\u{1F3D4}\uFE0F', desc: 'Mountain or nature retreat' },
+  { label: 'Apartment', value: 'apartment', icon: '\u{1F3E2}', desc: 'City or urban flat' },
+  { label: 'Villa', value: 'villa', icon: '\u{1F3E1}', desc: 'Spacious private home' },
+  { label: 'Studio', value: 'studio', icon: '\u{1F3E0}', desc: 'Compact one-room unit' },
+  { label: 'Farm', value: 'farm', icon: '\u{1F33E}', desc: 'Rural farm stay' },
+  { label: 'Camp', value: 'camp', icon: '\u26FA', desc: 'Camping or glamping site' },
+  { label: 'Hotel Room', value: 'hotel', icon: '\u{1F3E8}', desc: 'Hotel-style accommodation' },
 ];
 
 const CITIES_AR: Record<string, string> = {
@@ -105,7 +105,8 @@ function getSteps(isAr: boolean) {
 const STEPS = [
   { num: 1, label: 'Property Type', desc: 'What kind of property?', icon: Building2 },
   { num: 2, label: 'Location', desc: 'Where is it?', icon: MapPin },
-  { num: 3, label: 'Details', desc: 'Rooms & capacity', icon: Users },   { num: 4, label: 'Pricing', desc: 'Set your rates', icon: DollarSign },
+  { num: 3, label: 'Details', desc: 'Rooms & capacity', icon: Users },
+  { num: 4, label: 'Pricing', desc: 'Set your rates', icon: DollarSign },
   { num: 5, label: 'Amenities', desc: 'What you offer', icon: Sparkles },
   { num: 6, label: 'Images', desc: 'Show it off', icon: ImagePlus },
   { num: 7, label: 'Rules', desc: 'House rules', icon: Shield },
@@ -762,14 +763,4 @@ export default function PropertyForm({ initialData, isEditing = false }: Propert
                 {form.images.filter(img => img.isPrimary).map((img, i) => (
                   <div key="cover" className="relative rounded-2xl overflow-hidden border-2 border-primary-200 group">
                     <div className="aspect-video relative">
-                      <img src={img.url} alt="Cover" className="w-full h-full object-cover" />
-                    </div>
-                    <div className="absolute top-3 left-3 bg-primary-600 text-white text-[10px] font-bold px-3 py-1 rounded-full">
-                      {isAr ? 'صورة الغلاف' : 'Cover Photo'}
-                    </div>
-                    <button
-                      onClick={() => removeImage(form.images.findIndex(x => x === img))}
-                      className="absolute top-3 right-3 w-8 h-8 bg-black/50 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70"
-                    >
-                      <X className="w-4 h-4" />
-  
+                      <img src={img.url} alt="Cover"
