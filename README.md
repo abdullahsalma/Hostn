@@ -41,12 +41,13 @@ The system is fully operational with role-based access for three user types (Gue
 ### Host Dashboard
 
 - **Overview** — Earnings, active listings, booking stats, occupancy rate, and notifications.
-- **Listings Management** — Add, edit, activate/deactivate properties. Grid and table views with search and filtering.
+- **Listings Management** — Add, edit, activate/deactivate properties with photo uploads via Cloudinary. Grid and table views with search and filtering.
 - **Booking Management** — View incoming bookings. Accept or reject pending reservations.
 - **Calendar** — Per-property availability calendar with date blocking/unblocking.
 - **Earnings** — Monthly revenue breakdown, top properties by revenue, payout history.
 - **Reviews** — View and respond to guest reviews. Rating distribution and category breakdowns.
 - **Settings** — Profile management, notification preferences, security settings.
+- **Language Toggle** — Full Arabic/English switching in sidebar and top navigation, shared with the guest-facing language context.
 
 ### Admin Operations Center
 
@@ -332,13 +333,14 @@ Any password works for all seed accounts in the Next.js API Routes mode.
 
 ## Deployment
 
-The production site is deployed on **Vercel** with automatic deployments from the `main` branch on GitHub.
+The production stack uses **Vercel** for the Next.js frontend and **Railway** for the Express backend API, both with automatic deployments from the `main` branch.
 
 ```
-GitHub (main branch) → Vercel Auto-Deploy → hostn.co
+GitHub (main branch) → Vercel Auto-Deploy  → hostn.co (frontend)
+GitHub (main branch) → Railway Auto-Deploy → API server (backend)
 ```
 
-Every push to `main` triggers a new deployment. The site is typically live within 1-2 minutes of a push.
+Every push to `main` triggers deployments on both platforms. The site is typically live within 1-2 minutes of a push.
 
 ---
 
@@ -346,13 +348,14 @@ Every push to `main` triggers a new deployment. The site is typically live withi
 
 Planned improvements for production readiness:
 
-- [ ] **Persistent database** — Migrate from in-memory seed data to MongoDB Atlas
+- [x] **Persistent database** — MongoDB Atlas for production data storage
+- [x] **Image upload** — Host property photo uploads via Cloudinary
+- [x] **Bilingual host dashboard** — Full Arabic/English language toggle for the host panel
 - [ ] **Payment integration** — Stripe or PayTabs for real transactions
 - [ ] **Email notifications** — Booking confirmations, host alerts, admin actions via SendGrid/Resend
-- [ ] **Image upload** — Host property photo uploads via Cloudinary or S3
 - [ ] **Real-time messaging** — Guest-host chat via WebSocket
 - [ ] **Map view** — Property locations on an interactive map
-- [ ] **Mobile app** — React Native companion app
+- [ ] **Mobile apps** — Native iOS apps for guests and hosts (Swift/SwiftUI)
 - [ ] **Analytics dashboard** — Revenue trends, occupancy metrics, conversion tracking
 
 ---
