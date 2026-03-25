@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import { Mail, Lock, User, Phone, Eye, EyeOff, Shield, Star, Award } from 'lucide-react';
+import { Mail, Lock, User, Phone, Eye, EyeOff, Shield, Star, Award, Briefcase, Home, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useLanguage } from '@/context/LanguageContext';
 
@@ -14,7 +14,7 @@ function RegisterContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { register } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const defaultRole = searchParams.get('role') || 'guest';
 
@@ -71,9 +71,9 @@ function RegisterContent() {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex overflow-hidden">
       {/* Left: Form */}
-      <div className="flex-1 flex flex-col justify-center px-6 py-12 lg:px-16 xl:px-24 max-w-2xl overflow-y-auto">
+      <div className="flex-1 flex flex-col justify-center px-6 py-12 lg:px-16 xl:px-24 overflow-y-auto">
         <div className="w-full max-w-sm mx-auto">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 mb-8 group">
@@ -90,23 +90,34 @@ function RegisterContent() {
             <p className="text-gray-500">{t('auth.joinThousands')}</p>
           </div>
 
-          {/* Role selector */}
+          {/* Role selector — premium design */}
           <div className="grid grid-cols-2 gap-3 mb-6">
             {[
-              { key: 'guest', emoji: 'ð§³', label: "I'm a Guest" },
-              { key: 'host', emoji: 'ð ', label: "I'm a Host" },
+              { key: 'guest', Icon: Briefcase, labelAr: 'أنا ضيف', labelEn: "I'm a Guest", descAr: 'أبحث عن إقامة مميزة', descEn: 'Looking for a stay' },
+              { key: 'host', Icon: Home, labelAr: 'أنا مضيف', labelEn: "I'm a Host", descAr: 'أريد تأجير عقاري', descEn: 'List my property' },
             ].map((r) => (
               <button
                 key={r.key}
                 type="button"
                 onClick={() => update('role', r.key)}
-                className={`py-3 px-4 rounded-xl border-2 text-sm font-semibold transition-all duration-300 ${
+                className={`relative py-4 px-4 rounded-2xl border-2 text-sm font-semibold transition-all duration-300 flex flex-col items-center gap-2 ${
                   form.role === r.key
-                    ? 'border-primary-600 bg-primary-50 text-primary-700 shadow-sm'
-                    : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                    ? 'border-primary-600 bg-gradient-to-b from-primary-50 to-white text-primary-700 shadow-md ring-1 ring-primary-200'
+                    : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50/50'
                 }`}
               >
-                {r.emoji} {r.label}
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+                  form.role === r.key ? 'bg-primary-100 text-primary-600' : 'bg-gray-100 text-gray-500'
+                }`}>
+                  <r.Icon className="w-5 h-5" />
+                </div>
+                <span className="font-bold text-sm">{language === 'ar' ? r.labelAr : r.labelEn}</span>
+                <span className={`text-[11px] font-normal ${form.role === r.key ? 'text-primary-500' : 'text-gray-400'}`}>{language === 'ar' ? r.descAr : r.descEn}</span>
+                {form.role === r.key && (
+                  <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-primary-600 rounded-full flex items-center justify-center">
+                    <Check className="w-3 h-3 text-white" />
+                  </div>
+                )}
               </button>
             ))}
           </div>
@@ -162,11 +173,7 @@ function RegisterContent() {
               leftIcon={<Lock className="w-4 h-4" />}
             />
 
-            <p className="text-xs text-gray-500">
-              By creating an account you agree to our{' '}
-              <a href="#" className="text-primary-600 hover:underline">Terms of Service</a> and{' '}
-              <a href="#" className="text-primary-600 hover:underline">Privacy Policy</a>.
-            </p>
+            <p className="text-xs text-gray-500">{t('auth.agreeTerms')}</p>
 
             <Button type="submit" isLoading={loading} size="lg" className="w-full">
               {t('auth.signUpButton')}
@@ -183,7 +190,7 @@ function RegisterContent() {
       </div>
 
       {/* Right: Premium visual panel */}
-      <div className="hidden lg:block relative flex-1 overflow-hidden">
+      <div className="hidden lg:block relative w-[45%] max-w-[600px] flex-shrink-0 overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center scale-105"
           style={{
@@ -205,16 +212,16 @@ function RegisterContent() {
           <div className="animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
             <div className="gold-line mb-4" />
             <p className="text-sm font-medium text-white/60 uppercase tracking-widest">
-              Your Journey Starts Here
+              {t('auth.journeyStarts')}
             </p>
           </div>
 
           {/* Center: Features */}
           <div className="space-y-6 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
             {[
-              { icon: Shield, title: 'Verified Properties', desc: 'Every listing is personally verified for quality' },
-              { icon: Star, title: 'Premium Experiences', desc: 'Curated luxury stays across Saudi Arabia' },
-              { icon: Award, title: 'Dedicated Support', desc: '24/7 concierge service for every booking' },
+              { icon: Shield, title: t('auth.verifiedProperties'), desc: t('auth.verifiedDesc') },
+              { icon: Star, title: t('auth.premiumExperiences'), desc: t('auth.premiumDesc') },
+              { icon: Award, title: t('auth.dedicatedSupport'), desc: t('auth.dedicatedDesc') },
             ].map(({ icon: Icon, title, desc }) => (
               <div key={title} className="flex items-start gap-4">
                 <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-sm flex-shrink-0">
@@ -231,14 +238,13 @@ function RegisterContent() {
           {/* Bottom: Platform highlights */}
           <div className="grid grid-cols-2 gap-4 animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
             {[
-              { value: 'Verified', label: 'Listings' },
-              { value: 'Secure', label: 'Payments' },
-              { value: 'Saudi-First', label: 'Platform' },
-              { value: '24/7', label: 'Support' },
-            ].map((stat) => (
-              <div key={stat.label} className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/5">
-                <div className="text-xl font-extrabold text-gold-300">{stat.value}</div>
-                <div className="text-xs text-white/50 mt-0.5">{stat.label}</div>
+              { value: t('auth.securePayments'), label: '' },
+              { value: t('auth.verifiedListings'), label: '' },
+              { value: t('auth.saudiFirst'), label: '' },
+              { value: t('auth.support247'), label: '' },
+            ].map((stat, i) => (
+              <div key={i} className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/5">
+                <div className="text-sm font-bold text-gold-300">{stat.value}</div>
               </div>
             ))}
           </div>

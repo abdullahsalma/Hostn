@@ -31,6 +31,7 @@ async function sendEmail(params: EmailParams): Promise<boolean> {
   // Try Resend first
   if (RESEND_API_KEY) {
     try {
+      const plainText = text || html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
       const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -39,10 +40,15 @@ async function sendEmail(params: EmailParams): Promise<boolean> {
         },
         body: JSON.stringify({
           from: `${FROM_NAME} <${FROM_EMAIL}>`,
+          reply_to: 'support@hostn.co',
           to: [to],
           subject,
           html,
-          text: text || html.replace(/<[^>]*>/g, ''),
+          text: plainText,
+          headers: {
+            'X-Entity-Ref-ID': `hostn-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+            'List-Unsubscribe': `<mailto:unsubscribe@hostn.co?subject=unsubscribe>`,
+          },
         }),
       });
 
@@ -272,17 +278,23 @@ export async function sendPasswordResetEmail(params: {
   const resetUrl = `${APP_URL}/auth/reset-password?token=${resetToken}`;
 
   const html = baseTemplate(`
-    <h2 style="margin:0 0 16px;color:#1B3A5C;font-size:20px;">Reset Your Password</h2>
+    <h2 style="margin:0 0 16px;color:#1B3A5C;font-size:20px;">Password Reset Request</h2>
+    <p style="margin:0 0 8px;color:#374151;font-size:14px;line-height:1.6;">
+      Hello ${name},
+    </p>
     <p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.6;">
-      Hi ${name},<br><br>
-      We received a request to reset your password. Click the button below to set a new password.
-      This link will expire in 1 hour.
+      You recently requested to reset your password for your Hostn account. Use the button below to proceed. This link is valid for 1 hour.
     </p>
-    <p style="margin:16px 0;">
-      <a href="${resetUrl}" style="display:inline-block;background-color:#2E75B6;color:#ffffff;padding:12px 32px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;">Reset Password</a>
+    <p style="margin:20px 0;text-align:center;">
+      <a href="${resetUrl}" style="display:inline-block;background-color:#1B3A5C;color:#ffffff;padding:14px 40px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;letter-spacing:0.3px;">Reset My Password</a>
     </p>
-    <p style="margin:24px 0 0;color:#9ca3af;font-size:12px;">
-      If you did not request a password reset, please ignore this email. Your password will remain unchanged.
+    <p style="margin:16px 0 0;color:#6b7280;font-size:13px;line-height:1.5;">
+      If the button above doesn't work, copy and paste this URL into your browser:<br>
+      <a href="${resetUrl}" style="color:#2E75B6;word-break:break-all;font-size:12px;">${resetUrl}</a>
+    </p>
+    <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb;">
+    <p style="margin:0;color:#9ca3af;font-size:12px;line-height:1.5;">
+      If you did not request this password reset, you can safely ignore this email. Your password will remain unchanged. This email was sent from Hostn (hostn.co).
     </p>
   `);
 

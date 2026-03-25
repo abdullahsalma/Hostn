@@ -30,6 +30,20 @@ import {
   GripVertical,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useLanguage } from '@/context/LanguageContext';
+
+// ─── Bilingual helpers ──────────────────────────────────────────────
+function getPropTypes(isAr: boolean): { label: string; value: PropertyType; icon: string; desc: string }[] {
+  return [
+    { label: isAr ? 'شاليه' : 'Chalet', value: 'chalet', icon: '🏔️', desc: isAr ? 'استراحة في الطبيعة' : 'Mountain or nature retreat' },
+    { label: isAr ? 'شقة' : 'Apartment', value: 'apartment', icon: '🏢', desc: isAr ? 'شقة في المدينة' : 'City or urban flat' },
+    { label: isAr ? 'فيلا' : 'Villa', value: 'villa', icon: '🏡', desc: isAr ? 'منزل خاص واسع' : 'Spacious private home' },
+    { label: isAr ? 'استوديو' : 'Studio', value: 'studio', icon: '🏠', desc: isAr ? 'وحدة غرفة واحدة' : 'Compact one-room unit' },
+    { label: isAr ? 'مزرعة' : 'Farm', value: 'farm', icon: '🌾', desc: isAr ? 'إقامة ريفية' : 'Rural farm stay' },
+    { label: isAr ? 'مخيم' : 'Camp', value: 'camp', icon: '⛺', desc: isAr ? 'تخييم أو تخييم فاخر' : 'Camping or glamping site' },
+    { label: isAr ? 'غرفة فندقية' : 'Hotel Room', value: 'hotel', icon: '🏨', desc: isAr ? 'إقامة فندقية' : 'Hotel-style accommodation' },
+  ];
+}
 
 // ─── Constants ──────────────────────────────────────────────────────
 const PROPERTY_TYPES: { label: string; value: PropertyType; icon: string; desc: string }[] = [
@@ -41,6 +55,12 @@ const PROPERTY_TYPES: { label: string; value: PropertyType; icon: string; desc: 
   { label: 'Camp', value: 'camp', icon: '⛺', desc: 'Camping or glamping site' },
   { label: 'Hotel Room', value: 'hotel', icon: '🏨', desc: 'Hotel-style accommodation' },
 ];
+
+const CITIES_AR: Record<string, string> = {
+  'Riyadh': 'الرياض', 'Jeddah': 'جدة', 'Abha': 'أبها', 'Khobar': 'الخبر',
+  'Taif': 'الطائف', 'Al Ula': 'العلا', 'Hail': 'حائل', 'Mecca': 'مكة',
+  'Madinah': 'المدينة', 'Dammam': 'الدمام', 'Yanbu': 'ينبع', 'Tabuk': 'تبوك',
+};
 
 const CITIES = ['Riyadh', 'Jeddah', 'Abha', 'Khobar', 'Taif', 'Al Ula', 'Hail', 'Mecca', 'Madinah', 'Dammam', 'Yanbu', 'Tabuk'];
 
@@ -59,6 +79,19 @@ const AMENITY_CATEGORIES = {
 };
 
 // ─── Step definitions ───────────────────────────────────────────────
+function getSteps(isAr: boolean) {
+  return [
+    { num: 1, label: isAr ? 'نوع العقار' : 'Property Type', desc: isAr ? 'ما نوع العقار؟' : 'What kind of property?', icon: Building2 },
+    { num: 2, label: isAr ? 'الموقع' : 'Location', desc: isAr ? 'أين يقع؟' : 'Where is it?', icon: MapPin },
+    { num: 3, label: isAr ? 'التفاصيل' : 'Details', desc: isAr ? 'الغرف والسعة' : 'Rooms & capacity', icon: Users },
+    { num: 4, label: isAr ? 'التسعير' : 'Pricing', desc: isAr ? 'حدد الأسعار' : 'Set your rates', icon: DollarSign },
+    { num: 5, label: isAr ? 'المرافق' : 'Amenities', desc: isAr ? 'ما تقدمه' : 'What you offer', icon: Sparkles },
+    { num: 6, label: isAr ? 'الصور' : 'Images', desc: isAr ? 'أظهر عقارك' : 'Show it off', icon: ImagePlus },
+    { num: 7, label: isAr ? 'القواعد' : 'Rules', desc: isAr ? 'قواعد المنزل' : 'House rules', icon: Shield },
+    { num: 8, label: isAr ? 'المراجعة' : 'Review', desc: isAr ? 'معاينة ونشر' : 'Preview & publish', icon: Eye },
+  ];
+}
+
 const STEPS = [
   { num: 1, label: 'Property Type', desc: 'What kind of property?', icon: Building2 },
   { num: 2, label: 'Location', desc: 'Where is it?', icon: MapPin },
@@ -77,6 +110,10 @@ interface PropertyFormProps {
 
 export default function PropertyForm({ initialData, isEditing = false }: PropertyFormProps) {
   const router = useRouter();
+  const { language } = useLanguage();
+  const isAr = language === 'ar';
+  const steps = getSteps(isAr);
+  const propTypes = getPropTypes(isAr);
   const [saving, setSaving] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -176,7 +213,7 @@ export default function PropertyForm({ initialData, isEditing = false }: Propert
 
   const nextStep = () => {
     if (validateStep(currentStep)) {
-      setCurrentStep((s) => Math.min(s + 1, STEPS.length));
+      setCurrentStep((s) => Math.min(s + 1, steps.length));
     }
   };
 
@@ -288,15 +325,15 @@ export default function PropertyForm({ initialData, isEditing = false }: Propert
   );
 
   // ─── Completion percentage ────────────────────────────────────────
-  const completionPct = Math.round(((currentStep - 1) / (STEPS.length - 1)) * 100);
+  const completionPct = Math.round(((currentStep - 1) / (steps.length - 1)) * 100);
 
   return (
     <div className="max-w-4xl">
       {/* Progress bar */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold text-gray-500">Step {currentStep} of {STEPS.length}</span>
-          <span className="text-xs font-semibold text-primary-600">{completionPct}% complete</span>
+          <span className="text-xs font-semibold text-gray-500">{isAr ? `الخطوة ${currentStep} من ${steps.length}` : `Step ${currentStep} of ${steps.length}`}</span>
+          <span className="text-xs font-semibold text-primary-600">{isAr ? `مكتمل ${completionPct}%` : `${completionPct}% complete`}</span>
         </div>
         <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
           <div
@@ -308,7 +345,7 @@ export default function PropertyForm({ initialData, isEditing = false }: Propert
 
       {/* Step indicator */}
       <div className="flex gap-1 mb-8 overflow-x-auto pb-2 -mx-1 px-1">
-        {STEPS.map((step) => {
+        {steps.map((step) => {
           const StepIcon = step.icon;
           const isCompleted = currentStep > step.num;
           const isCurrent = currentStep === step.num;
@@ -347,7 +384,7 @@ export default function PropertyForm({ initialData, isEditing = false }: Propert
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {PROPERTY_TYPES.map((t) => (
+            {propTypes.map((t) => (
               <button
                 key={t.value}
                 type="button"
@@ -612,7 +649,7 @@ export default function PropertyForm({ initialData, isEditing = false }: Propert
       {currentStep === 6 && (
         <div className="space-y-6">
           <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-1">Add photos of your property</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-1">{isAr ? 'أضف صور عقارك' : 'Add photos of your property'}</h2>
             <p className="text-sm text-gray-500">
               High-quality photos help attract more guests. Add at least 1 image.
               {form.images.length > 0 && <span className="font-semibold text-primary-600 ml-1">{form.images.length} photo{form.images.length !== 1 ? 's' : ''} added</span>}
@@ -689,7 +726,7 @@ export default function PropertyForm({ initialData, isEditing = false }: Propert
             ) : (
               <div className="border-2 border-dashed border-gray-200 rounded-2xl p-12 text-center">
                 <ImagePlus className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-                <p className="text-sm text-gray-500 font-medium">No photos yet</p>
+                <p className="text-sm text-gray-500 font-medium">{isAr ? 'لا توجد صور بعد' : 'No photos yet'}</p>
                 <p className="text-xs text-gray-400 mt-1">Paste a URL above to add your first photo</p>
               </div>
             )}
@@ -881,13 +918,13 @@ export default function PropertyForm({ initialData, isEditing = false }: Propert
           disabled={currentStep === 1}
           className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
-          <ChevronLeft className="w-4 h-4" /> Previous
+          <ChevronLeft className="w-4 h-4" /> {isAr ? 'السابق' : 'Previous'}
         </button>
 
         <div className="flex gap-3">
-          {currentStep < STEPS.length ? (
+          {currentStep < steps.length ? (
             <Button onClick={nextStep} rightIcon={<ChevronRight className="w-4 h-4" />}>
-              Continue
+              {isAr ? 'التالي' : 'Continue'}
             </Button>
           ) : (
             <Button
@@ -896,7 +933,7 @@ export default function PropertyForm({ initialData, isEditing = false }: Propert
               leftIcon={<Save className="w-4 h-4" />}
               size="lg"
             >
-              {isEditing ? 'Update Property' : 'Publish Listing'}
+              {isEditing ? (isAr ? 'تحديث العقار' : 'Update Property') : (isAr ? 'نشر العقار' : 'Publish Listing')}
             </Button>
           )}
         </div>

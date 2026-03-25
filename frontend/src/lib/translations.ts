@@ -283,6 +283,37 @@ export const translations = {
     'common.submit': 'Submit',
     'common.sar': 'SAR',
     'common.night': 'night',
+
+    // Booking widget
+    'booking.checkIn': 'CHECK-IN',
+    'booking.checkOut': 'CHECK-OUT',
+    'booking.guests': 'GUESTS',
+    'booking.guestCount': 'guest',
+    'booking.guestsCount': 'guests',
+    'booking.bookFor': 'Book for',
+    'booking.nights': 'nights',
+    'booking.nightSingle': 'night',
+    'booking.checkAvailability': 'Check Availability',
+    'booking.notChargedYet': "You won't be charged yet",
+    'booking.cleaningFee': 'Cleaning fee',
+    'booking.serviceFee': 'Service fee',
+    'booking.total': 'Total',
+    'booking.selectDates': 'Please select check-in and check-out dates',
+    'booking.checkOutAfter': 'Check-out must be after check-in',
+    'booking.maxGuests': 'Maximum {count} guests allowed',
+    'booking.perNight': '/night',
+
+    // Host sidebar
+    'host.overview': 'Overview',
+    'host.listings': 'Listings',
+    'host.bookings': 'Bookings',
+    'host.calendar': 'Calendar',
+    'host.earnings': 'Earnings',
+    'host.reviews': 'Reviews',
+    'host.messages': 'Messages',
+    'host.settings': 'Settings',
+    'host.business': 'Business',
+    'host.backToSite': 'Back to site',
   },
   ar: {
     // Header nav
@@ -347,7 +378,7 @@ export const translations = {
     'featured.viewAllProperties': 'عرض جميع العقارات',
 
     // Why Hostn
-    'why.title': 'ليش تحجز مع هوستن؟',
+    'why.title': 'ليش تحبز مع هوستن؟',
     'why.subtitle': 'نسهّل عليك البحث والحجز — بكل أمان وراحة بال.',
     'why.verified': 'عقارات موثقة',
     'why.verifiedDesc': 'كل عقار يتم التحقق من جودته ودقة معلوماته قبل النشر.',
@@ -566,5 +597,36 @@ export const translations = {
     'common.submit': 'إرسال',
     'common.sar': 'ر.س',
     'common.night': 'ليلة',
+
+    // Booking widget
+    'booking.checkIn': 'تسجيل الدخول',
+    'booking.checkOut': 'تسجيل الخروج',
+    'booking.guests': 'الضيوف',
+    'booking.guestCount': 'ضيف',
+    'booking.guestsCount': 'ضيوف',
+    'booking.bookFor': 'احجز لمدة',
+    'booking.nights': 'ليالي',
+    'booking.nightSingle': 'ليلة',
+    'booking.checkAvailability': 'تحقق من التوفر',
+    'booking.notChargedYet': 'لن يتم خصم أي مبلغ الآن',
+    'booking.cleaningFee': 'رسوم التنظيف',
+    'booking.serviceFee': 'رسوم الخدمة',
+    'booking.total': 'الإجمالي',
+    'booking.selectDates': 'يرجى اختيار تاريخ الدخول والخروج',
+    'booking.checkOutAfter': 'يجب أن يكون تاريخ الخروج بعد تاريخ الدخول',
+    'booking.maxGuests': 'الحد الأقصى {count} ضيوف',
+    'booking.perNight': '/ليلة',
+
+    // Host sidebar
+    'host.overview': 'نظرة عامة',
+    'host.listings': 'العقارات',
+    'host.bookings': 'الحجوزات',
+    'host.calendar': 'التقويم',
+    'host.earnings': 'الأرباح',
+    'host.reviews': 'التقييمات',
+    'host.messages': 'الرسائل',
+    'host.settings': 'الإعدادات',
+    'host.business': 'الأعمال',
+    'host.backToSite': 'العودة للموقع',
   },
 } as const;
