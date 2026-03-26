@@ -8,6 +8,7 @@
     "scheme": "hostn",
     "userInterfaceStyle": "light",
     "splash": {
+      "image": "./assets/images/splash.png",
       "backgroundColor": "#4B0082",
       "resizeMode": "contain"
     },
@@ -21,6 +22,7 @@
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#4B0082"
       },
       "package": "com.hostn.app",
@@ -47,6 +49,10 @@
         }
       ]
     ],
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/images/favicon.png"
+    },
     "experiments": {
       "typedRoutes": true
     }

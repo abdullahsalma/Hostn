@@ -136,11 +136,7 @@ export default function DatesScreen() {
           textMonthFontSize: 18,
           textDayFontSize: 16,
           textDayHeaderFontSize: 14,
-          'stylesheet.calendar.header': {
-            dayTextAtIndex0: { color: Colors.textSecondary },
-            dayTextAtIndex6: { color: Colors.textSecondary },
-          },
-        }}
+        } as any}
       />
 
       {/* Search Button */}

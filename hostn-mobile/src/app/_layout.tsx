@@ -6,8 +6,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as SplashScreen from 'expo-splash-screen';
 import { useAuthStore } from '../store/authStore';
 import { Colors } from '../constants/theme';
+import { initLanguage } from '../utils/i18n';
+import ToastContainer from '../components/ui/Toast';
+import NetworkBanner from '../components/ui/NetworkBanner';
+import { useNotifications } from '../hooks/useNotifications';
 
 SplashScreen.preventAutoHideAsync();
+initLanguage();
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -21,6 +26,7 @@ const queryClient = new QueryClient({
 
 export default function RootLayout() {
   const { initialize, isLoading, isAuthenticated, hasCompletedOnboarding } = useAuthStore();
+  useNotifications();
 
   useEffect(() => {
     const init = async () => {
@@ -36,6 +42,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
+          <NetworkBanner />
           <Stack screenOptions={{ headerShown: false }}>
             {!hasCompletedOnboarding ? (
               <Stack.Screen name="(auth)/onboarding" />
@@ -72,6 +79,7 @@ export default function RootLayout() {
               </>
             )}
           </Stack>
+          <ToastContainer />
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

@@ -22,7 +22,7 @@ export default function OTPVerifyScreen() {
   const [otp, setOtp] = useState(['', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [countdown, setCountdown] = useState(APP_CONFIG.otpResendSeconds);
+  const [countdown, setCountdown] = useState<number>(APP_CONFIG.otpResendSeconds);
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const router = useRouter();
   const setAuth = useAuthStore((s) => s.setAuth);
