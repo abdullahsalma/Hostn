@@ -6,7 +6,6 @@ import { authApi } from '@/lib/api';
 
 interface AuthContextType {
   user: User | null;
-  token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
@@ -28,55 +27,46 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load user from localStorage on mount and sync cookie
+  // Load user from localStorage on mount (only user object, NOT the token)
   useEffect(() => {
-    const storedToken = localStorage.getItem('hostn_token');
     const storedUser = localStorage.getItem('hostn_user');
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
-      // Ensure cookie stays in sync for server-side middleware
-      setCookie('hostn_token', storedToken, 7);
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch {
+        localStorage.removeItem('hostn_user');
+      }
     }
     setIsLoading(false);
   }, []);
 
-  const setCookie = (name: string, value: string, days: number) => {
-    const expires = new Date(Date.now() + days * 864e5).toUTCString();
-    document.cookie = `${name}=${encodeURIComponent(value)};expires=${expires};path=/;SameSite=Lax`;
-  };
-
-  const deleteCookie = (name: string) => {
-    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Lax`;
-  };
-
-  const saveAuth = (token: string, user: User) => {
-    localStorage.setItem('hostn_token', token);
+  const saveAuth = (user: User) => {
+    // Only store user profile in localStorage (never the token)
     localStorage.setItem('hostn_user', JSON.stringify(user));
-    // Also set as cookie so Next.js middleware can read it for server-side route protection
-    setCookie('hostn_token', token, 7);
-    setToken(token);
     setUser(user);
   };
 
   const login = async (email: string, password: string) => {
+    // The server sets an HttpOnly cookie in the response — no token in JS
     const res = await authApi.login({ email, password });
-    saveAuth(res.data.token, res.data.user);
+    saveAuth(res.data.user);
   };
 
   const register = async (data: RegisterData) => {
     const res = await authApi.register(data);
-    saveAuth(res.data.token, res.data.user);
+    saveAuth(res.data.user);
   };
 
-  const logout = useCallback(() => {
-    localStorage.removeItem('hostn_token');
+  const logout = useCallback(async () => {
+    try {
+      // Call server to clear HttpOnly cookie
+      await authApi.logout();
+    } catch {
+      // Continue logout even if API call fails
+    }
     localStorage.removeItem('hostn_user');
-    deleteCookie('hostn_token');
-    setToken(null);
     setUser(null);
   }, []);
 
@@ -96,7 +86,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
-        token,
         isLoading,
         isAuthenticated: !!user,
         login,

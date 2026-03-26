@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import {
   LayoutDashboard,
   Building2,
@@ -17,6 +18,7 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  Globe,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -27,23 +29,31 @@ interface HostSidebarProps {
   onMobileClose: () => void;
 }
 
-const navItems = [
-  { href: '/host', label: 'Overview', icon: LayoutDashboard },
-  { href: '/host/listings', label: 'Listings', icon: Building2 },
-  { href: '/host/bookings', label: 'Bookings', icon: BookOpen },
-  { href: '/host/calendar', label: 'Calendar', icon: CalendarDays },
-  { href: '/host/earnings', label: 'Earnings', icon: DollarSign },
-  { href: '/host/reviews', label: 'Reviews', icon: Star },
-  { href: '/host/messages', label: 'Messages', icon: MessageSquare },
-];
+function getNavItems(isAr: boolean) {
+  return [
+    { href: '/host', label: isAr ? '\u0646\u0638\u0631\u0629 \u0639\u0627\u0645\u0629' : 'Overview', icon: LayoutDashboard },
+    { href: '/host/listings', label: isAr ? '\u0627\u0644\u0639\u0642\u0627\u0631\u0627\u062A' : 'Listings', icon: Building2 },
+    { href: '/host/bookings', label: isAr ? '\u0627\u0644\u062D\u062C\u0648\u0632\u0627\u062A' : 'Bookings', icon: BookOpen },
+    { href: '/host/calendar', label: isAr ? '\u0627\u0644\u062A\u0642\u0648\u064A\u0645' : 'Calendar', icon: CalendarDays },
+    { href: '/host/earnings', label: isAr ? '\u0627\u0644\u0623\u0631\u0628\u0627\u062D' : 'Earnings', icon: DollarSign },
+    { href: '/host/reviews', label: isAr ? '\u0627\u0644\u062A\u0642\u064A\u064A\u0645\u0627\u062A' : 'Reviews', icon: Star },
+    { href: '/host/messages', label: isAr ? '\u0627\u0644\u0631\u0633\u0627\u0626\u0644' : 'Messages', icon: MessageSquare },
+  ];
+}
 
-const bottomNavItems = [
-  { href: '/host/settings', label: 'Settings', icon: Settings },
-];
+function getBottomNavItems(isAr: boolean) {
+  return [
+    { href: '/host/settings', label: isAr ? '\u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A' : 'Settings', icon: Settings },
+  ];
+}
 
 export default function HostSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: HostSidebarProps) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { language, toggleLanguage } = useLanguage();
+  const isAr = language === 'ar';
+  const navItems = getNavItems(isAr);
+  const bottomNavItems = getBottomNavItems(isAr);
 
   const isActive = (href: string) => {
     if (href === '/host') return pathname === '/host';
@@ -62,7 +72,7 @@ export default function HostSidebar({ collapsed, onToggle, mobileOpen, onMobileC
             <div>
               <span className="text-lg font-bold text-gray-900">Hostn</span>
               <span className="block text-[10px] font-semibold text-primary-600 uppercase tracking-wider -mt-0.5">
-                Business
+                {isAr ? '\u0627\u0644\u0623\u0639\u0645\u0627\u0644' : 'Business'}
               </span>
             </div>
           )}
@@ -133,12 +143,21 @@ export default function HostSidebar({ collapsed, onToggle, mobileOpen, onMobileC
           </Link>
         ))}
 
+        {/* Language toggle */}
+        <button
+          onClick={toggleLanguage}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors w-full"
+        >
+          <Globe className="w-[18px] h-[18px] flex-shrink-0" />
+          {!collapsed && <span>{isAr ? 'English' : '\u0627\u0644\u0639\u0631\u0628\u064A\u0629'}</span>}
+        </button>
+
         <Link
           href="/"
           className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"
         >
           <ArrowLeft className="w-[18px] h-[18px] flex-shrink-0" />
-          {!collapsed && <span>Back to site</span>}
+          {!collapsed && <span>{isAr ? '\u0627\u0644\u0639\u0648\u062F\u0629 \u0644\u0644\u0645\u0648\u0642\u0639' : 'Back to site'}</span>}
         </Link>
 
         {/* User */}

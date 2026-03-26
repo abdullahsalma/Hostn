@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { hostApi } from '@/lib/api';
 import { HostNotification } from '@/types';
 import {
@@ -14,6 +15,7 @@ import {
   Settings,
   User,
   ExternalLink,
+  Globe,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -24,6 +26,8 @@ interface HostTopNavProps {
 
 export default function HostTopNav({ onMenuClick, title }: HostTopNavProps) {
   const { user, logout } = useAuth();
+  const { language, toggleLanguage } = useLanguage();
+  const isAr = language === 'ar';
   const [notifications, setNotifications] = useState<HostNotification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -61,6 +65,15 @@ export default function HostTopNav({ onMenuClick, title }: HostTopNavProps) {
 
         {/* Right */}
         <div className="flex items-center gap-2">
+          {/* Language toggle */}
+          <button
+            onClick={toggleLanguage}
+            className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-primary-600 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <Globe className="w-3.5 h-3.5" />
+            {isAr ? 'EN' : 'AR'}
+          </button>
+
           {/* View site link */}
           <Link
             href="/"
@@ -68,7 +81,7 @@ export default function HostTopNav({ onMenuClick, title }: HostTopNavProps) {
             className="hidden md:flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-primary-600 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
           >
             <ExternalLink className="w-3.5 h-3.5" />
-            View site
+            {isAr ? '\u0639\u0631\u0636 \u0627\u0644\u0645\u0648\u0642\u0639' : 'View site'}
           </Link>
 
           {/* Notifications */}
@@ -91,12 +104,12 @@ export default function HostTopNav({ onMenuClick, title }: HostTopNavProps) {
             {showNotifications && (
               <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden animate-slide-in z-50">
                 <div className="p-4 border-b border-gray-100">
-                  <h3 className="font-semibold text-gray-900 text-sm">Notifications</h3>
+                  <h3 className="font-semibold text-gray-900 text-sm">{isAr ? '\u0627\u0644\u0625\u0634\u0639\u0627\u0631\u0627\u062A' : 'Notifications'}</h3>
                 </div>
                 <div className="max-h-80 overflow-y-auto">
                   {notifications.length === 0 ? (
                     <div className="p-6 text-center text-sm text-gray-500">
-                      No new notifications
+                      {isAr ? '\u0644\u0627 \u062A\u0648\u062C\u062F \u0625\u0634\u0639\u0627\u0631\u0627\u062A \u062C\u062F\u064A\u062F\u0629' : 'No new notifications'}
                     </div>
                   ) : (
                     notifications.slice(0, 8).map((n) => (
@@ -113,7 +126,7 @@ export default function HostTopNav({ onMenuClick, title }: HostTopNavProps) {
                               : 'bg-blue-100 text-blue-600'
                           }`}
                         >
-                          {n.type === 'booking_pending' ? '📅' : '⭐'}
+                          {n.type === 'booking_pending' ? '\u{1F4C5}' : '\u{2B50}'}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-semibold text-gray-900">{n.title}</p>
@@ -159,7 +172,7 @@ export default function HostTopNav({ onMenuClick, title }: HostTopNavProps) {
                     className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                   >
                     <User className="w-4 h-4 text-gray-400" />
-                    My Account
+                    {isAr ? '\u062D\u0633\u0627\u0628\u064A' : 'My Account'}
                   </Link>
                   <Link
                     href="/dashboard/profile"
@@ -167,7 +180,7 @@ export default function HostTopNav({ onMenuClick, title }: HostTopNavProps) {
                     className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                   >
                     <Settings className="w-4 h-4 text-gray-400" />
-                    Settings
+                    {isAr ? '\u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A' : 'Settings'}
                   </Link>
                   <hr className="my-1 border-gray-100" />
                   <button
@@ -175,7 +188,7 @@ export default function HostTopNav({ onMenuClick, title }: HostTopNavProps) {
                     className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-red-600 hover:bg-red-50 transition-colors"
                   >
                     <LogOut className="w-4 h-4" />
-                    Sign out
+                    {isAr ? '\u062A\u0633\u062C\u064A\u0644 \u0627\u0644\u062E\u0631\u0648\u062C' : 'Sign out'}
                   </button>
                 </div>
               </div>

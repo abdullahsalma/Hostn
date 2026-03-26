@@ -106,7 +106,6 @@ const propertySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Indexes for search
 propertySchema.index({ 'location.city': 1 });
 propertySchema.index({ type: 1 });
 propertySchema.index({ 'pricing.perNight': 1 });
@@ -114,7 +113,6 @@ propertySchema.index({ 'ratings.average': -1 });
 propertySchema.index({ isFeatured: 1 });
 propertySchema.index({ title: 'text', description: 'text', 'location.city': 'text' });
 
-// Virtual for discounted price
 propertySchema.virtual('discountedPrice').get(function () {
   if (this.pricing.discountPercent > 0) {
     return this.pricing.perNight * (1 - this.pricing.discountPercent / 100);

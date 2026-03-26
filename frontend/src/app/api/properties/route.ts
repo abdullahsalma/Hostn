@@ -132,7 +132,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Only hosts can create properties' }, { status: 403 });
     }
 
-    const body = await request.json();
+    const rawBody = await request.json();
+
+    // Normalize: accept both nested format (old frontend) and flat format (new frontend)
+    const { location: loc, pricing: pr, capacity: cap, ...rest } = rawBody;
+    const body: Record<string, unknown> = {
+      ...rest,
+      // Flatten nested location if present
+      city: rest.city || loc?.city,
+      district: rest.district || loc?.district,
+      address: rest.address || loc?.address,
+      // Flatten nested pricing if present
+      perNight: rest.perNight ?? pr?.perNight,
+      cleaningFee: rest.cleaningFee ?? pr?.cleaningFee,
+      discountPercent: rest.discountPercent ?? pr?.discountPercent,
+      weeklyDiscount: rest.weeklyDiscount ?? pr?.weeklyDiscount,
+      // Flatten nested capacity if present
+      maxGuests: rest.maxGuests ?? cap?.maxGuests,
+      bedrooms: rest.bedrooms ?? cap?.bedrooms,
+      bathrooms: rest.bathrooms ?? cap?.bathrooms,
+      beds: rest.beds ?? cap?.beds,
+    };
 
     // Validate input with Zod
     const parsed = createPropertySchema.safeParse(body);
@@ -162,7 +182,7 @@ export async function POST(request: NextRequest) {
       beds,
       rules,
       tags,
-    } = parsed.data;
+    } = parsed.data as any;
 
     // Sanitize text fields to prevent stored XSS
     const sanitizedTitle = sanitizeText(title);
