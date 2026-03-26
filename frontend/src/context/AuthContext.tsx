@@ -1,1 +1,107 @@
-J3VzZSBjbGllbnQnOwoKaW1wb3J0IFJlYWN0LCB7IGNyZWF0ZUNvbnRleHQsIHVzZUNvbnRleHQsIHVzZUVmZmVjdCwgdXNlU3RhdGUsIHVzZUNhbGxiYWNrIH0gZnJvbSAncmVhY3QnOwppbXBvcnQgeyBVc2VyIH0gZnJvbSAnQC90eXBlcyc7CmltcG9ydCB7IGF1dGhBcGkgfSBmcm9tICdAL2xpYi9hcGknOwoKaW50ZXJmYWNlIEF1dGhDb250ZXh0VHlwZSB7CiAgdXNlcjogVXNlciB8IG51bGw7CiAgaXNMb2FkaW5nOiBib29sZWFuOwogIGlzQXV0aGVudGljYXRlZDogYm9vbGVhbjsKICBsb2dpbjogKGVtYWlsOiBzdHJpbmcsIHBhc3N3b3JkOiBzdHJpbmcpID0+IFByb21pc2U8dm9pZD47CiAgcmVnaXN0ZXI6IChkYXRhOiBSZWdpc3RlckRhdGEpID0+IFByb21pc2U8dm9pZD47CiAgbG9nb3V0OiAoKSA9PiB2b2lkOwogIHVwZGF0ZVVzZXI6ICh1c2VyOiBVc2VyKSA9PiB2b2lkOwogIHRvZ2dsZVdpc2hsaXN0OiAocHJvcGVydHlJZDogc3RyaW5nKSA9PiBQcm9taXNlPHZvaWQ+Owp9CgppbnRlcmZhY2UgUmVnaXN0ZXJEYXRhIHsKICBuYW1lOiBzdHJpbmc7CiAgZW1haWw6IHN0cmluZzsKICBwYXNzd29yZDogc3RyaW5nOwogIHBob25lPzogc3RyaW5nOwogIHJvbGU/OiBzdHJpbmc7Cn0KCmNvbnN0IEF1dGhDb250ZXh0ID0gY3JlYXRlQ29udGV4dDxBdXRoQ29udGV4dFR5cGUgfCB1bmRlZmluZWQ+KHVuZGVmaW5lZCk7CgpleHBvcnQgZnVuY3Rpb24gQXV0aFByb3ZpZGVyKHsgY2hpbGRyZW4gfTogeyBjaGlsZHJlbjogUmVhY3QuUmVhY3ROb2RlIH0pIHsKICBjb25zdCBbdXNlciwgc2V0VXNlcl0gPSB1c2VTdGF0ZTxVc2VyIHwgbnVsbD4obnVsbCk7CiAgY29uc3QgW2lzTG9hZGluZywgc2V0SXNMb2FkaW5nXSA9IHVzZVN0YXRlKHRydWUpOwoKICAvLyBMb2FkIHVzZXIgZnJvbSBsb2NhbFN0b3JhZ2Ugb24gbW91bnQgKG9ubHkgdXNlciBvYmplY3QsIE5PVCB0aGUgdG9rZW4pCiAgdXNlRWZmZWN0KCgpID0+IHsKICAgIGNvbnN0IHN0b3JlZFVzZXIgPSBsb2NhbFN0b3JhZ2UuZ2V0SXRlbSgnaG9zdG5fdXNlcicpOwogICAgaWYgKHN0b3JlZFVzZXIpIHsKICAgICAgdHJ5IHsKICAgICAgICBzZXRVc2VyKEpTT04ucGFyc2Uoc3RvcmVkVXNlcikpOwogICAgICB9IGNhdGNoIHsKICAgICAgICBsb2NhbFN0b3JhZ2UucmVtb3ZlSXRlbSgnaG9zdG5fdXNlcicpOwogICAgICB9CiAgICB9CiAgICBzZXRJc0xvYWRpbmcoZmFsc2UpOwogIH0sIFtdKTsKCiAgY29uc3Qgc2F2ZUF1dGggPSAodXNlcjogVXNlcikgPT4gewogICAgLy8gT25seSBzdG9yZSB1c2VyIHByb2ZpbGUgaW4gbG9jYWxTdG9yYWdlIChuZXZlciB0aGUgdG9rZW4pCiAgICBsb2NhbFN0b3JhZ2Uuc2V0SXRlbSgnaG9zdG5fdXNlcicsIEpTT04uc3RyaW5naWZ5KHVzZXIpKTsKICAgIHNldFVzZXIodXNlcik7CiAgfTsKCiAgY29uc3QgbG9naW4gPSBhc3luYyAoZW1haWw6IHN0cmluZywgcGFzc3dvcmQ6IHN0cmluZykgPT4gewogICAgLy8gVGhlIHNlcnZlciBzZXRzIGFuIEh0dHBPbmx5IGNvb2tpZSBpbiB0aGUgcmVzcG9uc2Ug4oCUIG5vIHRva2VuIGluIEpTCiAgICBjb25zdCByZXMgPSBhd2FpdCBhdXRoQXBpLmxvZ2luKHsgZW1haWwsIHBhc3N3b3JkIH0pOwogICAgc2F2ZUF1dGgocmVzLmRhdGEudXNlcik7CiAgfTsKCiAgY29uc3QgcmVnaXN0ZXIgPSBhc3luYyAoZGF0YTogUmVnaXN0ZXJEYXRhKSA9PiB7CiAgICBjb25zdCByZXMgPSBhd2FpdCBhdXRoQXBpLnJlZ2lzdGVyKGRhdGEpOwogICAgc2F2ZUF1dGgocmVzLmRhdGEudXNlcik7CiAgfTsKCiAgY29uc3QgbG9nb3V0ID0gdXNlQ2FsbGJhY2soYXN5bmMgKCkgPT4gewogICAgdHJ5IHsKICAgICAgLy8gQ2FsbCBzZXJ2ZXIgdG8gY2xlYXIgSHR0cE9ubHkgY29va2llCiAgICAgIGF3YWl0IGF1dGhBcGkubG9nb3V0KCk7CiAgICB9IGNhdGNoIHsKICAgICAgLy8gQ29udGludWUgbG9nb3V0IGV2ZW4gaWYgQVBJIGNhbGwgZmFpbHMKICAgIH0KICAgIGxvY2FsU3RvcmFnZS5yZW1vdmVJdGVtKCdob3N0bl91c2VyJyk7CiAgICBzZXRVc2VyKG51bGwpOwogIH0sIFtdKTsKCiAgY29uc3QgdXBkYXRlVXNlciA9ICh1cGRhdGVkVXNlcjogVXNlcikgPT4gewogICAgc2V0VXNlcih1cGRhdGVkVXNlcik7CiAgICBsb2NhbFN0b3JhZ2Uuc2V0SXRlbSgnaG9zdG5fdXNlcicsIEpTT04uc3RyaW5naWZ5KHVwZGF0ZWRVc2VyKSk7CiAgfTsKCiAgY29uc3QgdG9nZ2xlV2lzaGxpc3QgPSBhc3luYyAocHJvcGVydHlJZDogc3RyaW5nKSA9PiB7CiAgICBpZiAoIXVzZXIpIHJldHVybjsKICAgIGNvbnN0IHJlcyA9IGF3YWl0IGF1dGhBcGkudG9nZ2xlV2lzaGxpc3QocHJvcGVydHlJZCk7CiAgICBjb25zdCB1cGRhdGVkVXNlciA9IHsgLi4udXNlciwgd2lzaGxpc3Q6IHJlcy5kYXRhLndpc2hsaXN0IH07CiAgICB1cGRhdGVVc2VyKHVwZGF0ZWRVc2VyKTsKICB9OwoKICByZXR1cm4gKAogICAgPEF1dGhDb250ZXh0LlByb3ZpZGVyCiAgICAgIHZhbHVlPXt7CiAgICAgICAgdXNlciwKICAgICAgICBpc0xvYWRpbmcsCiAgICAgICAgaXNBdXRoZW50aWNhdGVkOiAhIXVzZXIsCiAgICAgICAgbG9naW4sCiAgICAgICAgcmVnaXN0ZXIsCiAgICAgICAgbG9nb3V0LAogICAgICAgIHVwZGF0ZVVzZXIsCiAgICAgICAgdG9nZ2xlV2lzaGxpc3QsCiAgICAgIH19CiAgICA+CiAgICAgIHtjaGlsZHJlbn0KICAgIDwvQXV0aENvbnRleHQuUHJvdmlkZXI+CiAgKTsKfQoKZXhwb3J0IGZ1bmN0aW9uIHVzZUF1dGgoKSB7CiAgY29uc3QgY29udGV4dCA9IHVzZUNvbnRleHQoQXV0aENvbnRleHQpOwogIGlmICghY29udGV4dCkgdGhyb3cgbmV3IEVycm9yKCd1c2VBdXRoIG11c3QgYmUgdXNlZCB3aXRoaW4gQXV0aFByb3ZpZGVyJyk7CiAgcmV0dXJuIGNvbnRleHQ7Cn0K
+'use client';
+
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { User } from '@/types';
+import { authApi } from '@/lib/api';
+
+interface AuthContextType {
+  user: User | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  register: (data: RegisterData) => Promise<void>;
+  logout: () => void;
+  updateUser: (user: User) => void;
+  toggleWishlist: (propertyId: string) => Promise<void>;
+}
+
+interface RegisterData {
+  name: string;
+  email: string;
+  password: string;
+  phone?: string;
+  role?: string;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load user from localStorage on mount (only user object, NOT the token)
+  useEffect(() => {
+    const storedUser = localStorage.getItem('hostn_user');
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch {
+        localStorage.removeItem('hostn_user');
+      }
+    }
+    setIsLoading(false);
+  }, []);
+
+  const saveAuth = (user: User) => {
+    // Only store user profile in localStorage (never the token)
+    localStorage.setItem('hostn_user', JSON.stringify(user));
+    setUser(user);
+  };
+
+  const login = async (email: string, password: string) => {
+    // The server sets an HttpOnly cookie in the response — no token in JS
+    const res = await authApi.login({ email, password });
+    saveAuth(res.data.user);
+  };
+
+  const register = async (data: RegisterData) => {
+    const res = await authApi.register(data);
+    saveAuth(res.data.user);
+  };
+
+  const logout = useCallback(async () => {
+    try {
+      // Call server to clear HttpOnly cookie
+      await authApi.logout();
+    } catch {
+      // Continue logout even if API call fails
+    }
+    localStorage.removeItem('hostn_user');
+    setUser(null);
+  }, []);
+
+  const updateUser = (updatedUser: User) => {
+    setUser(updatedUser);
+    localStorage.setItem('hostn_user', JSON.stringify(updatedUser));
+  };
+
+  const toggleWishlist = async (propertyId: string) => {
+    if (!user) return;
+    const res = await authApi.toggleWishlist(propertyId);
+    const updatedUser = { ...user, wishlist: res.data.wishlist };
+    updateUser(updatedUser);
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        isAuthenticated: !!user,
+        login,
+        register,
+        logout,
+        updateUser,
+        toggleWishlist,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
+  return context;
+}
