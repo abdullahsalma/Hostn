@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
       beds,
       rules,
       tags,
-    } = parsed.data;
+    } = parsed.data as any;
 
     // Sanitize text fields to prevent stored XSS
     const sanitizedTitle = sanitizeText(title);
