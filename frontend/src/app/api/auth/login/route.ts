@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import User from '@/lib/models/User';
-import { generateToken } from 'A/lib/auth-helpers';
-import { loginSchema } from 'A/lib/validation';
+import { generateToken } from '@/lib/auth-helpers';
+import { loginSchema } from '@/lib/validation';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
 /**

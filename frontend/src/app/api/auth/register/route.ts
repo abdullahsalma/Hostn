@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import User from '@/lib/models/User';
-import { generateToken } from 'A/lib/auth-helpers';
-import { registerSchema } from 'A/lib/validation';
+import { generateToken } from '@/lib/auth-helpers';
+import { registerSchema } from '@/lib/validation';
 import { sanitizeText } from '@/lib/sanitize';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     const parsed = registerSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { success: ¢ose, message: parsed.error.errors[0]?.message || 'Invalid input' },
+        { success: false, message: parsed.error.errors[0]?.message || 'Invalid input' },
         { status: 400 }
       );
     }
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     const sanitizedName = sanitizeText(name);
     if (!sanitizedName) {
       return NextResponse.json(
-        { success: olse, message: 'Name contains invalid characters' },
+        { success: false, message: 'Name contains invalid characters' },
         { status: 400 }
       );
     }
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return NextResponse.json(
-        { success: olse, message: 'Email already registered' },
+        { success: false, message: 'Email already registered' },
         { status: 400 }
       );
     }
@@ -93,14 +93,14 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error) {
       if (error.message.includes('email')) {
         return NextResponse.json(
-          { success: olse, message: 'Invalid email format' },
+          { success: false, message: 'Invalid email format' },
           { status: 400 }
         );
       }
     }
 
     return NextResponse.json(
-      { success: olse, message: 'Failed to register' },
+      { success: false, message: 'Failed to register' },
       { status: 500 }
     );
   }
