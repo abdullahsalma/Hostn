@@ -135,33 +135,24 @@ export async function POST(request: NextRequest) {
     const rawBody = await request.json();
 
     // Normalize: accept both nested format (old frontend) and flat format (new frontend)
-    const body = {
-      ...rawBody,
-      // Flatten nested location object if present
-      ...(rawBody.location && {
-        city: rawBody.city || rawBody.location.city,
-        district: rawBody.district || rawBody.location.district,
-        address: rawBody.address || rawBody.location.address,
-      }),
-      // Flatten nested pricing object if present
-      ...(rawBody.pricing && {
-        perNight: rawBody.perNight ?? rawBody.pricing.perNight,
-        cleaningFee: rawBody.cleaningFee ?? rawBody.pricing.cleaningFee,
-        discountPercent: rawBody.discountPercent ?? rawBody.pricing.discountPercent,
-        weeklyDiscount: rawBody.weeklyDiscount ?? rawBody.pricing.weeklyDiscount,
-      }),
-      // Flatten nested capacity object if present
-      ...(rawBody.capacity && {
-        maxGuests: rawBody.maxGuests ?? rawBody.capacity.maxGuests,
-        bedrooms: rawBody.bedrooms ?? rawBody.capacity.bedrooms,
-        bathrooms: rawBody.bathrooms ?? rawBody.capacity.bathrooms,
-        beds: rawBody.beds ?? rawBody.capacity.beds,
-      }),
+    const { location: loc, pricing: pr, capacity: cap, ...rest } = rawBody;
+    const body: Record<string, unknown> = {
+      ...rest,
+      // Flatten nested location if present
+      city: rest.city || loc?.city,
+      district: rest.district || loc?.district,
+      address: rest.address || loc?.address,
+      // Flatten nested pricing if present
+      perNight: rest.perNight ?? pr?.perNight,
+      cleaningFee: rest.cleaningFee ?? pr?.cleaningFee,
+      discountPercent: rest.discountPercent ?? pr?.discountPercent,
+      weeklyDiscount: rest.weeklyDiscount ?? pr?.weeklyDiscount,
+      // Flatten nested capacity if present
+      maxGuests: rest.maxGuests ?? cap?.maxGuests,
+      bedrooms: rest.bedrooms ?? cap?.bedrooms,
+      bathrooms: rest.bathrooms ?? cap?.bathrooms,
+      beds: rest.beds ?? cap?.beds,
     };
-    // Remove nested objects so Zod doesn't complain about extra keys
-    delete body.location;
-    delete body.pricing;
-    delete body.capacity;
 
     // Validate input with Zod
     const parsed = createPropertySchema.safeParse(body);
