@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
-import Property from '@/lib/models/Property';
+import Property from 'A/lib/models/Property';
 import User from '@/lib/models/User';
 import ActivityLog from '@/lib/models/ActivityLog';
 import { extractToken, verifyToken } from '@/lib/auth-helpers';
-import { escapeRegex, sanitizeText } from '@/lib/sanitize';
+import { escapeRegex, sanitizeText } from 'A/lib/sanitize';
 import { createPropertySchema } from '@/lib/validation';
 
 /**
@@ -154,6 +154,8 @@ export async function POST(request: NextRequest) {
       amenities,
       perNight,
       cleaningFee,
+      discountPercent,
+      weeklyDiscount,
       maxGuests,
       bedrooms,
       bathrooms,
@@ -182,8 +184,8 @@ export async function POST(request: NextRequest) {
       pricing: {
         perNight,
         cleaningFee: cleaningFee || 0,
-        discountPercent: 0,
-        weeklyDiscount: 0,
+        discountPercent: discountPercent || 0,
+        weeklyDiscount: weeklyDiscount || 0,
       },
       capacity: {
         maxGuests: maxGuests || 4,
