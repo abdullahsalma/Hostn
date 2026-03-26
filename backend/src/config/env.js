@@ -8,7 +8,7 @@ const required = [
   'JWT_SECRET',
 ];
 
-const requiredInProduction = [
+const warnInProduction = [
   'MOYASAR_SECRET_KEY',
   'MOYASAR_PUBLISHABLE_KEY',
   'MOYASAR_WEBHOOK_SECRET',
@@ -23,14 +23,6 @@ function validateEnv() {
     }
   }
 
-  if (process.env.NODE_ENV === 'production') {
-    for (const key of requiredInProduction) {
-      if (!process.env[key] || process.env[key].trim() === '') {
-        missing.push(key);
-      }
-    }
-  }
-
   if (missing.length > 0) {
     console.error('=== FATAL: Missing required environment variables ===');
     missing.forEach((key) => console.error(`  - ${key}`));
@@ -38,19 +30,21 @@ function validateEnv() {
     process.exit(1);
   }
 
+  // Warn about missing payment vars (non-fatal — payments won't work but app starts)
+  if (process.env.NODE_ENV === 'production') {
+    const missingPayment = warnInProduction.filter(
+      (key) => !process.env[key] || process.env[key].trim() === ''
+    );
+    if (missingPayment.length > 0) {
+      console.warn('=== WARNING: Missing payment environment variables ===');
+      missingPayment.forEach((key) => console.warn(`  - ${key}`));
+      console.warn('Payment processing will be disabled until these are set.');
+    }
+  }
+
   // Warn about weak JWT secret
   if (process.env.JWT_SECRET && process.env.JWT_SECRET.length < 32) {
     console.warn('[SECURITY WARNING] JWT_SECRET is shorter than 32 characters. Use a strong secret in production.');
-  }
-
-  // Warn about missing optional but recommended vars
-  if (!process.env.MOYASAR_SECRET_KEY) {
-    console.warn('[WARNING] MOYASAR_SECRET_KEY not set. Payment verification with Moyasar API is disabled.');
-    console.warn('[WARNING] In production, this MUST be set to prevent payment fraud.');
-  }
-
-  if (!process.env.MOYASAR_WEBHOOK_SECRET) {
-    console.warn('[WARNING] MOYASAR_WEBHOOK_SECRET not set. All webhooks will be rejected.');
   }
 }
 
