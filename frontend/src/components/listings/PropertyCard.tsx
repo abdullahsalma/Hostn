@@ -82,13 +82,13 @@ export default function PropertyCard({ property }: PropertyCardProps) {
             <>
               <button
                 onClick={handlePrevImage}
-                className="absolute top-1/2 -translate-y-1/2 ltr:left-2 rtl:right-2 w-7 h-7 bg-white/90 rounded-full flex items-center justify-center shadow-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity hover:bg-white"
+                className="absolute top-1/2 -translate-y-1/2 ltr:left-2 rtl:right-2 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity hover:bg-white"
               >
                 <ChevronLeft className="w-4 h-4 text-gray-700 rtl:rotate-180" />
               </button>
               <button
                 onClick={handleNextImage}
-                className="absolute top-1/2 -translate-y-1/2 ltr:right-2 rtl:left-2 w-7 h-7 bg-white/90 rounded-full flex items-center justify-center shadow-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity hover:bg-white"
+                className="absolute top-1/2 -translate-y-1/2 ltr:right-2 rtl:left-2 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity hover:bg-white"
               >
                 <ChevronRight className="w-4 h-4 text-gray-700 rtl:rotate-180" />
               </button>
@@ -97,7 +97,7 @@ export default function PropertyCard({ property }: PropertyCardProps) {
 
           {/* Image dots */}
           {images.length > 1 && (
-            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-1">
+            <div className="absolute bottom-14 left-1/2 -translate-x-1/2 flex items-center gap-1">
               {images.map((_, idx) => (
                 <span
                   key={idx}
@@ -131,7 +131,7 @@ export default function PropertyCard({ property }: PropertyCardProps) {
           <button
             onClick={handleWishlist}
             disabled={wishlistLoading}
-            className="absolute bottom-3 ltr:right-3 rtl:left-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-all duration-200 disabled:opacity-60"
+            className="absolute bottom-3 ltr:right-3 rtl:left-3 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-all duration-200 disabled:opacity-60"
           >
             <Heart
               className={`w-4 h-4 transition-colors ${
