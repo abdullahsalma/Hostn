@@ -4,9 +4,10 @@ import Link from 'next/link';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { useLanguage } from '@/context/LanguageContext';
-import { Search, Shield, Star, Headphones, Home, Building, TreePine, Tent, Hotel } from 'lucide-react';
-import { useState } from 'react';
+import { Search, Shield, Star, Headphones, Home, Building, TreePine, Tent, Hotel, Users, CheckCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { propertiesApi } from '@/lib/api';
 
 const PROPERTY_TYPES = [
   { key: 'chalet', icon: Home, label: { en: 'Chalets', ar: 'شاليهات' } },
@@ -22,6 +23,13 @@ export default function HomePage() {
   const router = useRouter();
   const lang = language as 'en' | 'ar';
   const [searchCity, setSearchCity] = useState('');
+  const [stats, setStats] = useState<{ properties: number; hosts: number; completedBookings: number; reviews: number } | null>(null);
+
+  useEffect(() => {
+    propertiesApi.getPublicStats()
+      .then((res) => setStats(res.data.data))
+      .catch(() => {});
+  }, []);
 
   const handleSearch = () => {
     const params = new URLSearchParams();
@@ -132,6 +140,30 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Platform Stats */}
+      {stats && (
+        <section className="py-14 bg-white">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 text-center">
+              {[
+                { value: stats.properties, label: lang === 'ar' ? 'عقار متاح' : 'Properties', icon: Home },
+                { value: stats.hosts, label: lang === 'ar' ? 'مضيف موثوق' : 'Verified Hosts', icon: Users },
+                { value: stats.completedBookings, label: lang === 'ar' ? 'حجز مكتمل' : 'Bookings Completed', icon: CheckCircle },
+                { value: stats.reviews, label: lang === 'ar' ? 'تقييم' : 'Guest Reviews', icon: Star },
+              ].map(({ value, label, icon: Icon }) => (
+                <div key={label}>
+                  <Icon className="w-6 h-6 text-primary-600 mx-auto mb-2" />
+                  <div className="text-3xl font-bold text-gray-900">
+                    {value >= 1000 ? `${(value / 1000).toFixed(1)}K` : value.toLocaleString()}
+                  </div>
+                  <div className="text-sm text-gray-500 mt-1">{label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* CTA */}
       <section className="py-16 bg-primary-900 text-white text-center">

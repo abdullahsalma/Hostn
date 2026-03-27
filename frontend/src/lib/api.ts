@@ -102,6 +102,9 @@ export const propertiesApi = {
   update: (id: string, data: Record<string, unknown>) => api.put(`/properties/${id}`, data),
   getMyProperties: () => api.get('/properties/my-properties'),
   getCities: () => api.get('/properties/cities'),
+  getSuggestions: (q: string) => api.get('/properties/suggestions', { params: { q } }),
+  getPublicStats: () => api.get('/properties/stats/public'),
+  getHomeFeed: () => api.get('/properties/home-feed'),
   getAvailability: (id: string, params?: Record<string, unknown>) =>
     api.get(`/properties/${id}/availability`, { params }),
 };

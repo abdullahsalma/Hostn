@@ -1,5 +1,5 @@
-import React, { memo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { memo, useState, useRef, useCallback } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -16,7 +16,17 @@ interface ListingCardProps {
 
 function ListingCard({ property, width, isFavorited = false, onHeartPress }: ListingCardProps) {
   const router = useRouter();
-  const imageUrl = property.images?.[0]?.url;
+  const images = property.images?.slice(0, 5) || [];
+  const [activeIndex, setActiveIndex] = useState(0);
+  const host = typeof property.host === 'object' ? property.host : null;
+
+  const onViewableItemsChanged = useCallback(({ viewableItems }: { viewableItems: Array<{ index: number | null }> }) => {
+    if (viewableItems.length > 0 && viewableItems[0].index != null) {
+      setActiveIndex(viewableItems[0].index);
+    }
+  }, []);
+
+  const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
 
   return (
     <TouchableOpacity
@@ -25,13 +35,34 @@ function ListingCard({ property, width, isFavorited = false, onHeartPress }: Lis
       onPress={() => router.push(`/listing/${property._id}`)}
     >
       <View style={[styles.imageContainer, { width }]}>
-        <Image
-          source={{ uri: imageUrl }}
-          style={styles.cardImage}
-          contentFit="cover"
-          transition={200}
-          placeholder={{ blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4' }}
-        />
+        {images.length > 1 ? (
+          <FlatList
+            data={images}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={viewabilityConfig}
+            keyExtractor={(_, idx) => String(idx)}
+            renderItem={({ item }) => (
+              <Image
+                source={{ uri: item.url }}
+                style={[styles.cardImage, { width }]}
+                contentFit="cover"
+                transition={200}
+                placeholder={{ blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4' }}
+              />
+            )}
+          />
+        ) : (
+          <Image
+            source={{ uri: images[0]?.url }}
+            style={styles.cardImage}
+            contentFit="cover"
+            transition={200}
+            placeholder={{ blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4' }}
+          />
+        )}
         {onHeartPress && (
           <TouchableOpacity
             style={styles.heartButton}
@@ -45,10 +76,21 @@ function ListingCard({ property, width, isFavorited = false, onHeartPress }: Lis
             />
           </TouchableOpacity>
         )}
-        {property.images && property.images.length > 1 && (
-          <View style={styles.imageCount}>
-            <Ionicons name="images-outline" size={12} color={Colors.textWhite} />
-            <Text style={styles.imageCountText}>{property.images.length}</Text>
+        {/* Discount badge */}
+        {property.pricing.discountPercent > 0 && (
+          <View style={styles.discountBadge}>
+            <Text style={styles.discountText}>{property.pricing.discountPercent}% OFF</Text>
+          </View>
+        )}
+        {/* Image dots */}
+        {images.length > 1 && (
+          <View style={styles.dotsContainer}>
+            {images.map((_, idx) => (
+              <View
+                key={idx}
+                style={[styles.dot, idx === activeIndex && styles.dotActive]}
+              />
+            ))}
           </View>
         )}
       </View>
@@ -56,9 +98,16 @@ function ListingCard({ property, width, isFavorited = false, onHeartPress }: Lis
         <Text style={styles.cardTitle} numberOfLines={1}>
           {property.title}
         </Text>
-        <Text style={styles.cardCity} numberOfLines={1}>
-          {property.location.city}
-        </Text>
+        <View style={styles.cityRow}>
+          <Text style={styles.cardCity} numberOfLines={1}>
+            {property.location.city}
+          </Text>
+          {host?.isVerified && (
+            <View style={styles.verifiedBadge}>
+              <Ionicons name="checkmark-circle" size={14} color={Colors.primary} />
+            </View>
+          )}
+        </View>
         <View style={styles.cardFooter}>
           <Text style={styles.cardPrice}>
             {formatCurrency(property.pricing.perNight)}{' '}
@@ -102,21 +151,36 @@ const styles = StyleSheet.create({
     borderRadius: Radius.full,
     padding: Spacing.xs + 2,
   },
-  imageCount: {
+  discountBadge: {
     position: 'absolute',
-    bottom: Spacing.sm,
-    right: Spacing.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    top: Spacing.sm,
+    left: Spacing.sm,
+    backgroundColor: '#f97316',
     borderRadius: Radius.xs,
     paddingHorizontal: Spacing.xs + 2,
     paddingVertical: 2,
-    gap: 3,
   },
-  imageCountText: {
+  discountText: {
     ...Typography.tiny,
     color: Colors.textWhite,
+    fontWeight: '700',
+  },
+  dotsContainer: {
+    position: 'absolute',
+    bottom: Spacing.sm,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    gap: 4,
+  },
+  dot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+  },
+  dotActive: {
+    width: 8,
+    backgroundColor: '#fff',
   },
   cardContent: {
     padding: Spacing.sm,
@@ -125,10 +189,20 @@ const styles = StyleSheet.create({
     ...Typography.bodyBold,
     color: Colors.textPrimary,
   },
+  cityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+    gap: 4,
+  },
   cardCity: {
     ...Typography.small,
     color: Colors.textSecondary,
-    marginTop: 2,
+    flex: 1,
+  },
+  verifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   cardFooter: {
     flexDirection: 'row',

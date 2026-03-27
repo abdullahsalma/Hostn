@@ -79,7 +79,7 @@ exports.getProperties = async (req, res, next) => {
     const total = await Property.countDocuments(query);
 
     const properties = await Property.find(query)
-      .populate('host', 'name avatar')
+      .populate('host', 'name avatar isVerified')
       .sort(sort)
       .skip(skip)
       .limit(safeLimit);
@@ -152,7 +152,7 @@ exports.getHomeFeed = async (req, res, next) => {
 exports.getProperty = async (req, res, next) => {
   try {
     const property = await Property.findById(req.params.id)
-      .populate('host', 'name avatar createdAt');
+      .populate('host', 'name avatar createdAt isVerified');
 
     if (!property || !property.isActive) {
       return res.status(404).json({ success: false, message: 'Property not found' });
@@ -302,6 +302,61 @@ exports.getCities = async (req, res, next) => {
   try {
     const cities = await Property.distinct('location.city', { isActive: true });
     res.json({ success: true, data: cities });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Search suggestions (titles + cities)
+// @route   GET /api/properties/suggestions
+// @access  Public
+exports.getSuggestions = async (req, res, next) => {
+  try {
+    const { q } = req.query;
+    if (!q || String(q).trim().length < 2) {
+      return res.json({ success: true, data: { properties: [], cities: [] } });
+    }
+
+    const regex = new RegExp(escapeRegex(String(q)), 'i');
+
+    const [properties, cities] = await Promise.all([
+      Property.find({ isActive: true, title: regex })
+        .select('title location.city type pricing.perNight images')
+        .limit(5),
+      Property.distinct('location.city', { isActive: true, 'location.city': regex }),
+    ]);
+
+    res.json({ success: true, data: { properties, cities: cities.slice(0, 5) } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Public platform statistics (for homepage trust signals)
+// @route   GET /api/properties/stats/public
+// @access  Public
+exports.getPublicStats = async (req, res, next) => {
+  try {
+    const Booking = require('../models/Booking');
+    const Review = require('../models/Review');
+    const User = require('../models/User');
+
+    const [propertyCount, hostCount, bookingCount, reviewCount] = await Promise.all([
+      Property.countDocuments({ isActive: true }),
+      User.countDocuments({ role: 'host' }),
+      Booking.countDocuments({ status: 'completed' }),
+      Review.countDocuments(),
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        properties: propertyCount,
+        hosts: hostCount,
+        completedBookings: bookingCount,
+        reviews: reviewCount,
+      },
+    });
   } catch (error) {
     next(error);
   }

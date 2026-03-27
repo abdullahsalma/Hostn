@@ -2,13 +2,13 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Heart, MapPin, Users, BedDouble } from 'lucide-react';
-import { Property } from '@/types';
+import { Heart, MapPin, Users, BedDouble, ChevronLeft, ChevronRight, BadgeCheck } from 'lucide-react';
+import { Property, User } from '@/types';
 import { formatPrice, getPropertyTypeLabel, getDiscountedPrice } from '@/lib/utils';
 import StarRating from '@/components/ui/StarRating';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 
 interface PropertyCardProps {
@@ -22,11 +22,23 @@ export default function PropertyCard({ property }: PropertyCardProps) {
     user?.wishlist?.includes(property._id) ?? false
   );
   const [wishlistLoading, setWishlistLoading] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  const primaryImage =
-    property.images.find((img) => img.isPrimary)?.url ||
-    property.images[0]?.url ||
-    'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800';
+  const images = property.images.length > 0
+    ? property.images.slice(0, 5)
+    : [{ url: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800', isPrimary: true }];
+
+  const host = typeof property.host === 'object' ? property.host as User : null;
+
+  const handlePrevImage = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setCurrentImageIndex((i) => (i === 0 ? images.length - 1 : i - 1));
+  }, [images.length]);
+
+  const handleNextImage = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setCurrentImageIndex((i) => (i === images.length - 1 ? 0 : i + 1));
+  }, [images.length]);
 
   const discountedPrice =
     property.pricing.discountPercent > 0
@@ -54,16 +66,48 @@ export default function PropertyCard({ property }: PropertyCardProps) {
   return (
     <Link href={`/listings/${property._id}`} className="group block">
       <div className="card overflow-hidden group-hover:scale-[1.01] transition-all duration-300">
-        {/* Image */}
-        <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
+        {/* Image Carousel */}
+        <div className="relative aspect-[4/3] overflow-hidden bg-gray-100 group/carousel">
           <Image
-            src={primaryImage}
+            src={images[currentImageIndex]?.url || images[0].url}
             alt={property.title}
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-500"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             unoptimized
           />
+
+          {/* Carousel arrows (show on hover, only if multiple images) */}
+          {images.length > 1 && (
+            <>
+              <button
+                onClick={handlePrevImage}
+                className="absolute top-1/2 -translate-y-1/2 ltr:left-2 rtl:right-2 w-7 h-7 bg-white/90 rounded-full flex items-center justify-center shadow-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity hover:bg-white"
+              >
+                <ChevronLeft className="w-4 h-4 text-gray-700 rtl:rotate-180" />
+              </button>
+              <button
+                onClick={handleNextImage}
+                className="absolute top-1/2 -translate-y-1/2 ltr:right-2 rtl:left-2 w-7 h-7 bg-white/90 rounded-full flex items-center justify-center shadow-sm opacity-0 group-hover/carousel:opacity-100 transition-opacity hover:bg-white"
+              >
+                <ChevronRight className="w-4 h-4 text-gray-700 rtl:rotate-180" />
+              </button>
+            </>
+          )}
+
+          {/* Image dots */}
+          {images.length > 1 && (
+            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-1">
+              {images.map((_, idx) => (
+                <span
+                  key={idx}
+                  className={`w-1.5 h-1.5 rounded-full transition-all ${
+                    idx === currentImageIndex ? 'bg-white w-2.5' : 'bg-white/60'
+                  }`}
+                />
+              ))}
+            </div>
+          )}
 
           {/* Discount badge */}
           {property.pricing.discountPercent > 0 && (
@@ -120,10 +164,15 @@ export default function PropertyCard({ property }: PropertyCardProps) {
             {property.title}
           </h3>
 
-          {/* Location */}
+          {/* Location + Verified badge */}
           <div className="flex items-center gap-1 text-gray-500 text-xs mb-3">
             <MapPin className="w-3 h-3 flex-shrink-0" />
-            <span>{property.location.district ? `${property.location.district}, ` : ''}{property.location.city}</span>
+            <span className="flex-1">{property.location.district ? `${property.location.district}, ` : ''}{property.location.city}</span>
+            {host?.isVerified && (
+              <span className="flex items-center gap-0.5 text-primary-600" title="Verified Host">
+                <BadgeCheck className="w-3.5 h-3.5" />
+              </span>
+            )}
           </div>
 
           {/* Capacity */}

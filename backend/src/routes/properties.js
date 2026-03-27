@@ -10,6 +10,8 @@ const {
   checkAvailability,
   getCities,
   getHomeFeed,
+  getSuggestions,
+  getPublicStats,
 } = require('../controllers/propertyController');
 const { protect, authorize } = require('../middleware/auth');
 const {
@@ -21,6 +23,8 @@ const {
 router.get('/', propertySearchRules, getProperties);
 router.get('/home-feed', getHomeFeed);
 router.get('/cities', getCities);
+router.get('/suggestions', getSuggestions);
+router.get('/stats/public', getPublicStats);
 router.get('/my-properties', protect, getMyProperties);
 router.get('/:id', mongoIdParam(), getProperty);
 router.get('/:id/availability', mongoIdParam(), checkAvailability);
