@@ -7,12 +7,13 @@ import Footer from '@/components/layout/Footer';
 import PropertyCard from '@/components/listings/PropertyCard';
 import { useLanguage } from '@/context/LanguageContext';
 import { propertiesApi } from '@/lib/api';
-import { Loader2, Search } from 'lucide-react';
+import Link from 'next/link';
+import { Search } from 'lucide-react';
 import { Property } from '@/types';
 
 export default function ListingsPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary-600" /></div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" /></div>}>
       <ListingsContent />
     </Suspense>
   );
@@ -63,6 +64,19 @@ function ListingsContent() {
 
       <main className="flex-1 bg-gray-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Breadcrumbs */}
+          <nav className="text-sm text-gray-500 mb-4">
+            <Link href="/" className="hover:text-primary-600 transition-colors">{lang === 'ar' ? 'الرئيسية' : 'Home'}</Link>
+            <span className="mx-1.5">/</span>
+            <span className="text-gray-700">{lang === 'ar' ? 'العقارات' : 'Properties'}</span>
+            {searchCity && (
+              <>
+                <span className="mx-1.5">/</span>
+                <span className="text-gray-700">{searchCity}</span>
+              </>
+            )}
+          </nav>
+
           {/* Search + Filters */}
           <div className="flex flex-col sm:flex-row gap-4 mb-8">
             <div className="flex-1 flex gap-2">
@@ -100,8 +114,18 @@ function ListingsContent() {
 
           {/* Results */}
           {loading ? (
-            <div className="flex justify-center py-20">
-              <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="bg-white rounded-2xl overflow-hidden shadow-sm">
+                  <div className="aspect-[4/3] bg-gray-200 animate-pulse" />
+                  <div className="p-4 space-y-3">
+                    <div className="h-3 w-20 bg-gray-200 rounded animate-pulse" />
+                    <div className="h-4 w-full bg-gray-200 rounded animate-pulse" />
+                    <div className="h-3 w-32 bg-gray-100 rounded animate-pulse" />
+                    <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : properties.length === 0 ? (
             <div className="text-center py-20">

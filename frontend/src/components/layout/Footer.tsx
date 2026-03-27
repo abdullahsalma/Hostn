@@ -2,9 +2,11 @@
 
 import Link from 'next/link';
 import { useLanguage } from '@/context/LanguageContext';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Footer() {
   const { language } = useLanguage();
+  const { isAuthenticated } = useAuth();
   const lang = language as 'en' | 'ar';
 
   return (
@@ -29,7 +31,13 @@ export default function Footer() {
             <ul className="space-y-2 text-sm">
               <li><Link href="/listings" className="hover:text-white transition-colors">{lang === 'ar' ? 'تصفح العقارات' : 'Browse Properties'}</Link></li>
               <li><Link href="/auth/host/register" className="hover:text-white transition-colors">{lang === 'ar' ? 'كن مضيفاً' : 'Become a Host'}</Link></li>
-              <li><Link href="/auth" className="hover:text-white transition-colors">{lang === 'ar' ? 'تسجيل الدخول' : 'Sign In'}</Link></li>
+              <li>
+                {isAuthenticated ? (
+                  <Link href="/dashboard" className="hover:text-white transition-colors">{lang === 'ar' ? 'حسابي' : 'My Account'}</Link>
+                ) : (
+                  <Link href="/auth" className="hover:text-white transition-colors">{lang === 'ar' ? 'تسجيل الدخول' : 'Sign In'}</Link>
+                )}
+              </li>
             </ul>
           </div>
 
