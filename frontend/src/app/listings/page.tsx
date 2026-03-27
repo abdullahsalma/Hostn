@@ -2,22 +2,13 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import PropertyCard from '@/components/listings/PropertyCard';
 import { useLanguage } from '@/context/LanguageContext';
 import { propertiesApi } from '@/lib/api';
-import { MapPin, Star, Loader2, Search } from 'lucide-react';
-
-interface Property {
-  _id: string;
-  title: string;
-  images: string[];
-  location: { city: string };
-  pricing: { basePrice: number };
-  ratings: { average: number; count: number };
-  type: string;
-}
+import { Loader2, Search } from 'lucide-react';
+import { Property } from '@/types';
 
 export default function ListingsPage() {
   return (
@@ -121,46 +112,7 @@ function ListingsContent() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {properties.map((property) => (
-                <Link
-                  key={property._id}
-                  href={`/listings/${property._id}`}
-                  className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow group"
-                >
-                  <div className="aspect-[4/3] bg-gray-200 overflow-hidden">
-                    {property.images?.[0] ? (
-                      <img
-                        src={property.images[0]}
-                        alt={property.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400">
-                        {lang === 'ar' ? 'لا توجد صورة' : 'No image'}
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-4">
-                    <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-1">
-                      <MapPin className="w-3.5 h-3.5" />
-                      {property.location?.city || '—'}
-                    </div>
-                    <h3 className="font-semibold text-gray-900 line-clamp-1 mb-2">{property.title}</h3>
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-primary-700">
-                        {property.pricing?.basePrice?.toLocaleString()} {lang === 'ar' ? 'ر.س' : 'SAR'}
-                        <span className="text-gray-400 font-normal text-sm">
-                          {' '}/{lang === 'ar' ? 'ليلة' : 'night'}
-                        </span>
-                      </span>
-                      {property.ratings?.count > 0 && (
-                        <span className="flex items-center gap-1 text-sm text-gray-600">
-                          <Star className="w-3.5 h-3.5 text-gold-500 fill-gold-500" />
-                          {property.ratings.average?.toFixed(1)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </Link>
+                <PropertyCard key={property._id} property={property} />
               ))}
             </div>
           )}

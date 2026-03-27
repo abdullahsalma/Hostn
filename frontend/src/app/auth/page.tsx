@@ -54,7 +54,7 @@ export default function AuthSelectRolePage() {
         </div>
 
         <div className="space-y-4">
-          {roles.map(({ key, icon: Icon, href, title, description, accent, iconColor }) => (
+          {roles.filter(r => r.key !== 'admin').map(({ key, icon: Icon, href, title, description, accent, iconColor }) => (
             <Link
               key={key}
               href={href}

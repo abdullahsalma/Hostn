@@ -38,17 +38,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load user from localStorage on mount (only user object, NOT the token)
+  // Load user from localStorage on mount, then validate session is still alive
   useEffect(() => {
     const storedUser = localStorage.getItem('hostn_user');
     if (storedUser) {
       try {
-        setUser(JSON.parse(storedUser));
+        const parsed = JSON.parse(storedUser);
+        setUser(parsed);
+        // Silently verify the HttpOnly cookie is still valid
+        authApi.getMe()
+          .then((res) => {
+            const freshUser = res.data.user || res.data.data;
+            if (freshUser) {
+              saveAuth(freshUser);
+            }
+          })
+          .catch(() => {
+            // Cookie expired or invalid — clear stale localStorage
+            localStorage.removeItem('hostn_user');
+            setUser(null);
+          })
+          .finally(() => setIsLoading(false));
       } catch {
         localStorage.removeItem('hostn_user');
+        setIsLoading(false);
       }
+    } else {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
   const saveAuth = (user: User) => {
