@@ -39,6 +39,15 @@ export const translations = {
     'hero.trustedStays': 'Verified Properties',
     'hero.guestReviewed': 'Trusted Reviews',
     'hero.support24': '24/7 Support',
+    'hero.popularDestinations': 'Popular destinations',
+    'hero.selectCheckIn': 'Select check-in',
+    'hero.selectCheckOut': 'Select check-out',
+    'hero.nights1': '1 night',
+    'hero.nights2': '2 nights',
+    'hero.nights3': '3 nights',
+    'hero.week1': '1 week',
+    'hero.quickSelect': 'Quick select',
+    'hero.dates': 'Dates',
 
     // Property types
     'type.chalets': 'Chalets',
@@ -350,6 +359,15 @@ export const translations = {
     'hero.trustedStays': 'عقارات موثقة',
     'hero.guestReviewed': 'تقييمات موثوقة',
     'hero.support24': 'دعم متواصل',
+    'hero.popularDestinations': 'الوجهات الشائعة',
+    'hero.selectCheckIn': 'اختر تاريخ الوصول',
+    'hero.selectCheckOut': 'اختر تاريخ المغادرة',
+    'hero.nights1': 'ليلة واحدة',
+    'hero.nights2': 'ليلتان',
+    'hero.nights3': '3 ليالٍ',
+    'hero.week1': 'أسبوع',
+    'hero.quickSelect': 'اختيار سريع',
+    'hero.dates': 'التواريخ',
 
     // Property types
     'type.chalets': 'شاليهات',
