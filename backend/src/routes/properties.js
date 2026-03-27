@@ -12,6 +12,8 @@ const {
   getHomeFeed,
   getSuggestions,
   getPublicStats,
+  getNearby,
+  reverseGeocode,
 } = require('../controllers/propertyController');
 const { protect, authorize } = require('../middleware/auth');
 const {
@@ -25,6 +27,8 @@ router.get('/home-feed', getHomeFeed);
 router.get('/cities', getCities);
 router.get('/suggestions', getSuggestions);
 router.get('/stats/public', getPublicStats);
+router.get('/nearby', getNearby);
+router.get('/geocode/reverse', reverseGeocode);
 router.get('/my-properties', protect, getMyProperties);
 router.get('/:id', mongoIdParam(), getProperty);
 router.get('/:id/availability', mongoIdParam(), checkAvailability);

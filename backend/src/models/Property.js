@@ -31,6 +31,11 @@ const propertySchema = new mongoose.Schema(
         lat: { type: Number },
         lng: { type: Number },
       },
+      // GeoJSON for MongoDB 2dsphere queries (nearby search)
+      geoJSON: {
+        type: { type: String, enum: ['Point'], default: 'Point' },
+        coordinates: { type: [Number] }, // [lng, lat]
+      },
     },
     images: [
       {
@@ -106,12 +111,24 @@ const propertySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+propertySchema.index({ 'location.geoJSON': '2dsphere' });
 propertySchema.index({ 'location.city': 1 });
 propertySchema.index({ type: 1 });
 propertySchema.index({ 'pricing.perNight': 1 });
 propertySchema.index({ 'ratings.average': -1 });
 propertySchema.index({ isFeatured: 1 });
 propertySchema.index({ title: 'text', description: 'text', 'location.city': 'text' });
+
+// Sync coordinates to GeoJSON on save
+propertySchema.pre('save', function (next) {
+  if (this.location?.coordinates?.lat && this.location?.coordinates?.lng) {
+    this.location.geoJSON = {
+      type: 'Point',
+      coordinates: [this.location.coordinates.lng, this.location.coordinates.lat],
+    };
+  }
+  next();
+});
 
 propertySchema.virtual('discountedPrice').get(function () {
   if (this.pricing.discountPercent > 0) {

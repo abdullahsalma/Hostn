@@ -332,6 +332,67 @@ exports.getSuggestions = async (req, res, next) => {
   }
 };
 
+// @desc    Get nearby properties (geospatial)
+// @route   GET /api/properties/nearby
+// @access  Public
+exports.getNearby = async (req, res, next) => {
+  try {
+    const { lat, lng, radius = 20, limit = 12 } = req.query;
+
+    if (!lat || !lng) {
+      return res.status(400).json({ success: false, message: 'lat and lng are required' });
+    }
+
+    const radiusKm = Math.min(Number(radius), 100); // cap at 100km
+    const safeLimit = Math.min(Math.max(1, Number(limit) || 12), 50);
+
+    const properties = await Property.find({
+      isActive: true,
+      'location.geoJSON': {
+        $nearSphere: {
+          $geometry: {
+            type: 'Point',
+            coordinates: [Number(lng), Number(lat)],
+          },
+          $maxDistance: radiusKm * 1000, // meters
+        },
+      },
+    })
+      .populate('host', 'name avatar isVerified')
+      .limit(safeLimit);
+
+    res.json({ success: true, data: properties });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Reverse geocode coordinates to address
+// @route   GET /api/properties/geocode/reverse
+// @access  Public
+exports.reverseGeocode = async (req, res, next) => {
+  try {
+    const { lat, lng } = req.query;
+    if (!lat || !lng) {
+      return res.status(400).json({ success: false, message: 'lat and lng are required' });
+    }
+
+    const geocoding = require('../services/geocoding');
+    if (!geocoding.isAvailable()) {
+      return res.status(503).json({ success: false, message: 'Geocoding service unavailable' });
+    }
+
+    const result = await geocoding.reverseGeocode(Number(lat), Number(lng));
+    if (!result) {
+      return res.status(404).json({ success: false, message: 'No address found for coordinates' });
+    }
+
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Public platform statistics (for homepage trust signals)
 // @route   GET /api/properties/stats/public
 // @access  Public

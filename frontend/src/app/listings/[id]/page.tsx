@@ -11,7 +11,13 @@ import BookingWidget from '@/components/property/BookingWidget';
 import { Property, User } from '@/types';
 import { propertiesApi } from '@/lib/api';
 import { getPropertyTypeLabel } from '@/lib/utils';
-import { MapPin, Users, BedDouble, Bath, Clock, Cigarette, PawPrint, Music } from 'lucide-react';
+import { MapPin, Users, BedDouble, Bath, Clock, Cigarette, PawPrint, Music, BadgeCheck } from 'lucide-react';
+import dynamic from 'next/dynamic';
+
+const PropertyMap = dynamic(() => import('@/components/maps/PropertyMap'), {
+  ssr: false,
+  loading: () => <div className="h-[300px] bg-gray-100 rounded-xl animate-pulse" />,
+});
 import StarRating from '@/components/ui/StarRating';
 import { useLanguage } from '@/context/LanguageContext';
 
@@ -152,7 +158,12 @@ export default function PropertyDetailPage() {
                     </span>
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900">{t('property.hostedBy')} {host.name}</p>
+                    <p className="font-semibold text-gray-900 flex items-center gap-1.5">
+                      {t('property.hostedBy')} {host.name}
+                      {host.isVerified && (
+                        <BadgeCheck className="w-4 h-4 text-primary-600" />
+                      )}
+                    </p>
                     <p className="text-sm text-gray-500">
                       Host since {new Date(host.createdAt).getFullYear()}
                     </p>
@@ -224,6 +235,19 @@ export default function PropertyDetailPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Location Map */}
+              {property.location.coordinates?.lat && property.location.coordinates?.lng && (
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 mb-4">Location</h2>
+                  <PropertyMap
+                    lat={property.location.coordinates.lat}
+                    lng={property.location.coordinates.lng}
+                    title={property.title}
+                    className="h-[300px]"
+                  />
+                </div>
+              )}
 
               {/* Reviews */}
               <div>

@@ -105,6 +105,10 @@ export const propertiesApi = {
   getSuggestions: (q: string) => api.get('/properties/suggestions', { params: { q } }),
   getPublicStats: () => api.get('/properties/stats/public'),
   getHomeFeed: () => api.get('/properties/home-feed'),
+  getNearby: (params: { lat: number; lng: number; radius?: number; limit?: number }) =>
+    api.get('/properties/nearby', { params }),
+  reverseGeocode: (lat: number, lng: number) =>
+    api.get('/properties/geocode/reverse', { params: { lat, lng } }),
   getAvailability: (id: string, params?: Record<string, unknown>) =>
     api.get(`/properties/${id}/availability`, { params }),
 };
