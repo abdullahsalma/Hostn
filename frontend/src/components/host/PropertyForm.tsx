@@ -58,13 +58,9 @@ const PROPERTY_TYPES: { label: string; value: PropertyType; icon: string; desc: 
   { label: 'Hotel Room', value: 'hotel', icon: '\u{1F3E8}', desc: 'Hotel-style accommodation' },
 ];
 
-const CITIES_AR: Record<string, string> = {
-  'Riyadh': 'الرياض', 'Jeddah': 'جدة', 'Abha': 'أبها', 'Khobar': 'الخبر',
-  'Taif': 'الطائف', 'Al Ula': 'العلا', 'Hail': 'حائل', 'Mecca': 'مكة',
-  'Madinah': 'المدينة', 'Dammam': 'الدمام', 'Yanbu': 'ينبع', 'Tabuk': 'تبوك',
-};
-
-const CITIES = ['Riyadh', 'Jeddah', 'Abha', 'Khobar', 'Taif', 'Al Ula', 'Hail', 'Mecca', 'Madinah', 'Dammam', 'Yanbu', 'Tabuk'];
+import { CITIES as CITIES_LIST } from '@/lib/constants';
+const CITIES = CITIES_LIST.map((c) => c.value);
+const CITIES_AR: Record<string, string> = Object.fromEntries(CITIES_LIST.map((c) => [c.value, c.ar]));
 
 const ALL_AMENITIES: AmenityType[] = [
   'wifi', 'pool', 'parking', 'ac', 'kitchen', 'tv', 'washer', 'dryer',

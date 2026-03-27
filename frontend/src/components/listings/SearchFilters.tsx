@@ -5,17 +5,7 @@ import { useState, useEffect } from 'react';
 import { SlidersHorizontal, X } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 
-const CITIES = [
-  { value: 'Riyadh', en: 'Riyadh', ar: '\u0627\u0644\u0631\u064A\u0627\u0636' },
-  { value: 'Jeddah', en: 'Jeddah', ar: '\u062C\u062F\u0629' },
-  { value: 'Abha', en: 'Abha', ar: '\u0623\u0628\u0647\u0627' },
-  { value: 'Khobar', en: 'Khobar', ar: '\u0627\u0644\u062E\u0628\u0631' },
-  { value: 'Taif', en: 'Taif', ar: '\u0627\u0644\u0637\u0627\u0626\u0641' },
-  { value: 'Al Ula', en: 'Al Ula', ar: '\u0627\u0644\u0639\u0644\u0627' },
-  { value: 'Hail', en: 'Hail', ar: '\u062D\u0627\u0626\u0644' },
-  { value: 'Mecca', en: 'Mecca', ar: '\u0645\u0643\u0629 \u0627\u0644\u0645\u0643\u0631\u0645\u0629' },
-  { value: 'Dammam', en: 'Dammam', ar: '\u0627\u0644\u062F\u0645\u0627\u0645' },
-];
+import { CITIES } from '@/lib/constants';
 
 export default function SearchFilters() {
   const router = useRouter();

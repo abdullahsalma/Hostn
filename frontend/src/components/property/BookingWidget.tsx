@@ -1,120 +1,19 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Property } from '@/types';
 import { formatPrice, calculateNights, getDiscountedPrice } from '@/lib/utils';
-import { Calendar, Users, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Users, ChevronDown } from 'lucide-react';
+import MiniCalendar from '@/components/ui/MiniCalendar';
 import Button from '@/components/ui/Button';
 import StarRating from '@/components/ui/StarRating';
 import toast from 'react-hot-toast';
 import { useLanguage } from '@/context/LanguageContext';
-import {
-  startOfMonth, endOfMonth, startOfWeek, endOfWeek,
-  addDays, addMonths, subMonths, format, isSameDay, isBefore,
-  isAfter, isSameMonth, startOfDay,
-} from 'date-fns';
+import { format } from 'date-fns';
 
 interface BookingWidgetProps {
   property: Property;
-}
-
-function MiniCalendar({
-  checkIn,
-  checkOut,
-  onSelectDate,
-  unavailableDates = [],
-}: {
-  checkIn: string;
-  checkOut: string;
-  onSelectDate: (date: string) => void;
-  unavailableDates?: string[];
-}) {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const today = startOfDay(new Date());
-
-  const unavailableSet = useMemo(
-    () => new Set(unavailableDates),
-    [unavailableDates]
-  );
-
-  const weeks = useMemo(() => {
-    const monthStart = startOfMonth(currentMonth);
-    const monthEnd = endOfMonth(currentMonth);
-    const calStart = startOfWeek(monthStart);
-    const calEnd = endOfWeek(monthEnd);
-    const rows: Date[][] = [];
-    let day = calStart;
-    while (day <= calEnd) {
-      const week: Date[] = [];
-      for (let i = 0; i < 7; i++) {
-        week.push(day);
-        day = addDays(day, 1);
-      }
-      rows.push(week);
-    }
-    return rows;
-  }, [currentMonth]);
-
-  const checkInDate = checkIn ? startOfDay(new Date(checkIn)) : null;
-  const checkOutDate = checkOut ? startOfDay(new Date(checkOut)) : null;
-
-  const isInRange = (day: Date) => {
-    if (!checkInDate || !checkOutDate) return false;
-    return isAfter(day, checkInDate) && isBefore(day, checkOutDate);
-  };
-
-  const dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-
-  return (
-    <div className="p-3">
-      <div className="flex items-center justify-between mb-3">
-        <button type="button" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-1 hover:bg-gray-100 rounded">
-          <ChevronLeft className="w-4 h-4" />
-        </button>
-        <span className="text-sm font-semibold text-gray-800">
-          {format(currentMonth, 'MMMM yyyy')}
-        </span>
-        <button type="button" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-1 hover:bg-gray-100 rounded">
-          <ChevronRight className="w-4 h-4" />
-        </button>
-      </div>
-      <div className="grid grid-cols-7 gap-0.5 mb-1">
-        {dayNames.map((d) => (
-          <div key={d} className="text-center text-[10px] font-medium text-gray-400 py-1">{d}</div>
-        ))}
-      </div>
-      <div className="grid grid-cols-7 gap-0.5">
-        {weeks.flat().map((day, i) => {
-          const dateStr = format(day, 'yyyy-MM-dd');
-          const isPast = isBefore(day, today);
-          const isUnavailable = unavailableSet.has(dateStr);
-          const disabled = isPast || isUnavailable || !isSameMonth(day, currentMonth);
-          const isCheckIn = checkInDate && isSameDay(day, checkInDate);
-          const isCheckOut = checkOutDate && isSameDay(day, checkOutDate);
-          const inRange = isInRange(day);
-
-          return (
-            <button
-              key={i}
-              type="button"
-              disabled={disabled}
-              onClick={() => onSelectDate(dateStr)}
-              className={`
-                h-8 text-xs rounded-md transition-colors
-                ${disabled ? 'text-gray-300 cursor-default' : 'hover:bg-primary-100 cursor-pointer'}
-                ${isCheckIn || isCheckOut ? 'bg-primary-600 text-white font-bold hover:bg-primary-700' : ''}
-                ${inRange ? 'bg-primary-100 text-primary-800' : ''}
-                ${!disabled && !isCheckIn && !isCheckOut && !inRange ? 'text-gray-700' : ''}
-              `}
-            >
-              {isSameMonth(day, currentMonth) ? format(day, 'd') : ''}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
 }
 
 export default function BookingWidget({ property }: BookingWidgetProps) {

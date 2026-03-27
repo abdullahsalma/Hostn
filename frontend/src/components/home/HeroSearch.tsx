@@ -6,17 +6,7 @@ import { Search, MapPin, Calendar, ChevronDown, Star, Shield, Award } from 'luci
 import { format } from 'date-fns';
 import { useLanguage } from '@/context/LanguageContext';
 
-const CITIES = [
-  { value: 'Riyadh', en: 'Riyadh', ar: 'الرياض' },
-  { value: 'Jeddah', en: 'Jeddah', ar: 'جدة' },
-  { value: 'Abha', en: 'Abha', ar: 'أبها' },
-  { value: 'Khobar', en: 'Khobar', ar: 'الخبر' },
-  { value: 'Taif', en: 'Taif', ar: 'الطائف' },
-  { value: 'Al Ula', en: 'Al Ula', ar: 'العلا' },
-  { value: 'Hail', en: 'Hail', ar: 'حائل' },
-  { value: 'Mecca', en: 'Mecca', ar: 'مكة المكرمة' },
-  { value: 'Dammam', en: 'Dammam', ar: 'الدمام' },
-];
+import { CITIES } from '@/lib/constants';
 
 export default function HeroSearch() {
   const router = useRouter();
