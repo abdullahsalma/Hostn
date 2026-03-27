@@ -28,6 +28,9 @@ export default function HeroSearch() {
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectingCheckOut, setSelectingCheckOut] = useState(false);
 
+  // Keyboard nav for city dropdown
+  const [cityHighlight, setCityHighlight] = useState(-1);
+
   // Refs for click-outside
   const calendarRef = useRef<HTMLDivElement>(null);
   const cityDropdownRef = useRef<HTMLDivElement>(null);
@@ -190,7 +193,7 @@ export default function HeroSearch() {
         </div>
 
         {/* Step indicator */}
-        <div className="animate-fade-in-up flex items-center justify-center gap-2 mb-4" style={{ animationDelay: '0.3s' }}>
+        <div className="animate-fade-in-up flex items-center justify-center gap-2 mb-4" style={{ animationDelay: '0.3s' }} aria-live="polite" role="status">
           {steps.map((s, i) => (
             <div key={s.key} className="flex items-center gap-2">
               <div className={`
@@ -228,15 +231,35 @@ export default function HeroSearch() {
                       setCitySearch(e.target.value);
                       setCity('');
                       setShowCityDropdown(true);
+                      setCityHighlight(-1);
                     }}
                     onFocus={() => {
                       setShowCityDropdown(true);
                       setStep('location');
                     }}
+                    onKeyDown={(e) => {
+                      if (!showCityDropdown) return;
+                      if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        setCityHighlight((h) => Math.min(h + 1, filteredCities.length - 1));
+                      } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        setCityHighlight((h) => Math.max(h - 1, 0));
+                      } else if (e.key === 'Enter' && cityHighlight >= 0) {
+                        e.preventDefault();
+                        const c = filteredCities[cityHighlight];
+                        handleCitySelect(c.value, isAr ? c.ar : c.en);
+                        setCityHighlight(-1);
+                      } else if (e.key === 'Escape') {
+                        setShowCityDropdown(false);
+                        setCityHighlight(-1);
+                      }
+                    }}
                     placeholder={t('hero.selectCity')}
                     aria-expanded={showCityDropdown}
                     role="combobox"
                     aria-haspopup="listbox"
+                    aria-activedescendant={cityHighlight >= 0 ? `city-option-${cityHighlight}` : undefined}
                     className={`w-full ltr:pl-9 ltr:pr-8 rtl:pr-9 rtl:pl-8 py-3 border rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-400/40 focus:border-primary-300 bg-gray-50/50 transition-all duration-200 ${
                       step === 'location' ? 'border-primary-300 ring-2 ring-primary-400/40' : 'border-gray-100'
                     }`}
@@ -247,18 +270,22 @@ export default function HeroSearch() {
                       <div className="px-4 py-2 text-[11px] font-semibold text-gray-400 uppercase tracking-wider border-b border-gray-50">
                         {t('hero.popularDestinations')}
                       </div>
-                      {filteredCities.map((c) => (
+                      {filteredCities.map((c, idx) => (
                         <button
                           key={c.value}
+                          id={`city-option-${idx}`}
                           type="button"
                           role="option"
                           aria-selected={city === c.value}
                           onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => handleCitySelect(c.value, isAr ? c.ar : c.en)}
-                          className={`w-full text-start px-4 py-2.5 text-sm flex items-center gap-3 transition-colors ${
-                            city === c.value
+                          onClick={() => { handleCitySelect(c.value, isAr ? c.ar : c.en); setCityHighlight(-1); }}
+                          onMouseEnter={() => setCityHighlight(idx)}
+                          className={`w-full text-start px-4 py-2.5 text-sm flex items-center gap-3 transition-colors min-h-[44px] ${
+                            idx === cityHighlight
                               ? 'bg-primary-50 text-primary-700'
-                              : 'text-gray-700 hover:bg-primary-50 hover:text-primary-700'
+                              : city === c.value
+                                ? 'bg-primary-50 text-primary-700'
+                                : 'text-gray-700 hover:bg-primary-50 hover:text-primary-700'
                           }`}
                         >
                           <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
@@ -327,42 +354,61 @@ export default function HeroSearch() {
                   </span>
                 </button>
 
-                {/* Calendar overlay */}
+                {/* Calendar overlay — desktop: dropdown, mobile: bottom sheet */}
                 {showCalendar && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 animate-fade-in-up min-w-[300px]">
-                    {/* Calendar label */}
-                    <div className="px-4 pt-3 pb-1">
-                      <p className="text-xs font-semibold text-primary-600">
-                        {selectingCheckOut ? t('hero.selectCheckOut') : t('hero.selectCheckIn')}
-                      </p>
-                    </div>
-
-                    <MiniCalendar
-                      checkIn={checkIn}
-                      checkOut={checkOut}
-                      onSelectDate={handleDateSelect}
-                      locale={isAr ? 'ar' : 'en'}
+                  <>
+                    {/* Mobile backdrop */}
+                    <div
+                      className="sm:hidden fixed inset-0 bg-black/30 z-40 animate-fade-in"
+                      onClick={() => setShowCalendar(false)}
                     />
 
-                    {/* Duration shortcuts */}
-                    <div className="px-3 pb-3 pt-1 border-t border-gray-50">
-                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                        {t('hero.quickSelect')}
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {durationShortcuts.map((d) => (
-                          <button
-                            key={d.nights}
-                            type="button"
-                            onClick={() => handleDurationShortcut(d.nights)}
-                            className="bg-primary-50 text-primary-600 hover:bg-primary-100 rounded-full px-3 py-1 text-xs font-medium transition-colors"
-                          >
-                            {d.label}
-                          </button>
-                        ))}
+                    <div className={`
+                      z-50 bg-white shadow-2xl border border-gray-100
+                      sm:absolute sm:top-full sm:left-0 sm:right-0 sm:mt-2 sm:rounded-2xl sm:animate-fade-in-up sm:min-w-[300px]
+                      fixed bottom-0 left-0 right-0 rounded-t-2xl animate-slide-up sm:bottom-auto sm:left-auto sm:right-auto sm:rounded-b-2xl
+                      max-h-[80vh] sm:max-h-none overflow-y-auto
+                    `}>
+                      {/* Mobile drag handle */}
+                      <div className="sm:hidden flex justify-center pt-3 pb-1">
+                        <div className="w-10 h-1 bg-gray-300 rounded-full" />
+                      </div>
+
+                      {/* Calendar label */}
+                      <div className="px-4 pt-3 pb-1">
+                        <p className="text-xs font-semibold text-primary-600" aria-live="polite">
+                          {selectingCheckOut ? t('hero.selectCheckOut') : t('hero.selectCheckIn')}
+                        </p>
+                      </div>
+
+                      <MiniCalendar
+                        checkIn={checkIn}
+                        checkOut={checkOut}
+                        onSelectDate={handleDateSelect}
+                        locale={isAr ? 'ar' : 'en'}
+                      />
+
+                      {/* Duration shortcuts */}
+                      <div className="px-3 pb-4 sm:pb-3 pt-1 border-t border-gray-50">
+                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                          {t('hero.quickSelect')}
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {durationShortcuts.map((d) => (
+                            <button
+                              key={d.nights}
+                              type="button"
+                              onClick={() => handleDurationShortcut(d.nights)}
+                              aria-label={`${d.label} ${isAr ? 'بدءاً من اليوم' : 'starting today'}`}
+                              className="bg-primary-50 text-primary-600 hover:bg-primary-100 active:bg-primary-200 rounded-full px-3 py-1.5 sm:py-1 text-xs font-medium transition-colors min-h-[36px] sm:min-h-0"
+                            >
+                              {d.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  </>
                 )}
               </div>
 
