@@ -1,6 +1,6 @@
 const Property = require('../models/Property');
 const { escapeRegex } = require('../middleware/validate');
-const { cacheGet, cacheSet } = require('../config/cache');
+const { cacheGet, cacheSet, cacheDel } = require('../config/cache');
 
 // Fields a host is allowed to update on their own property.
 const ALLOWED_UPDATE_FIELDS = [
@@ -178,6 +178,11 @@ exports.createProperty = async (req, res, next) => {
     }
 
     const property = await Property.create(sanitizedBody);
+
+    // Invalidate cached cities and stats since a new property was added
+    cacheDel('cities').catch(() => {});
+    cacheDel('public-stats').catch(() => {});
+
     res.status(201).json({ success: true, data: property });
   } catch (error) {
     next(error);
@@ -219,6 +224,12 @@ exports.updateProperty = async (req, res, next) => {
       runValidators: true,
     });
 
+    // Invalidate caches if location or active status changed
+    if (sanitizedBody.location || sanitizedBody.isActive !== undefined) {
+      cacheDel('cities').catch(() => {});
+    }
+    cacheDel('public-stats').catch(() => {});
+
     res.json({ success: true, data: property });
   } catch (error) {
     next(error);
@@ -242,6 +253,10 @@ exports.deleteProperty = async (req, res, next) => {
 
     property.isActive = false;
     await property.save();
+
+    // Invalidate caches
+    cacheDel('cities').catch(() => {});
+    cacheDel('public-stats').catch(() => {});
 
     res.json({ success: true, message: 'Property removed' });
   } catch (error) {
@@ -353,6 +368,7 @@ exports.getNearby = async (req, res, next) => {
 
     const properties = await Property.find({
       isActive: true,
+      'location.geoJSON.coordinates': { $exists: true, $ne: [] },
       'location.geoJSON': {
         $nearSphere: {
           $geometry: {
@@ -368,6 +384,10 @@ exports.getNearby = async (req, res, next) => {
 
     res.json({ success: true, data: properties });
   } catch (error) {
+    // Handle missing 2dsphere index gracefully
+    if (error.code === 27 || error.codeName === 'IndexNotFound') {
+      return res.json({ success: true, data: [] });
+    }
     next(error);
   }
 };

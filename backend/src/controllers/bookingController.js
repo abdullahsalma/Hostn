@@ -8,9 +8,6 @@ const ActivityLog = require('../models/ActivityLog');
 // @route   POST /api/bookings
 // @access  Private
 exports.createBooking = async (req, res, next) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
     const { propertyId, checkIn, checkOut, guests, specialRequests } = req.body;
 
@@ -19,54 +16,40 @@ exports.createBooking = async (req, res, next) => {
     const checkOutDate = new Date(checkOut);
 
     if (isNaN(checkInDate.getTime()) || isNaN(checkOutDate.getTime())) {
-      await session.abortTransaction();
-      session.endSession();
       return res.status(400).json({ success: false, message: 'Invalid date format' });
     }
 
     if (checkInDate >= checkOutDate) {
-      await session.abortTransaction();
-      session.endSession();
       return res.status(400).json({ success: false, message: 'Check-out must be after check-in' });
     }
 
     if (checkInDate < new Date(new Date().toDateString())) {
-      await session.abortTransaction();
-      session.endSession();
       return res.status(400).json({ success: false, message: 'Check-in date cannot be in the past' });
     }
 
-    const property = await Property.findById(propertyId).session(session);
+    const property = await Property.findById(propertyId);
     if (!property || !property.isActive) {
-      await session.abortTransaction();
-      session.endSession();
       return res.status(404).json({ success: false, message: 'Property not found' });
     }
 
     // Check if user is trying to book their own property
     if (property.host.toString() === req.user._id.toString()) {
-      await session.abortTransaction();
-      session.endSession();
       return res.status(400).json({ success: false, message: 'Cannot book your own property' });
     }
 
     // ── Guest count validation ────────────────────────────────────────
     const totalGuests = (guests?.adults || 0) + (guests?.children || 0);
     if (!guests?.adults || guests.adults < 1) {
-      await session.abortTransaction();
-      session.endSession();
       return res.status(400).json({ success: false, message: 'At least one adult guest required' });
     }
     if (totalGuests > property.capacity.maxGuests) {
-      await session.abortTransaction();
-      session.endSession();
       return res.status(400).json({
         success: false,
         message: `Exceeds max capacity of ${property.capacity.maxGuests} guests`,
       });
     }
 
-    // ── Atomic availability check (inside transaction) ────────────────
+    // ── Availability check ──────────────────────────────────────────
     const conflicting = await Booking.findOne({
       property: propertyId,
       status: { $in: ['pending', 'confirmed'] },
@@ -75,11 +58,9 @@ exports.createBooking = async (req, res, next) => {
         { checkOut: { $gt: checkInDate, $lte: checkOutDate } },
         { checkIn: { $lte: checkInDate }, checkOut: { $gte: checkOutDate } },
       ],
-    }).session(session);
+    });
 
     if (conflicting) {
-      await session.abortTransaction();
-      session.endSession();
       return res.status(400).json({ success: false, message: 'Property not available for selected dates' });
     }
 
@@ -91,8 +72,6 @@ exports.createBooking = async (req, res, next) => {
     });
 
     if (blockedConflict) {
-      await session.abortTransaction();
-      session.endSession();
       return res.status(400).json({ success: false, message: 'Property is blocked for selected dates' });
     }
 
@@ -100,16 +79,12 @@ exports.createBooking = async (req, res, next) => {
     const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
 
     if (property.rules?.minNights && nights < property.rules.minNights) {
-      await session.abortTransaction();
-      session.endSession();
       return res.status(400).json({
         success: false,
         message: `Minimum stay is ${property.rules.minNights} nights`,
       });
     }
     if (property.rules?.maxNights && nights > property.rules.maxNights) {
-      await session.abortTransaction();
-      session.endSession();
       return res.status(400).json({
         success: false,
         message: `Maximum stay is ${property.rules.maxNights} nights`,
@@ -126,50 +101,40 @@ exports.createBooking = async (req, res, next) => {
       : 0;
     const total = subtotal + cleaningFee + serviceFee - discount;
 
-    // ── Create booking inside transaction ─────────────────────────────
-    const [booking] = await Booking.create(
-      [
-        {
-          property: propertyId,
-          guest: req.user._id,
-          checkIn: checkInDate,
-          checkOut: checkOutDate,
-          guests,
-          pricing: { perNight, nights, subtotal, cleaningFee, serviceFee, discount, total },
-          specialRequests,
-        },
-      ],
-      { session }
-    );
-
-    await session.commitTransaction();
-    session.endSession();
+    // ── Create booking ──────────────────────────────────────────────
+    const booking = await Booking.create({
+      property: propertyId,
+      guest: req.user._id,
+      checkIn: checkInDate,
+      checkOut: checkOutDate,
+      guests,
+      pricing: { perNight, nights, subtotal, cleaningFee, serviceFee, discount, total },
+      specialRequests,
+    });
 
     await booking.populate('property', 'title images location');
     await booking.populate('guest', 'name email');
 
-    // Notify host about new booking
-    await Notification.createNotification({
+    // Notify host about new booking (non-blocking)
+    Notification.createNotification({
       user: property.host,
       type: 'booking_created',
       title: 'New Booking Request',
       message: `${req.user.name} requested to book "${property.title}" for ${nights} nights`,
       data: { bookingId: booking._id, propertyId: property._id },
-    });
+    }).catch(() => {});
 
-    // Log activity
-    await ActivityLog.create({
+    // Log activity (non-blocking)
+    ActivityLog.create({
       actor: req.user._id,
       action: 'booking_created',
       target: { type: 'Booking', id: booking._id },
       details: `Booking created for "${property.title}" — ${total} SAR`,
       ip: req.ip,
-    });
+    }).catch(() => {});
 
     res.status(201).json({ success: true, data: booking });
   } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
     next(error);
   }
 };

@@ -111,7 +111,10 @@ const propertySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-propertySchema.index({ 'location.geoJSON': '2dsphere' });
+propertySchema.index(
+  { 'location.geoJSON': '2dsphere' },
+  { partialFilterExpression: { 'location.geoJSON.coordinates': { $exists: true, $ne: [] } } }
+);
 propertySchema.index({ 'location.city': 1 });
 propertySchema.index({ type: 1 });
 propertySchema.index({ 'pricing.perNight': 1 });
