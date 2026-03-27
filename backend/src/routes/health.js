@@ -38,6 +38,8 @@ router.get('/', (req, res) => {
   const mongoReady = mongoose.connection.readyState === 1;
   const redisReady = isRedisConnected();
 
+  const memUsage = process.memoryUsage();
+
   res.json({
     success: true,
     message: 'Hostn API is running',
@@ -47,6 +49,12 @@ router.get('/', (req, res) => {
     dependencies: {
       mongodb: mongoReady ? 'connected' : 'disconnected',
       redis: redisReady ? 'connected' : 'not_configured',
+      geocoding: process.env.GOOGLE_MAPS_SERVER_KEY ? 'configured' : 'not_configured',
+    },
+    memory: {
+      rss: `${Math.round(memUsage.rss / 1024 / 1024)}MB`,
+      heapUsed: `${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`,
+      heapTotal: `${Math.round(memUsage.heapTotal / 1024 / 1024)}MB`,
     },
     timestamp: new Date().toISOString(),
   });

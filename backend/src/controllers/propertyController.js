@@ -1,5 +1,6 @@
 const Property = require('../models/Property');
 const { escapeRegex } = require('../middleware/validate');
+const { cacheGet, cacheSet } = require('../config/cache');
 
 // Fields a host is allowed to update on their own property.
 const ALLOWED_UPDATE_FIELDS = [
@@ -300,7 +301,11 @@ exports.checkAvailability = async (req, res, next) => {
 // @access  Public
 exports.getCities = async (req, res, next) => {
   try {
+    const cached = await cacheGet('cities');
+    if (cached) return res.json({ success: true, data: cached });
+
     const cities = await Property.distinct('location.city', { isActive: true });
+    await cacheSet('cities', cities, 600); // 10 min TTL
     res.json({ success: true, data: cities });
   } catch (error) {
     next(error);
@@ -398,6 +403,9 @@ exports.reverseGeocode = async (req, res, next) => {
 // @access  Public
 exports.getPublicStats = async (req, res, next) => {
   try {
+    const cached = await cacheGet('public-stats');
+    if (cached) return res.json({ success: true, data: cached });
+
     const Booking = require('../models/Booking');
     const Review = require('../models/Review');
     const User = require('../models/User');
@@ -409,15 +417,16 @@ exports.getPublicStats = async (req, res, next) => {
       Review.countDocuments(),
     ]);
 
-    res.json({
-      success: true,
-      data: {
-        properties: propertyCount,
-        hosts: hostCount,
-        completedBookings: bookingCount,
-        reviews: reviewCount,
-      },
-    });
+    const data = {
+      properties: propertyCount,
+      hosts: hostCount,
+      completedBookings: bookingCount,
+      reviews: reviewCount,
+    };
+
+    await cacheSet('public-stats', data, 120); // 2 min TTL
+
+    res.json({ success: true, data });
   } catch (error) {
     next(error);
   }

@@ -95,27 +95,48 @@ app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 // ── NoSQL injection protection ───────────────────────────────────────────────
 app.use(mongoSanitize({ replaceWith: '_' }));
 
-// ── Rate limiting (in-memory — will be replaced with Redis in Phase 39) ──────
-const rateLimitStore = new Map();
+// ── Rate limiting (Redis-backed with in-memory fallback) ─────────────────────
+const { getRedisClient, isRedisConnected } = require('./config/redis');
+const rateLimitMemStore = new Map();
 
 function rateLimit({ windowMs = 15 * 60 * 1000, max = 100, message = 'Too many requests' } = {}) {
+  const windowSec = Math.ceil(windowMs / 1000);
+
+  // Cleanup in-memory fallback periodically
   setInterval(() => {
     const now = Date.now();
-    for (const [key, entry] of rateLimitStore) {
-      if (now - entry.start > windowMs) rateLimitStore.delete(key);
+    for (const [key, entry] of rateLimitMemStore) {
+      if (now - entry.start > windowMs) rateLimitMemStore.delete(key);
     }
   }, 5 * 60 * 1000).unref();
 
-  return (req, res, next) => {
-    const key = `${req.ip}:${req.baseUrl || req.path}`;
-    const now = Date.now();
-    const entry = rateLimitStore.get(key);
+  return async (req, res, next) => {
+    const key = `rl:${req.ip}:${req.baseUrl || req.path}`;
 
-    if (!entry || now - entry.start > windowMs) {
-      rateLimitStore.set(key, { start: now, count: 1 });
-      return next();
+    // Try Redis first
+    if (isRedisConnected()) {
+      try {
+        const client = getRedisClient();
+        const current = await client.incr(key);
+        if (current === 1) {
+          await client.expire(key, windowSec);
+        }
+        if (current > max) {
+          return res.status(429).json({ success: false, message });
+        }
+        return next();
+      } catch {
+        // Fall through to in-memory
+      }
     }
 
+    // In-memory fallback
+    const now = Date.now();
+    const entry = rateLimitMemStore.get(key);
+    if (!entry || now - entry.start > windowMs) {
+      rateLimitMemStore.set(key, { start: now, count: 1 });
+      return next();
+    }
     entry.count++;
     if (entry.count > max) {
       return res.status(429).json({ success: false, message });
@@ -130,10 +151,10 @@ const messageLimiter = rateLimit({ windowMs: 60 * 1000, max: 30, message: 'Too m
 const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200 });
 
 // ── Logging ───────────────────────────────────────────────────────────────────
+const { requestLogger } = require('./config/logger');
+app.use(requestLogger());
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
-} else {
-  app.use(morgan('combined'));
 }
 
 // ── Health check routes (no rate limiting, no auth) ──────────────────────────
