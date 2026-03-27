@@ -477,6 +477,80 @@ exports.updateBooking = async (req, res, next) => {
   }
 };
 
+// ─── Payment Management ──────────────────────────────────────────────────────
+
+// @desc    Get all payments (admin)
+// @route   GET /api/admin/payments
+// @access  Private (Admin)
+exports.getPayments = async (req, res, next) => {
+  try {
+    const { status, page = 1, limit = 20 } = req.query;
+    const query = {};
+
+    if (status) query.status = status;
+
+    const payments = await Payment.find(query)
+      .populate('user', 'name email')
+      .populate('booking', 'checkIn checkOut')
+      .populate('property', 'title')
+      .sort('-createdAt')
+      .skip((page - 1) * limit)
+      .limit(Number(limit));
+
+    const total = await Payment.countDocuments(query);
+
+    res.json({
+      success: true,
+      data: payments,
+      pagination: { page: Number(page), limit: Number(limit), total, pages: Math.ceil(total / limit) },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Refund a payment (admin)
+// @route   POST /api/admin/payments/:id/refund
+// @access  Private (Admin)
+exports.refundPayment = async (req, res, next) => {
+  try {
+    const { reason } = req.body;
+    const payment = await Payment.findById(req.params.id);
+
+    if (!payment) {
+      return res.status(404).json({ success: false, message: 'Payment not found' });
+    }
+
+    if (payment.status === 'refunded') {
+      return res.status(400).json({ success: false, message: 'Payment already refunded' });
+    }
+
+    if (payment.status !== 'paid' && payment.status !== 'completed') {
+      return res.status(400).json({ success: false, message: 'Only paid payments can be refunded' });
+    }
+
+    payment.status = 'refunded';
+    payment.refundedAmount = payment.amount;
+    payment.refundReason = reason || 'Admin refund';
+    payment.refundedAt = new Date();
+    await payment.save();
+
+    await ActivityLog.create({
+      actor: req.user._id,
+      actorRole: req.user.role,
+      actorAdminRole: req.user.adminRole || null,
+      action: 'payment_refunded',
+      target: { type: 'Payment', id: payment._id },
+      details: `Refunded payment ${payment._id} (${payment.amount} ${payment.currency}). Reason: ${reason || 'N/A'}`,
+      ip: req.ip,
+    });
+
+    res.json({ success: true, data: payment });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // ─── Activity Logs ────────────────────────────────────────────────────────────
 
 // @desc    Get activity logs
