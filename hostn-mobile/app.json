@@ -3,6 +3,9 @@
     "name": "Hostn",
     "slug": "hostn",
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "hostn",
@@ -16,6 +19,12 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.hostn.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Hostn uses your location to show nearby properties.",
+        "NSCameraUsageDescription": "Hostn uses the camera to take property and profile photos.",
+        "NSPhotoLibraryUsageDescription": "Hostn accesses your photo library to upload images."
+      },
       "config": {
         "googleMapsApiKey": "YOUR_GOOGLE_MAPS_API_KEY"
       }
@@ -26,6 +35,16 @@
         "backgroundColor": "#4B0082"
       },
       "package": "com.hostn.app",
+      "versionCode": 1,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ],
       "config": {
         "googleMaps": {
           "apiKey": "YOUR_GOOGLE_MAPS_API_KEY"
@@ -47,6 +66,12 @@
         {
           "photosPermission": "Allow Hostn to access your photos to upload a profile picture."
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Hostn uses your location to show nearby properties."
+        }
       ]
     ],
     "web": {
@@ -55,6 +80,11 @@
     },
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": ""
+      }
     }
   }
 }

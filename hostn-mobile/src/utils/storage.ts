@@ -21,6 +21,22 @@ export const secureStorage = {
   async removeToken(): Promise<void> {
     await SecureStore.deleteItemAsync('hostn_token');
   },
+
+  async getRefreshToken(): Promise<string | null> {
+    try {
+      return await SecureStore.getItemAsync('hostn_refresh_token');
+    } catch {
+      return null;
+    }
+  },
+
+  async setRefreshToken(token: string): Promise<void> {
+    await SecureStore.setItemAsync('hostn_refresh_token', token);
+  },
+
+  async removeRefreshToken(): Promise<void> {
+    await SecureStore.deleteItemAsync('hostn_refresh_token');
+  },
 };
 
 // MMKV helpers for app state

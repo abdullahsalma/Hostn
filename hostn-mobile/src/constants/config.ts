@@ -1,6 +1,9 @@
 export const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_URL || 'https://api.hostn.co/api/v1';
 
+export const GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_KEY || '';
+export const IS_MAPS_ENABLED = GOOGLE_MAPS_KEY.length > 0 && !GOOGLE_MAPS_KEY.startsWith('YOUR_');
+
 export const APP_CONFIG = {
   name: 'Hostn',
   version: '1.0.0',
