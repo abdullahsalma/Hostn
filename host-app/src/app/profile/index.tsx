@@ -83,7 +83,7 @@ export default function ProfileScreen() {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}
+            onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/more' as any)}
           >
             <Ionicons name="chevron-forward" size={28} color={Colors.textWhite} />
           </TouchableOpacity>

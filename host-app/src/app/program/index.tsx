@@ -469,7 +469,7 @@ export default function ProgramScreen() {
     'basic';
 
   const handleBack = useCallback(() => {
-    router.back();
+    router.canGoBack() ? router.back() : router.replace('/(tabs)/more' as any);
   }, [router]);
 
   const renderTab = () => {

@@ -441,7 +441,7 @@ export default function UnitDetailScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.headerBack}>
+        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/properties' as any)} style={styles.headerBack}>
           <Ionicons name="chevron-forward" size={24} color={Colors.textWhite} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>{unitName}</Text>

@@ -25,7 +25,7 @@ export default function HeaderBar({
     <View style={[styles.container, { backgroundColor }]}>
       <View style={styles.left}>
         {showBack && (
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/dashboard' as any)} style={styles.backButton}>
             <Ionicons name="chevron-forward" size={24} color={textColor} />
           </TouchableOpacity>
         )}

@@ -222,7 +222,7 @@ export default function ReservationsTabScreen() {
       <View style={styles.header}>
         <View style={styles.headerSide} />
         <Text style={styles.headerTitle}>{t('reservations.title')}</Text>
-        <TouchableOpacity style={styles.headerSide} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.headerSide} onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/dashboard' as any)}>
           <Ionicons name="chevron-forward" size={24} color={Colors.textPrimary} />
         </TouchableOpacity>
       </View>

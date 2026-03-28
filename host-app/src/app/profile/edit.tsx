@@ -44,7 +44,7 @@ export default function EditProfileScreen() {
       Alert.alert(
         '\u062A\u0645 \u0627\u0644\u062A\u062D\u062F\u064A\u062B',
         '\u062A\u0645 \u062A\u062D\u062F\u064A\u062B \u0627\u0644\u0628\u0631\u064A\u062F \u0627\u0644\u0625\u0644\u0643\u062A\u0631\u0648\u0646\u064A \u0628\u0646\u062C\u0627\u062D',
-        [{ text: '\u062D\u0633\u0646\u0627', onPress: () => router.back() }],
+        [{ text: '\u062D\u0633\u0646\u0627', onPress: () => router.canGoBack() ? router.back() : router.replace('/profile' as any) }],
       );
     },
     onError: () => {

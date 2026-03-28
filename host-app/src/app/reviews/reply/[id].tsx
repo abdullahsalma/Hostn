@@ -57,7 +57,7 @@ export default function ReplyToReviewScreen() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reviews'] });
       queryClient.invalidateQueries({ queryKey: ['reviews-summary'] });
-      router.back();
+      router.canGoBack() ? router.back() : router.replace('/reviews' as any);
     },
     onError: () => {
       Alert.alert('خطأ', 'حدث خطأ أثناء إرسال الرد. حاول مرة أخرى.');
