@@ -27,6 +27,7 @@ export default function InvoicesScreen() {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['invoices'],
     queryFn: () => hostService.getInvoices(),
+    retry: false,
   });
 
   const invoices: Invoice[] = data?.data ?? [];

@@ -55,6 +55,9 @@ export default function VatScreen() {
       queryClient.invalidateQueries({ queryKey: ['vatEntries'] });
       closeModal();
     },
+    onError: () => {
+      Alert.alert('\u062E\u0637\u0623', '\u0641\u0634\u0644 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0631\u0642\u0645 \u0627\u0644\u0636\u0631\u064A\u0628\u064A. \u062D\u0627\u0648\u0644 \u0645\u0631\u0629 \u0623\u062E\u0631\u0649.');
+    },
   });
 
   const closeModal = () => {

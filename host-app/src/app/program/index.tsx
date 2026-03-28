@@ -85,7 +85,7 @@ const TIER_MARKER_LABELS = ['أساسي', 'فضي', 'ذهبي', 'القمة'];
 // Sub-components
 // ---------------------------------------------------------------------------
 
-function HeaderBar({ onBack }: { onBack: () => void }) {
+function ProgramHeaderBar({ onBack }: { onBack: () => void }) {
   return (
     <View style={styles.header}>
       <TouchableOpacity onPress={onBack} style={styles.backButton}>
@@ -436,7 +436,7 @@ export default function ProgramScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <HeaderBar onBack={handleBack} />
+      <ProgramHeaderBar onBack={handleBack} />
 
       {statusLoading ? (
         <ActivityIndicator style={styles.loader} size="large" color={Colors.primary} />

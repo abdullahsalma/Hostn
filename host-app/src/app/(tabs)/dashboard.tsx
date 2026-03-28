@@ -8,7 +8,7 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
-import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import ScreenWrapper from '../../components/layout/ScreenWrapper';
@@ -21,7 +21,6 @@ import SectionHeader from '../../components/dashboard/SectionHeader';
 import NpsSurveyModal from '../../components/notifications/NpsSurveyModal';
 import { Colors, Spacing, Typography, Radius, Shadows } from '../../constants/theme';
 import { t } from '../../utils/i18n';
-import { formatCurrency } from '../../utils/format';
 import { hostService } from '../../services/host.service';
 import type { Booking, Transfer, Review } from '../../types';
 

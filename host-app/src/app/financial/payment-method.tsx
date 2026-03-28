@@ -21,6 +21,7 @@ export default function PaymentMethodScreen() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['paymentMethod'],
     queryFn: () => hostService.getPaymentMethod(),
+    retry: false,
   });
 
   const paymentMethod: PaymentMethod | undefined = data?.data;

@@ -31,6 +31,7 @@ export default function PricingIndexScreen() {
   } = useQuery({
     queryKey: ['properties'],
     queryFn: () => hostService.getProperties(),
+    retry: false,
   });
 
   const properties: Property[] = propertiesData?.data ?? [];

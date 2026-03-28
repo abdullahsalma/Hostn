@@ -13,7 +13,7 @@ import {
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, Typography, Radius, Shadows } from '../../constants/theme';
+import { Colors, Spacing, Typography, Radius } from '../../constants/theme';
 import { formatRelativeDate } from '../../utils/format';
 import { hostService } from '../../services/host.service';
 import type { Message } from '../../types';

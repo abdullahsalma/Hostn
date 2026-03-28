@@ -61,7 +61,7 @@ export default function PhoneLoginScreen() {
       {/* Purple header */}
       <View style={styles.header}>
         <Text style={styles.logoText}>Hostn</Text>
-        <Text style={styles.tagline}>سجل دخولك تطبيق المضيفين</Text>
+        <Text style={styles.tagline}>{t('auth.login')}</Text>
       </View>
 
       {/* Form area */}

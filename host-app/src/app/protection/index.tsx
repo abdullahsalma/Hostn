@@ -8,7 +8,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
 import { hostService } from '../../services/host.service';
 import { Colors, Spacing, Typography, Radius, Shadows } from '../../constants/theme';
 import ScreenWrapper from '../../components/layout/ScreenWrapper';
@@ -37,8 +36,6 @@ const compensationTiers = [
 ];
 
 export default function ProtectionScreen() {
-  const router = useRouter();
-
   const { data, isLoading, isError } = useQuery({
     queryKey: ['protectionProgram'],
     queryFn: hostService.getProtectionProgram,

@@ -8,7 +8,6 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
-  I18nManager,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -162,6 +161,7 @@ export default function ReservationsTabScreen() {
       activeTab === 'recent'
         ? hostService.getBookings({ page: 1 }).then(r => r.data ?? [])
         : hostService.getUpcomingGuests().then(r => r.data ?? []),
+    retry: false,
   });
 
   // Use API data if available, otherwise fall back to mock data

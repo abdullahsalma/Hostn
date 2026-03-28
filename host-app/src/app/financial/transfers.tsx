@@ -36,6 +36,7 @@ export default function TransfersScreen() {
   const { data, isLoading, error, refetch, isRefetching } = useQuery({
     queryKey: ['transfers', search],
     queryFn: () => hostService.getTransfers({ search: search || undefined }),
+    retry: false,
   });
 
   const transfers: Transfer[] = data?.data || [];

@@ -44,6 +44,7 @@ export default function TransferDurationScreen() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['transferDuration'],
     queryFn: () => hostService.getTransferDuration(),
+    retry: false,
   });
 
   const transferDuration: TransferDuration | undefined = data?.data;

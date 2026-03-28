@@ -7,13 +7,12 @@ import {
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
-  Image,
-  I18nManager,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Radius, Shadows } from '../../constants/theme';
+import { t } from '../../utils/i18n';
 import { hostService } from '../../services/host.service';
 import type { Property } from '../../types';
 
@@ -110,6 +109,7 @@ export default function PropertiesScreen() {
   } = useQuery({
     queryKey: ['properties'],
     queryFn: () => hostService.getProperties(),
+    retry: false,
   });
 
   const properties: Property[] = data?.data ?? [];
@@ -225,7 +225,7 @@ export default function PropertiesScreen() {
         <TouchableOpacity style={styles.headerBackBtn}>
           <Ionicons name="chevron-forward" size={24} color={Colors.textPrimary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>العقارات والوحدات</Text>
+        <Text style={styles.headerTitle}>{t('properties.title')}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -234,7 +234,7 @@ export default function PropertiesScreen() {
         {isLoading ? (
           <View style={styles.centered}>
             <ActivityIndicator size="large" color={Colors.primary} />
-            <Text style={styles.loadingText}>جاري التحميل...</Text>
+            <Text style={styles.loadingText}>{t('common.loading')}</Text>
           </View>
         ) : displayProperty ? (
           <FlatList
@@ -256,8 +256,8 @@ export default function PropertiesScreen() {
         ) : (
           <View style={styles.centered}>
             <Ionicons name="business-outline" size={48} color={Colors.textTertiary} />
-            <Text style={styles.emptyText}>لا توجد عقارات</Text>
-            <Text style={styles.emptySubtext}>أضف عقارك الأول للبدء</Text>
+            <Text style={styles.emptyText}>{t('common.empty')}</Text>
+            <Text style={styles.emptySubtext}>{t('properties.title')}</Text>
           </View>
         )}
       </View>

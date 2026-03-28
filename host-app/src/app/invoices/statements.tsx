@@ -45,6 +45,7 @@ export default function StatementsScreen() {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['statements'],
     queryFn: () => hostService.getStatements(),
+    retry: false,
   });
 
   const statements: Statement[] = data?.data ?? [];

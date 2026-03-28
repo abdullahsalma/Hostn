@@ -52,6 +52,9 @@ export default function ManagersScreen() {
       queryClient.invalidateQueries({ queryKey: ['managers'] });
       closeModal();
     },
+    onError: () => {
+      Alert.alert('\u062E\u0637\u0623', '\u0641\u0634\u0644 \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u062F\u064A\u0631. \u062D\u0627\u0648\u0644 \u0645\u0631\u0629 \u0623\u062E\u0631\u0649.');
+    },
   });
 
   const updateMutation = useMutation({
@@ -61,12 +64,18 @@ export default function ManagersScreen() {
       queryClient.invalidateQueries({ queryKey: ['managers'] });
       closeModal();
     },
+    onError: () => {
+      Alert.alert('\u062E\u0637\u0623', '\u0641\u0634\u0644 \u062A\u062D\u062F\u064A\u062B \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0645\u062F\u064A\u0631. \u062D\u0627\u0648\u0644 \u0645\u0631\u0629 \u0623\u062E\u0631\u0649.');
+    },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => hostService.deleteManager(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['managers'] });
+    },
+    onError: () => {
+      Alert.alert('\u062E\u0637\u0623', '\u0641\u0634\u0644 \u062D\u0630\u0641 \u0627\u0644\u0645\u062F\u064A\u0631. \u062D\u0627\u0648\u0644 \u0645\u0631\u0629 \u0623\u062E\u0631\u0649.');
     },
   });
 

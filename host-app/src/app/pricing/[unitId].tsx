@@ -52,6 +52,7 @@ export default function UnitPricingDetailScreen() {
     queryKey: ['unit', unitId],
     queryFn: () => hostService.getUnit(unitId!),
     enabled: !!unitId,
+    retry: false,
   });
 
   const unit: Unit | undefined = unitData?.data;
@@ -66,6 +67,7 @@ export default function UnitPricingDetailScreen() {
     queryKey: ['unitPricing', unitId],
     queryFn: () => hostService.getUnitPricing(unitId!),
     enabled: !!unitId,
+    retry: false,
   });
 
   const pricing: UnitPricing | undefined = pricingData?.data;
@@ -80,6 +82,7 @@ export default function UnitPricingDetailScreen() {
     queryKey: ['unitDiscounts', unitId],
     queryFn: () => hostService.getUnitDiscounts(unitId!),
     enabled: !!unitId,
+    retry: false,
   });
 
   const discounts: UnitDiscount[] = discountsData?.data ?? [];
@@ -94,6 +97,7 @@ export default function UnitPricingDetailScreen() {
     queryKey: ['unitOffers', unitId],
     queryFn: () => hostService.getUnitOffers(unitId!),
     enabled: !!unitId,
+    retry: false,
   });
 
   const offers: CustomOffer[] = offersData?.data ?? [];

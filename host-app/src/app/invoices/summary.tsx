@@ -49,6 +49,7 @@ export default function AccountSummaryScreen() {
   const { data: propertiesData } = useQuery({
     queryKey: ['properties'],
     queryFn: () => hostService.getProperties(),
+    retry: false,
   });
 
   const properties: Property[] = propertiesData?.data ?? [];
@@ -64,6 +65,7 @@ export default function AccountSummaryScreen() {
         propertyId: selectedPropertyId,
         unitId: selectedUnitId,
       }),
+    retry: false,
   });
 
   const summary: AccountSummary | undefined = data?.data;

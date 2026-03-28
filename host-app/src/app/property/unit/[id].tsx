@@ -15,6 +15,7 @@ import ScreenWrapper from '../../../components/layout/ScreenWrapper';
 import HeaderBar from '../../../components/layout/HeaderBar';
 import { Colors, Spacing, Typography, Radius, Shadows } from '../../../constants/theme';
 import { hostService } from '../../../services/host.service';
+import type { Unit } from '../../../types';
 
 type Tab = 'details' | 'arrival';
 
@@ -115,16 +116,7 @@ export default function UnitDetailScreen() {
 
 /* ─── Details Tab ─── */
 
-interface DetailsTabProps {
-  unit: NonNullable<ReturnType<typeof useUnitData>>;
-  isListed: boolean;
-}
-
-function useUnitData() {
-  return null as any;
-}
-
-function DetailsTab({ unit, isListed }: { unit: any; isListed: boolean }) {
+function DetailsTab({ unit, isListed }: { unit: Unit; isListed: boolean }) {
   return (
     <>
       {/* Status badge */}
@@ -164,7 +156,7 @@ function DetailsTab({ unit, isListed }: { unit: any; isListed: boolean }) {
         <InfoRow label="اسم الوحدة" value={unit.name} />
         <InfoRow label="رمز الوحدة" value={unit.code} />
         <InfoRow label="المساحة" value={unit.area ? `${unit.area} م²` : '-'} />
-        <InfoRow label="التصنيف" value={unit.classification ?? '-'} />
+        <InfoRow label="السعة" value={unit.capacity ? `${unit.capacity} ضيف` : '-'} />
       </View>
 
       {/* Booking terms */}

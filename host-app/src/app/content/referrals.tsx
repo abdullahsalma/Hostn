@@ -6,9 +6,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
+  Share,
 } from 'react-native';
-import { Share } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Ionicons } from '@expo/vector-icons';
 import { hostService } from '../../services/host.service';
@@ -44,10 +43,13 @@ export default function ReferralsScreen() {
   const links: ReferralLink[] = data?.data || [];
   const activeLink = links[0];
 
-  const handleCopyLink = useCallback(async () => {
+  const handleShareLink = useCallback(async () => {
     if (activeLink?.url) {
-      await Share.share({ message: activeLink.url });
-      Alert.alert('تم النسخ', 'تم نسخ رابط الإحالة');
+      try {
+        await Share.share({ message: activeLink.url });
+      } catch {
+        // User cancelled sharing
+      }
     }
   }, [activeLink]);
 
@@ -92,7 +94,7 @@ export default function ReferralsScreen() {
                 {activeLink.url}
               </Text>
               <TouchableOpacity
-                onPress={handleCopyLink}
+                onPress={handleShareLink}
                 style={styles.copyButton}
               >
                 <Ionicons name="copy-outline" size={20} color={Colors.primary} />

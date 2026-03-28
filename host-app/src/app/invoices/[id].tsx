@@ -26,6 +26,7 @@ export default function InvoiceDetailScreen() {
     queryKey: ['invoice', id],
     queryFn: () => hostService.getInvoiceDetail(id!),
     enabled: !!id,
+    retry: false,
   });
 
   const invoice: Invoice | undefined = data?.data;

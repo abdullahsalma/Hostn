@@ -41,6 +41,7 @@ export default function TransferDetailScreen() {
     queryKey: ['transferDetail', id],
     queryFn: () => hostService.getTransferDetail(id!),
     enabled: !!id,
+    retry: false,
   });
 
   const transfer: TransferDetail | undefined = data?.data;

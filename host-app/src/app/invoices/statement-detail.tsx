@@ -43,6 +43,7 @@ export default function StatementDetailScreen() {
     queryKey: ['statement', month],
     queryFn: () => hostService.getStatementDetail(month!),
     enabled: !!month,
+    retry: false,
   });
 
   const statement: Statement | undefined = data?.data;
