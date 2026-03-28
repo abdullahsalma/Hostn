@@ -280,13 +280,26 @@ function AccordionItem({
 // ---------------------------------------------------------------------------
 
 function PerformanceTab() {
-  const { data, isLoading, refetch, isRefetching } = useQuery({
+  const { data, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['ambassadorIndicators'],
     queryFn: () => hostService.getAmbassadorIndicators(),
+    retry: false,
   });
 
   if (isLoading) {
     return <ActivityIndicator style={styles.loader} size="large" color={Colors.primary} />;
+  }
+
+  if (isError) {
+    return (
+      <View style={styles.errorContainer}>
+        <Ionicons name="alert-circle-outline" size={48} color={Colors.textTertiary} />
+        <Text style={styles.errorText}>حدث خطأ في تحميل البيانات</Text>
+        <TouchableOpacity onPress={() => refetch()} style={styles.retryButton}>
+          <Text style={styles.retryText}>إعادة المحاولة</Text>
+        </TouchableOpacity>
+      </View>
+    );
   }
 
   const indicators = data?.data || data || {};
@@ -308,13 +321,26 @@ function PerformanceTab() {
 }
 
 function TiersTab() {
-  const { data, isLoading, refetch, isRefetching } = useQuery({
+  const { data, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['ambassadorTiers'],
     queryFn: () => hostService.getAmbassadorTiers(),
+    retry: false,
   });
 
   if (isLoading) {
     return <ActivityIndicator style={styles.loader} size="large" color={Colors.primary} />;
+  }
+
+  if (isError) {
+    return (
+      <View style={styles.errorContainer}>
+        <Ionicons name="alert-circle-outline" size={48} color={Colors.textTertiary} />
+        <Text style={styles.errorText}>حدث خطأ في تحميل البيانات</Text>
+        <TouchableOpacity onPress={() => refetch()} style={styles.retryButton}>
+          <Text style={styles.retryText}>إعادة المحاولة</Text>
+        </TouchableOpacity>
+      </View>
+    );
   }
 
   const tiers: AmbassadorTier[] = data?.data || data || [];
@@ -339,13 +365,26 @@ function TiersTab() {
 }
 
 function FaqTab() {
-  const { data, isLoading, refetch, isRefetching } = useQuery({
+  const { data, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['ambassadorFaq'],
     queryFn: () => hostService.getAmbassadorFaq(),
+    retry: false,
   });
 
   if (isLoading) {
     return <ActivityIndicator style={styles.loader} size="large" color={Colors.primary} />;
+  }
+
+  if (isError) {
+    return (
+      <View style={styles.errorContainer}>
+        <Ionicons name="alert-circle-outline" size={48} color={Colors.textTertiary} />
+        <Text style={styles.errorText}>حدث خطأ في تحميل البيانات</Text>
+        <TouchableOpacity onPress={() => refetch()} style={styles.retryButton}>
+          <Text style={styles.retryText}>إعادة المحاولة</Text>
+        </TouchableOpacity>
+      </View>
+    );
   }
 
   const items: FaqItem[] = data?.data?.items || data?.items || [];
@@ -365,13 +404,26 @@ function FaqTab() {
 }
 
 function TermsTab() {
-  const { data, isLoading, refetch, isRefetching } = useQuery({
+  const { data, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['ambassadorTerms'],
     queryFn: () => hostService.getAmbassadorTerms(),
+    retry: false,
   });
 
   if (isLoading) {
     return <ActivityIndicator style={styles.loader} size="large" color={Colors.primary} />;
+  }
+
+  if (isError) {
+    return (
+      <View style={styles.errorContainer}>
+        <Ionicons name="alert-circle-outline" size={48} color={Colors.textTertiary} />
+        <Text style={styles.errorText}>حدث خطأ في تحميل البيانات</Text>
+        <TouchableOpacity onPress={() => refetch()} style={styles.retryButton}>
+          <Text style={styles.retryText}>إعادة المحاولة</Text>
+        </TouchableOpacity>
+      </View>
+    );
   }
 
   const sections: TermsSection[] = data?.data?.sections || data?.sections || data?.data || [];
@@ -403,9 +455,10 @@ export default function ProgramScreen() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabKey>('performance');
 
-  const { data: statusData, isLoading: statusLoading } = useQuery({
+  const { data: statusData, isLoading: statusLoading, isError: statusError } = useQuery({
     queryKey: ['ambassadorStatus'],
     queryFn: () => hostService.getAmbassadorStatus(),
+    retry: false,
   });
 
   const currentLevel: string =
@@ -440,6 +493,11 @@ export default function ProgramScreen() {
 
       {statusLoading ? (
         <ActivityIndicator style={styles.loader} size="large" color={Colors.primary} />
+      ) : statusError ? (
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color={Colors.textTertiary} />
+          <Text style={styles.errorText}>حدث خطأ في تحميل حالة السفير</Text>
+        </View>
       ) : (
         <TierCard level={currentLevel} />
       )}
@@ -546,6 +604,30 @@ const styles = StyleSheet.create({
   // Loader
   loader: {
     marginTop: Spacing.xxl,
+  },
+
+  // Error
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: Spacing.xxxl,
+    gap: Spacing.md,
+  },
+  errorText: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  retryButton: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.primary,
+  },
+  retryText: {
+    ...Typography.smallBold,
+    color: Colors.white,
   },
 
   // Indicator card

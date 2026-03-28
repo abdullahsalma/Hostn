@@ -40,6 +40,7 @@ export default function PermitsScreen() {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['permits'],
     queryFn: hostService.getPermits,
+    retry: false,
   });
 
   const properties: PropertyPermitGroup[] = data?.data ?? [];

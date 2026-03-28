@@ -37,6 +37,7 @@ export default function SuggestionsScreen() {
   const { data, isLoading, isError, refetch, isRefetching } = useQuery({
     queryKey: ['suggestions'],
     queryFn: hostService.getSuggestions,
+    retry: false,
   });
 
   const suggestions: Suggestion[] = data?.data ?? [];

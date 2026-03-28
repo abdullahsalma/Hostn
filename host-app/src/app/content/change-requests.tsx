@@ -22,6 +22,7 @@ export default function ChangeRequestsScreen() {
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['change-requests'],
     queryFn: () => hostService.getChangeRequests(),
+    retry: false,
   });
 
   const requests: ChangeRequest[] = data?.data || [];

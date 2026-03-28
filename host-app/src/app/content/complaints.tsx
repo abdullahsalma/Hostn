@@ -11,6 +11,7 @@ export default function ComplaintsScreen() {
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['complaints'],
     queryFn: () => hostService.getComplaints(),
+    retry: false,
   });
 
   const complaints: unknown[] = data?.data || [];

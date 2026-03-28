@@ -22,6 +22,7 @@ export default function ContactScreen() {
   const { data } = useQuery<{ data: SupportInfo }>({
     queryKey: ['supportInfo'],
     queryFn: hostService.getSupportInfo,
+    retry: false,
   });
 
   const support = data?.data ?? FALLBACK_SUPPORT;

@@ -31,6 +31,7 @@ export default function ReferralsScreen() {
   const { data, isLoading } = useQuery({
     queryKey: ['referral-links'],
     queryFn: () => hostService.getReferralLinks(),
+    retry: false,
   });
 
   const createMutation = useMutation({

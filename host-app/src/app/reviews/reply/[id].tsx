@@ -44,6 +44,7 @@ export default function ReplyToReviewScreen() {
   const reviewsQuery = useQuery<ReviewsResponse>({
     queryKey: ['reviews', 1],
     queryFn: () => hostService.getReviews({ page: 1 }),
+    retry: false,
   });
 
   const review = useMemo(

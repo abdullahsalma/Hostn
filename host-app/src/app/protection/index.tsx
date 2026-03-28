@@ -39,6 +39,7 @@ export default function ProtectionScreen() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ['protectionProgram'],
     queryFn: hostService.getProtectionProgram,
+    retry: false,
   });
 
   return (

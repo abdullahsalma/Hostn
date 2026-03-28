@@ -140,11 +140,13 @@ export default function ReviewsScreen() {
   const summaryQuery = useQuery<ReviewsSummary>({
     queryKey: ['reviews-summary'],
     queryFn: () => hostService.getReviewsSummary(),
+    retry: false,
   });
 
   const reviewsQuery = useQuery<ReviewsResponse>({
     queryKey: ['reviews', page],
     queryFn: () => hostService.getReviews({ page }),
+    retry: false,
   });
 
   const isLoading = summaryQuery.isLoading || reviewsQuery.isLoading;

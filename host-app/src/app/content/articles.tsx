@@ -49,6 +49,7 @@ export default function ArticlesScreen() {
         category: category || undefined,
         search: debouncedSearch || undefined,
       }),
+    retry: false,
   });
 
   const articles: Article[] = data?.data || [];

@@ -26,9 +26,10 @@ export default function TermsScreen() {
   const queryClient = useQueryClient();
   const [expandedArticle, setExpandedArticle] = useState<number | null>(null);
 
-  const { data, isLoading } = useQuery<{ data: TermsOfUse }>({
+  const { data, isLoading, isError } = useQuery<{ data: TermsOfUse }>({
     queryKey: ['terms'],
     queryFn: hostService.getTerms,
+    retry: false,
   });
 
   const signMutation = useMutation({
@@ -54,6 +55,11 @@ export default function TermsScreen() {
       {isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      ) : isError ? (
+        <View style={styles.loadingContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color={Colors.textTertiary} />
+          <Text style={styles.errorText}>حدث خطأ في تحميل الشروط والأحكام</Text>
         </View>
       ) : (
         <>
@@ -133,6 +139,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    gap: Spacing.md,
+  },
+  errorText: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginTop: Spacing.md,
   },
   scrollView: {
     flex: 1,

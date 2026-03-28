@@ -31,6 +31,7 @@ export default function DiscountCodesScreen() {
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['discount-codes'],
     queryFn: () => hostService.getDiscountCodes(),
+    retry: false,
   });
 
   const createMutation = useMutation({
