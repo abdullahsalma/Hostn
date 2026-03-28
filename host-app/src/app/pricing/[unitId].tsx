@@ -1,0 +1,643 @@
+import React, { useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  TextInput,
+  StyleSheet,
+  ActivityIndicator,
+  RefreshControl,
+  Switch,
+  Alert,
+  ScrollView,
+} from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Ionicons } from '@expo/vector-icons';
+import ScreenWrapper from '../../components/layout/ScreenWrapper';
+import HeaderBar from '../../components/layout/HeaderBar';
+import { Colors, Spacing, Typography, Radius, Shadows } from '../../constants/theme';
+import { formatCurrency } from '../../utils/format';
+import { hostService } from '../../services/host.service';
+import type { Property, Unit, UnitPricing, UnitDiscount, CustomOffer } from '../../types';
+
+type TabKey = 'prices' | 'offers';
+
+interface DayRateConfig {
+  key: keyof UnitPricing;
+  label: string;
+  description: string;
+}
+
+const DAY_RATES: DayRateConfig[] = [
+  { key: 'midWeek', label: '\u0648\u0633\u0637 \u0627\u0644\u0623\u0633\u0628\u0648\u0639', description: '\u0627\u0644\u0623\u062D\u062F - \u0627\u0644\u0623\u0631\u0628\u0639\u0627\u0621' },
+  { key: 'thursday', label: '\u0627\u0644\u062E\u0645\u064A\u0633', description: '' },
+  { key: 'friday', label: '\u0627\u0644\u062C\u0645\u0639\u0629', description: '' },
+  { key: 'saturday', label: '\u0627\u0644\u0633\u0628\u062A', description: '' },
+];
+
+export default function UnitPricingDetailScreen() {
+  const { unitId } = useLocalSearchParams<{ unitId: string }>();
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<TabKey>('prices');
+  const [expandedRate, setExpandedRate] = useState<string | null>(null);
+  const [editValues, setEditValues] = useState<Record<string, string>>({});
+
+  // Fetch unit info
+  const {
+    data: unitData,
+    isLoading: unitLoading,
+  } = useQuery({
+    queryKey: ['unit', unitId],
+    queryFn: () => hostService.getUnit(unitId!),
+    enabled: !!unitId,
+  });
+
+  const unit: Unit | undefined = unitData?.data;
+
+  // Fetch pricing
+  const {
+    data: pricingData,
+    isLoading: pricingLoading,
+    refetch: refetchPricing,
+    isRefetching: pricingRefetching,
+  } = useQuery({
+    queryKey: ['unitPricing', unitId],
+    queryFn: () => hostService.getUnitPricing(unitId!),
+    enabled: !!unitId,
+  });
+
+  const pricing: UnitPricing | undefined = pricingData?.data;
+
+  // Fetch discounts
+  const {
+    data: discountsData,
+    isLoading: discountsLoading,
+    refetch: refetchDiscounts,
+    isRefetching: discountsRefetching,
+  } = useQuery({
+    queryKey: ['unitDiscounts', unitId],
+    queryFn: () => hostService.getUnitDiscounts(unitId!),
+    enabled: !!unitId,
+  });
+
+  const discounts: UnitDiscount[] = discountsData?.data ?? [];
+
+  // Fetch offers
+  const {
+    data: offersData,
+    isLoading: offersLoading,
+    refetch: refetchOffers,
+    isRefetching: offersRefetching,
+  } = useQuery({
+    queryKey: ['unitOffers', unitId],
+    queryFn: () => hostService.getUnitOffers(unitId!),
+    enabled: !!unitId,
+  });
+
+  const offers: CustomOffer[] = offersData?.data ?? [];
+
+  // Mutations
+  const updatePricingMutation = useMutation({
+    mutationFn: (data: Record<string, unknown>) => hostService.updateUnitPricing(unitId!, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['unitPricing', unitId] });
+      setExpandedRate(null);
+      setEditValues({});
+    },
+  });
+
+  const toggleDiscountMutation = useMutation({
+    mutationFn: (type: string) => hostService.toggleDiscount(unitId!, type),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['unitDiscounts', unitId] });
+    },
+  });
+
+  const deleteOfferMutation = useMutation({
+    mutationFn: (offerId: string) => hostService.deleteOffer(unitId!, offerId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['unitOffers', unitId] });
+    },
+  });
+
+  const handleSaveRate = useCallback(
+    (rateKey: string) => {
+      const value = editValues[rateKey];
+      if (!value || isNaN(Number(value)) || Number(value) <= 0) {
+        Alert.alert('\u062E\u0637\u0623', '\u064A\u0631\u062C\u0649 \u0625\u062F\u062E\u0627\u0644 \u0633\u0639\u0631 \u0635\u062D\u064A\u062D');
+        return;
+      }
+      updatePricingMutation.mutate({ [rateKey]: Number(value) });
+    },
+    [editValues, updatePricingMutation],
+  );
+
+  const handleToggleRate = useCallback(
+    (rateKey: string) => {
+      if (expandedRate === rateKey) {
+        setExpandedRate(null);
+      } else {
+        setExpandedRate(rateKey);
+        if (pricing) {
+          setEditValues((prev) => ({
+            ...prev,
+            [rateKey]: String(pricing[rateKey as keyof UnitPricing] ?? ''),
+          }));
+        }
+      }
+    },
+    [expandedRate, pricing],
+  );
+
+  const handleToggleDiscount = useCallback(
+    (type: string) => {
+      toggleDiscountMutation.mutate(type);
+    },
+    [toggleDiscountMutation],
+  );
+
+  const handleDeleteOffer = useCallback(
+    (offerId: string) => {
+      Alert.alert(
+        '\u062D\u0630\u0641 \u0627\u0644\u0639\u0631\u0636',
+        '\u0647\u0644 \u0623\u0646\u062A \u0645\u062A\u0623\u0643\u062F \u0645\u0646 \u062D\u0630\u0641 \u0647\u0630\u0627 \u0627\u0644\u0639\u0631\u0636\u061F',
+        [
+          { text: '\u0625\u0644\u063A\u0627\u0621', style: 'cancel' },
+          {
+            text: '\u062D\u0630\u0641',
+            style: 'destructive',
+            onPress: () => deleteOfferMutation.mutate(offerId),
+          },
+        ],
+      );
+    },
+    [deleteOfferMutation],
+  );
+
+  const handleRefresh = useCallback(() => {
+    if (activeTab === 'prices') {
+      refetchPricing();
+    } else {
+      refetchDiscounts();
+      refetchOffers();
+    }
+  }, [activeTab, refetchPricing, refetchDiscounts, refetchOffers]);
+
+  const isRefreshing =
+    activeTab === 'prices' ? pricingRefetching : discountsRefetching || offersRefetching;
+
+  const isLoading = unitLoading || (activeTab === 'prices' ? pricingLoading : discountsLoading || offersLoading);
+
+  if (isLoading) {
+    return (
+      <ScreenWrapper>
+        <HeaderBar title="..." showBack />
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>{'\u062C\u0627\u0631\u064A \u0627\u0644\u062A\u062D\u0645\u064A\u0644...'}</Text>
+        </View>
+      </ScreenWrapper>
+    );
+  }
+
+  return (
+    <ScreenWrapper>
+      <HeaderBar title={unit?.name ?? '\u0627\u0644\u0623\u0633\u0639\u0627\u0631'} showBack />
+
+      {/* Segmented Control */}
+      <View style={styles.segmentedContainer}>
+        <TouchableOpacity
+          style={[styles.segmentButton, activeTab === 'offers' && styles.segmentButtonActive]}
+          onPress={() => setActiveTab('offers')}
+        >
+          <Text style={[styles.segmentText, activeTab === 'offers' && styles.segmentTextActive]}>
+            {'\u0627\u0644\u0639\u0631\u0648\u0636 \u0648\u0627\u0644\u062E\u0635\u0648\u0645\u0627\u062A'}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.segmentButton, activeTab === 'prices' && styles.segmentButtonActive]}
+          onPress={() => setActiveTab('prices')}
+        >
+          <Text style={[styles.segmentText, activeTab === 'prices' && styles.segmentTextActive]}>
+            {'\u0627\u0644\u0623\u0633\u0639\u0627\u0631'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {activeTab === 'prices' ? (
+        <ScrollView
+          style={styles.tabContent}
+          contentContainerStyle={styles.tabContentInner}
+          refreshControl={
+            <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor={Colors.primary} />
+          }
+        >
+          {DAY_RATES.map((rate) => {
+            const currentPrice = pricing?.[rate.key] ?? 0;
+            const isExpanded = expandedRate === rate.key;
+
+            return (
+              <View key={rate.key} style={styles.rateCard}>
+                <TouchableOpacity
+                  style={styles.rateHeader}
+                  onPress={() => handleToggleRate(rate.key)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                    size={20}
+                    color={Colors.textSecondary}
+                  />
+                  <View style={styles.rateHeaderInfo}>
+                    <Text style={styles.rateLabel}>{rate.label}</Text>
+                    {rate.description ? (
+                      <Text style={styles.rateDescription}>{rate.description}</Text>
+                    ) : null}
+                  </View>
+                  <Text style={styles.ratePrice}>{formatCurrency(currentPrice)}</Text>
+                </TouchableOpacity>
+
+                {isExpanded && (
+                  <View style={styles.rateEditContainer}>
+                    <View style={styles.rateEditRow}>
+                      <TouchableOpacity
+                        style={[
+                          styles.saveButton,
+                          updatePricingMutation.isPending && styles.saveButtonDisabled,
+                        ]}
+                        onPress={() => handleSaveRate(rate.key)}
+                        disabled={updatePricingMutation.isPending}
+                      >
+                        {updatePricingMutation.isPending ? (
+                          <ActivityIndicator size="small" color={Colors.textWhite} />
+                        ) : (
+                          <Text style={styles.saveButtonText}>{'\u062D\u0641\u0638'}</Text>
+                        )}
+                      </TouchableOpacity>
+                      <TextInput
+                        style={styles.rateInput}
+                        value={editValues[rate.key] ?? ''}
+                        onChangeText={(text) =>
+                          setEditValues((prev) => ({ ...prev, [rate.key]: text }))
+                        }
+                        keyboardType="numeric"
+                        placeholder={'\u0623\u062F\u062E\u0644 \u0627\u0644\u0633\u0639\u0631'}
+                        placeholderTextColor={Colors.textTertiary}
+                        textAlign="right"
+                      />
+                    </View>
+                    <Text style={styles.currencyHint}>{'\u0631\u064A\u0627\u0644 \u0633\u0639\u0648\u062F\u064A'}</Text>
+                  </View>
+                )}
+              </View>
+            );
+          })}
+        </ScrollView>
+      ) : (
+        <ScrollView
+          style={styles.tabContent}
+          contentContainerStyle={styles.tabContentInner}
+          refreshControl={
+            <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor={Colors.primary} />
+          }
+        >
+          {/* Weekly Discount */}
+          {renderDiscountCard(
+            discounts.find((d) => d.type === 'weekly'),
+            'weekly',
+            '\u062E\u0635\u0645 \u0623\u0633\u0628\u0648\u0639\u064A',
+            '\u062E\u0635\u0645 \u0639\u0646\u062F \u0627\u0644\u062D\u062C\u0632 \u0644\u0645\u062F\u0629 \u0623\u0633\u0628\u0648\u0639',
+            handleToggleDiscount,
+            toggleDiscountMutation.isPending,
+          )}
+
+          {/* Monthly Discount */}
+          {renderDiscountCard(
+            discounts.find((d) => d.type === 'monthly'),
+            'monthly',
+            '\u062E\u0635\u0645 \u0634\u0647\u0631\u064A',
+            '\u062E\u0635\u0645 \u0639\u0646\u062F \u0627\u0644\u062D\u062C\u0632 \u0644\u0645\u062F\u0629 \u0634\u0647\u0631',
+            handleToggleDiscount,
+            toggleDiscountMutation.isPending,
+          )}
+
+          {/* Custom Offers */}
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>{'\u0627\u0644\u0639\u0631\u0648\u0636 \u0627\u0644\u0645\u062E\u0635\u0635\u0629'}</Text>
+          </View>
+
+          {offers.length > 0 ? (
+            offers.map((offer) => (
+              <View key={offer.id} style={styles.offerCard}>
+                <View style={styles.offerHeader}>
+                  <TouchableOpacity
+                    onPress={() => handleDeleteOffer(offer.id)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Ionicons name="trash-outline" size={20} color={Colors.error} />
+                  </TouchableOpacity>
+                  <View style={styles.offerInfo}>
+                    <Text style={styles.offerName}>{offer.name}</Text>
+                    <Text style={styles.offerDiscount}>{offer.discountPercent}% {'\u062E\u0635\u0645'}</Text>
+                    {offer.selectedDates.length > 0 && (
+                      <Text style={styles.offerDates}>
+                        {offer.selectedDates.length} {'\u0623\u064A\u0627\u0645'}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              </View>
+            ))
+          ) : (
+            <View style={styles.emptyOffers}>
+              <Ionicons name="pricetag-outline" size={40} color={Colors.textTertiary} />
+              <Text style={styles.emptyText}>{'\u0644\u0627 \u062A\u0648\u062C\u062F \u0639\u0631\u0648\u0636 \u0645\u062E\u0635\u0635\u0629'}</Text>
+            </View>
+          )}
+
+          {/* Add Offer Button */}
+          <TouchableOpacity style={styles.addOfferButton} activeOpacity={0.7}>
+            <Ionicons name="add-circle-outline" size={22} color={Colors.textWhite} />
+            <Text style={styles.addOfferText}>{'\u0623\u0636\u0641 \u0639\u0631\u0636'}</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      )}
+    </ScreenWrapper>
+  );
+}
+
+function renderDiscountCard(
+  discount: UnitDiscount | undefined,
+  type: string,
+  title: string,
+  description: string,
+  onToggle: (type: string) => void,
+  isPending: boolean,
+) {
+  const percentage = discount?.percentage ?? 0;
+  const isActive = discount?.active ?? false;
+
+  return (
+    <View style={styles.discountCard}>
+      <View style={styles.discountHeader}>
+        <Switch
+          value={isActive}
+          onValueChange={() => onToggle(type)}
+          trackColor={{ false: Colors.border, true: Colors.primary300 }}
+          thumbColor={isActive ? Colors.primary : Colors.textTertiary}
+          disabled={isPending}
+        />
+        <View style={styles.discountInfo}>
+          <Text style={styles.discountTitle}>{title}</Text>
+          <Text style={styles.discountDescription}>{description}</Text>
+        </View>
+      </View>
+      <View style={styles.discountPercentageContainer}>
+        <Text style={styles.discountPercentageLabel}>{'\u0646\u0633\u0628\u0629 \u0627\u0644\u062E\u0635\u0645'}</Text>
+        <Text style={[styles.discountPercentage, isActive && styles.discountPercentageActive]}>
+          {percentage}%
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.md,
+  },
+  loadingText: {
+    ...Typography.small,
+    color: Colors.textSecondary,
+  },
+  segmentedContainer: {
+    flexDirection: 'row',
+    marginHorizontal: Spacing.base,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
+    backgroundColor: Colors.surfaceAlt,
+    borderRadius: Radius.md,
+    padding: 3,
+  },
+  segmentButton: {
+    flex: 1,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radius.sm,
+    alignItems: 'center',
+  },
+  segmentButtonActive: {
+    backgroundColor: Colors.white,
+    ...Shadows.sm,
+  },
+  segmentText: {
+    ...Typography.smallBold,
+    color: Colors.textSecondary,
+  },
+  segmentTextActive: {
+    color: Colors.primary,
+  },
+  tabContent: {
+    flex: 1,
+  },
+  tabContentInner: {
+    padding: Spacing.base,
+    paddingBottom: Spacing.xxxl,
+  },
+  // Prices tab
+  rateCard: {
+    backgroundColor: Colors.white,
+    borderRadius: Radius.lg,
+    marginBottom: Spacing.md,
+    overflow: 'hidden',
+    ...Shadows.card,
+  },
+  rateHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.base,
+  },
+  rateHeaderInfo: {
+    flex: 1,
+    alignItems: 'flex-end',
+    marginHorizontal: Spacing.md,
+  },
+  rateLabel: {
+    ...Typography.bodyBold,
+    color: Colors.textPrimary,
+    textAlign: 'right',
+  },
+  rateDescription: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+    textAlign: 'right',
+    marginTop: 2,
+  },
+  ratePrice: {
+    ...Typography.subtitle,
+    color: Colors.primary,
+  },
+  rateEditContainer: {
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderLight,
+    padding: Spacing.base,
+    backgroundColor: Colors.surface,
+  },
+  rateEditRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  rateInput: {
+    flex: 1,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    ...Typography.body,
+    color: Colors.textPrimary,
+    textAlign: 'right',
+  },
+  saveButton: {
+    backgroundColor: Colors.primary,
+    borderRadius: Radius.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    minWidth: 70,
+    alignItems: 'center',
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
+  },
+  saveButtonText: {
+    ...Typography.smallBold,
+    color: Colors.textWhite,
+  },
+  currencyHint: {
+    ...Typography.caption,
+    color: Colors.textTertiary,
+    textAlign: 'right',
+    marginTop: Spacing.xs,
+  },
+  // Offers tab
+  discountCard: {
+    backgroundColor: Colors.white,
+    borderRadius: Radius.lg,
+    padding: Spacing.base,
+    marginBottom: Spacing.md,
+    ...Shadows.card,
+  },
+  discountHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  discountInfo: {
+    flex: 1,
+    alignItems: 'flex-end',
+    marginLeft: Spacing.md,
+  },
+  discountTitle: {
+    ...Typography.bodyBold,
+    color: Colors.textPrimary,
+    textAlign: 'right',
+  },
+  discountDescription: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+    textAlign: 'right',
+    marginTop: 2,
+  },
+  discountPercentageContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: Spacing.md,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderLight,
+  },
+  discountPercentageLabel: {
+    ...Typography.small,
+    color: Colors.textSecondary,
+  },
+  discountPercentage: {
+    ...Typography.h3,
+    color: Colors.textTertiary,
+  },
+  discountPercentageActive: {
+    color: Colors.primary,
+  },
+  sectionHeader: {
+    marginTop: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  sectionTitle: {
+    ...Typography.subtitle,
+    color: Colors.textPrimary,
+    textAlign: 'right',
+  },
+  offerCard: {
+    backgroundColor: Colors.white,
+    borderRadius: Radius.lg,
+    padding: Spacing.base,
+    marginBottom: Spacing.md,
+    ...Shadows.card,
+  },
+  offerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  offerInfo: {
+    flex: 1,
+    alignItems: 'flex-end',
+    marginLeft: Spacing.md,
+  },
+  offerName: {
+    ...Typography.bodyBold,
+    color: Colors.textPrimary,
+    textAlign: 'right',
+  },
+  offerDiscount: {
+    ...Typography.small,
+    color: Colors.primary,
+    marginTop: 2,
+    textAlign: 'right',
+  },
+  offerDates: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+    marginTop: 2,
+    textAlign: 'right',
+  },
+  emptyOffers: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.xxxl,
+    gap: Spacing.sm,
+  },
+  emptyText: {
+    ...Typography.small,
+    color: Colors.textSecondary,
+  },
+  addOfferButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primary,
+    borderRadius: Radius.lg,
+    paddingVertical: Spacing.md,
+    marginTop: Spacing.md,
+    gap: Spacing.sm,
+  },
+  addOfferText: {
+    ...Typography.bodyBold,
+    color: Colors.textWhite,
+  },
+});
