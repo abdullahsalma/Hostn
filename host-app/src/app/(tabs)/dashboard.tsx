@@ -43,35 +43,41 @@ export default function DashboardScreen() {
     }
   }, [npsQuery.data]);
 
-  // --- Data queries ---
+  // --- Data queries (retry: false to avoid looping on guest role) ---
   const bookingsQuery = useQuery({
     queryKey: ['bookings', 'recent'],
     queryFn: () => hostService.getBookings({ page: 1 }),
+    retry: false,
   });
 
   const upcomingQuery = useQuery({
     queryKey: ['bookings', 'upcoming'],
     queryFn: () => hostService.getUpcomingGuests(),
+    retry: false,
   });
 
   const transfersQuery = useQuery({
     queryKey: ['transfers', 'recent'],
     queryFn: () => hostService.getTransfers({ page: 1 }),
+    retry: false,
   });
 
   const reviewsQuery = useQuery({
     queryKey: ['reviews', 'recent'],
     queryFn: () => hostService.getReviews({ page: 1 }),
+    retry: false,
   });
 
   const ambassadorQuery = useQuery({
     queryKey: ['ambassador', 'status'],
     queryFn: () => hostService.getAmbassadorStatus(),
+    retry: false,
   });
 
   const unreadQuery = useQuery({
     queryKey: ['notifications', 'unreadCount'],
     queryFn: () => hostService.getUnreadCount(),
+    retry: false,
   });
 
   // --- Pull to refresh ---
@@ -97,7 +103,8 @@ export default function DashboardScreen() {
     transfersQuery.isLoading &&
     reviewsQuery.isLoading;
 
-  const hasError =
+  // Don't block rendering on errors — show dashboard with empty data
+  const _hasError =
     bookingsQuery.isError &&
     upcomingQuery.isError &&
     transfersQuery.isError &&
@@ -124,43 +131,6 @@ export default function DashboardScreen() {
       route: '/financial/summary',
     },
   ];
-
-  // --- Error state ---
-  if (hasError && !isLoading) {
-    return (
-      <ScreenWrapper backgroundColor={Colors.primary}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => router.push('/settings/notifications')}
-            style={styles.headerIconWrapper}
-          >
-            <Ionicons name="notifications-outline" size={24} color={Colors.textWhite} />
-            {unreadCount > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t('dashboard.title')}</Text>
-          <TouchableOpacity onPress={() => router.push('/settings/messages')}>
-            <Ionicons name="headset-outline" size={24} color={Colors.textWhite} />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.errorContainer}>
-          <EmptyState
-            icon="alert-circle-outline"
-            message={t('common.error')}
-            submessage={t('common.retry')}
-          />
-          <TouchableOpacity style={styles.retryButton} onPress={onRefresh}>
-            <Text style={styles.retryText}>{t('common.retry')}</Text>
-          </TouchableOpacity>
-        </View>
-      </ScreenWrapper>
-    );
-  }
 
   // --- Current date for weekly report ---
   const today = new Date();
