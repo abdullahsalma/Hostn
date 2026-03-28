@@ -481,6 +481,269 @@ exports.togglePropertyStatus = async (req, res, next) => {
   }
 };
 
+// ── Host Properties (grouped as "property → units" for host app) ──────────────
+
+// @desc    Get host properties grouped by tag (property group → units)
+// @route   GET /api/v1/host/properties
+// @access  Private (Host)
+exports.getHostProperties = async (req, res, next) => {
+  try {
+    const properties = await Property.find({ host: req.user._id }).sort('title');
+
+    // Group properties by their tag (e.g., "شاليهات ميفارا") to form property groups
+    const groups = {};
+    properties.forEach((p) => {
+      const groupTag = (p.tags && p.tags[0]) || p.title;
+      if (!groups[groupTag]) {
+        groups[groupTag] = {
+          id: p._id, // Use first property's ID as group ID
+          name: groupTag,
+          nameAr: groupTag,
+          classification: p.type,
+          status: p.isActive ? 'listed' : 'unlisted',
+          unitCount: 0,
+          units: [],
+          address: {
+            city: p.location.city,
+            street: p.location.address || '',
+            direction: p.location.district || '',
+            coordinates: p.location.coordinates || {},
+          },
+        };
+      }
+      groups[groupTag].unitCount++;
+      groups[groupTag].units.push({
+        id: p._id,
+        propertyId: groups[groupTag].id,
+        name: p.title,
+        code: (p.tags && p.tags[1] === 'mivara')
+          ? `4493${groups[groupTag].units.length + 1}`
+          : p._id.toString().slice(-5),
+        status: p.isActive ? 'listed' : 'unlisted',
+        area: 120,
+        capacity: p.capacity.maxGuests,
+        occupancyPercent: 0,
+        suitability: 'families_and_singles',
+        deposit: 0,
+        securityDeposit: 500,
+        description: p.description,
+        images: p.images.map(img => img.url),
+        photos: p.images.map(img => img.url),
+        amenities: p.amenities,
+        features: p.amenities,
+        pricing: {
+          midWeek: p.pricing.perNight,
+          thursday: Math.round(p.pricing.perNight * 1.15),
+          friday: Math.round(p.pricing.perNight * 1.3),
+          saturday: Math.round(p.pricing.perNight * 1.15),
+        },
+      });
+    });
+
+    res.json({ success: true, data: Object.values(groups) });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get host bookings formatted for host app
+// @route   GET /api/v1/host/bookings
+// @access  Private (Host)
+exports.getHostBookings = async (req, res, next) => {
+  try {
+    const { status, page = 1 } = req.query;
+    const properties = await Property.find({ host: req.user._id }).select('_id title');
+    const propertyIds = properties.map(p => p._id);
+
+    const query = { property: { $in: propertyIds } };
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+
+    const bookings = await Booking.find(query)
+      .populate('property', 'title images location type tags')
+      .populate('guest', 'name phone avatar')
+      .sort('-createdAt')
+      .limit(20)
+      .skip((parseInt(page) - 1) * 20);
+
+    const formatted = bookings.map(b => ({
+      id: b._id,
+      bookingNumber: b._id.toString().slice(-7).toUpperCase(),
+      guestName: b.guest?.name || 'ضيف',
+      guestPhone: b.guest?.phone || '',
+      propertyName: b.property?.tags?.[0] || b.property?.title || '',
+      unitName: b.property?.title || '',
+      checkIn: b.checkIn.toISOString().split('T')[0],
+      checkOut: b.checkOut.toISOString().split('T')[0],
+      totalAmount: b.pricing?.total || 0,
+      hostAmount: Math.round((b.pricing?.total || 0) * 0.85),
+      status: b.status === 'pending' ? 'waiting'
+        : b.status === 'confirmed' ? 'confirmed'
+        : b.status === 'completed' ? 'completed'
+        : b.status === 'cancelled' ? 'cancelled'
+        : b.status,
+      createdAt: b.createdAt.toISOString().split('T')[0],
+    }));
+
+    res.json({ success: true, data: formatted });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get upcoming guests for host
+// @route   GET /api/v1/host/bookings/upcoming
+// @access  Private (Host)
+exports.getUpcomingGuests = async (req, res, next) => {
+  try {
+    const properties = await Property.find({ host: req.user._id }).select('_id');
+    const propertyIds = properties.map(p => p._id);
+    const now = new Date();
+
+    const bookings = await Booking.find({
+      property: { $in: propertyIds },
+      status: { $in: ['confirmed', 'pending'] },
+      checkIn: { $gte: now },
+    })
+      .populate('property', 'title tags')
+      .populate('guest', 'name phone')
+      .sort('checkIn')
+      .limit(10);
+
+    const formatted = bookings.map(b => ({
+      id: b._id,
+      bookingNumber: b._id.toString().slice(-7).toUpperCase(),
+      guestName: b.guest?.name || 'ضيف',
+      guestPhone: b.guest?.phone || '',
+      propertyName: b.property?.tags?.[0] || b.property?.title || '',
+      unitName: b.property?.title || '',
+      checkIn: b.checkIn.toISOString().split('T')[0],
+      checkOut: b.checkOut.toISOString().split('T')[0],
+      totalAmount: b.pricing?.total || 0,
+      hostAmount: Math.round((b.pricing?.total || 0) * 0.85),
+      status: b.status === 'pending' ? 'waiting' : b.status,
+      createdAt: b.createdAt.toISOString().split('T')[0],
+    }));
+
+    res.json({ success: true, data: formatted });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get host profile
+// @route   GET /api/v1/host/profile
+// @access  Private (Host)
+exports.getHostProfile = async (req, res, next) => {
+  try {
+    const user = req.user;
+    res.json({
+      success: true,
+      data: {
+        name: user.name,
+        email: user.email || '',
+        phone: user.phone,
+        avatar: user.avatar,
+        nationalId: '',
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get host calendar data for all units
+// @route   GET /api/v1/host/calendar
+// @access  Private (Host)
+exports.getHostCalendarAll = async (req, res, next) => {
+  try {
+    const { year, month } = req.query;
+    const y = parseInt(year) || new Date().getFullYear();
+    const m = parseInt(month) || new Date().getMonth() + 1;
+
+    const startDate = new Date(y, m - 1, 1);
+    const endDate = new Date(y, m, 0, 23, 59, 59);
+
+    const properties = await Property.find({ host: req.user._id }).select('_id title tags isActive');
+    const propertyIds = properties.map(p => p._id);
+
+    const bookings = await Booking.find({
+      property: { $in: propertyIds },
+      status: { $in: ['pending', 'confirmed'] },
+      $or: [
+        { checkIn: { $gte: startDate, $lte: endDate } },
+        { checkOut: { $gte: startDate, $lte: endDate } },
+        { checkIn: { $lte: startDate }, checkOut: { $gte: endDate } },
+      ],
+    });
+
+    // Group by tag
+    const groups = {};
+    properties.forEach((p) => {
+      const groupTag = (p.tags && p.tags[0]) || p.title;
+      if (!groups[groupTag]) {
+        groups[groupTag] = {
+          propertyId: p._id,
+          propertyName: groupTag,
+          units: [],
+        };
+      }
+
+      // Find booked dates for this property/unit
+      const unitBookings = bookings.filter(b => b.property.toString() === p._id.toString());
+      const bookedDates = [];
+      unitBookings.forEach(b => {
+        const start = new Date(Math.max(b.checkIn.getTime(), startDate.getTime()));
+        const end = new Date(Math.min(b.checkOut.getTime(), endDate.getTime()));
+        for (let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
+          bookedDates.push(d.toISOString().split('T')[0]);
+        }
+      });
+
+      groups[groupTag].units.push({
+        unitId: p._id,
+        unitName: p.title,
+        unitCode: p._id.toString().slice(-5),
+        isListed: p.isActive,
+        bookedDates: [...new Set(bookedDates)],
+      });
+    });
+
+    res.json({ success: true, data: Object.values(groups) });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get dashboard stats formatted for host app
+// @route   GET /api/v1/host/dashboard/stats
+// @access  Private (Host)
+exports.getHostDashboardStats = async (req, res, next) => {
+  try {
+    const properties = await Property.find({ host: req.user._id }).select('_id');
+    const propertyIds = properties.map(p => p._id);
+
+    const allBookings = await Booking.find({ property: { $in: propertyIds } });
+    const activeBookings = allBookings.filter(b => ['confirmed', 'completed'].includes(b.status));
+    const totalEarnings = activeBookings.reduce((sum, b) => sum + (b.pricing?.total || 0), 0);
+
+    res.json({
+      success: true,
+      data: {
+        totalProperties: properties.length,
+        activeListings: properties.length,
+        totalBookings: allBookings.length,
+        totalEarnings,
+        pendingBookings: allBookings.filter(b => b.status === 'pending').length,
+        confirmedBookings: allBookings.filter(b => b.status === 'confirmed').length,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const MAX_IMAGES_PER_PROPERTY = 20;
 
 // @desc    Add image to property

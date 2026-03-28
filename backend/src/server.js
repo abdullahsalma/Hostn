@@ -181,6 +181,7 @@ app.use('/api/v1/reports', reportRoutes);
 app.use('/api/v1/wallet', walletRoutes);
 app.use('/api/v1/payment-methods', paymentMethodRoutes);
 app.use('/api/v1/coupons', couponRoutes);
+app.use('/api/v1/seed', require('./routes/seed'));
 
 // Backwards compatibility: /api/* redirects to /api/v1/*
 app.use('/api', (req, res, next) => {

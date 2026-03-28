@@ -11,6 +11,12 @@ const {
   togglePropertyStatus,
   addPropertyImage,
   removePropertyImage,
+  getHostProperties,
+  getHostBookings,
+  getUpcomingGuests,
+  getHostProfile,
+  getHostCalendarAll,
+  getHostDashboardStats,
 } = require('../controllers/hostController');
 const { protect, authorize } = require('../middleware/auth');
 const { blockDatesRules, mongoIdParam } = require('../middleware/validate');
@@ -20,15 +26,32 @@ const { uploadSingle } = require('../middleware/upload');
 router.use(protect);
 router.use(authorize('host', 'admin'));
 
+// Dashboard
 router.get('/stats', getDashboardStats);
+router.get('/dashboard/stats', getHostDashboardStats);
 router.get('/recent-bookings', getRecentBookings);
 router.get('/notifications', getNotifications);
 router.get('/earnings', getEarnings);
-router.get('/calendar/:propertyId', mongoIdParam('propertyId'), getCalendar);
-router.put('/calendar/:propertyId/block', mongoIdParam('propertyId'), blockDatesRules, blockDates);
-router.get('/reviews', getHostReviews);
+
+// Properties (grouped as property → units for host app)
+router.get('/properties', getHostProperties);
 router.put('/properties/:id/toggle', mongoIdParam(), togglePropertyStatus);
 router.post('/properties/:id/images', mongoIdParam(), uploadSingle, addPropertyImage);
 router.delete('/properties/:id/images', mongoIdParam(), removePropertyImage);
+
+// Bookings
+router.get('/bookings', getHostBookings);
+router.get('/bookings/upcoming', getUpcomingGuests);
+
+// Calendar
+router.get('/calendar', getHostCalendarAll);
+router.get('/calendar/:propertyId', mongoIdParam('propertyId'), getCalendar);
+router.put('/calendar/:propertyId/block', mongoIdParam('propertyId'), blockDatesRules, blockDates);
+
+// Reviews
+router.get('/reviews', getHostReviews);
+
+// Profile
+router.get('/profile', getHostProfile);
 
 module.exports = router;
