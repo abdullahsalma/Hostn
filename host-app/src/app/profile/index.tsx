@@ -32,6 +32,7 @@ export default function ProfileScreen() {
   const { data: profileData, isLoading } = useQuery({
     queryKey: ['hostProfile'],
     queryFn: () => hostService.getProfile(),
+    retry: false,
   });
 
   const profile = profileData?.data;
@@ -80,6 +81,12 @@ export default function ProfileScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Purple Gradient Header */}
         <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="chevron-forward" size={28} color={Colors.textWhite} />
+          </TouchableOpacity>
           <View style={styles.avatarCircle}>
             {profile?.avatar ? (
               <Ionicons name="person" size={40} color={Colors.textWhite} />
@@ -224,9 +231,17 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: Colors.primary,
-    paddingVertical: Spacing.xxxl,
+    paddingTop: 50,
+    paddingBottom: Spacing.xxxl,
     paddingHorizontal: Spacing.base,
     alignItems: 'center',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 50,
+    right: Spacing.base,
+    zIndex: 10,
+    padding: Spacing.xs,
   },
   avatarCircle: {
     width: 80,
