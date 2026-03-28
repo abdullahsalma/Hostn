@@ -4,15 +4,92 @@ const Property = require('../models/Property');
 const Notification = require('../models/Notification');
 const ActivityLog = require('../models/ActivityLog');
 
+// Helper: overlap query for date-range conflicts
+function overlapQuery(propertyId, checkInDate, checkOutDate) {
+  return {
+    property: propertyId,
+    status: { $in: ['pending', 'confirmed'] },
+    $or: [
+      { checkIn: { $lt: checkOutDate, $gte: checkInDate } },
+      { checkOut: { $gt: checkInDate, $lte: checkOutDate } },
+      { checkIn: { $lte: checkInDate }, checkOut: { $gte: checkOutDate } },
+    ],
+  };
+}
+
+// Detect once at startup whether the MongoDB deployment supports transactions
+// (requires a replica set). Cache the result so we don't re-test every request.
+let _txSupported = null; // null = untested, true/false after first attempt
+
+async function tryTransactionBooking(bookingData, checkInDate, checkOutDate) {
+  const session = await mongoose.startSession();
+  try {
+    let booking;
+    await session.withTransaction(async () => {
+      const conflicting = await Booking.findOne(
+        overlapQuery(bookingData.property, checkInDate, checkOutDate)
+      ).session(session);
+
+      if (conflicting) {
+        throw new Error('DATES_UNAVAILABLE');
+      }
+
+      const [created] = await Booking.create([bookingData], { session });
+      booking = created;
+    });
+    _txSupported = true;
+    return booking;
+  } catch (error) {
+    // If the error indicates transactions aren't supported, propagate for fallback
+    if (
+      error.codeName === 'IllegalOperation' ||
+      error.message?.includes('Transaction numbers') ||
+      error.message?.includes('transaction') && error.code === 263
+    ) {
+      _txSupported = false;
+      throw new Error('TX_NOT_SUPPORTED');
+    }
+    throw error; // real error (DATES_UNAVAILABLE or other)
+  } finally {
+    session.endSession();
+  }
+}
+
+// Fallback: create-then-verify approach for standalone MongoDB (no replica set).
+// 1. Check availability  2. Create booking  3. Verify no duplicate was created concurrently
+// If a race condition produced a duplicate, delete the younger booking (ours).
+async function fallbackBooking(bookingData, checkInDate, checkOutDate) {
+  // Step 1: Pre-check
+  const conflicting = await Booking.findOne(
+    overlapQuery(bookingData.property, checkInDate, checkOutDate)
+  );
+  if (conflicting) {
+    throw new Error('DATES_UNAVAILABLE');
+  }
+
+  // Step 2: Create
+  const booking = await Booking.create(bookingData);
+
+  // Step 3: Post-create verification — find all active bookings that overlap
+  const overlapping = await Booking.find({
+    ...overlapQuery(bookingData.property, checkInDate, checkOutDate),
+    _id: { $ne: booking._id }, // exclude self
+  }).select('_id createdAt');
+
+  if (overlapping.length > 0) {
+    // Race condition detected — another booking was created in the gap.
+    // Delete OUR booking (the newer one) to guarantee at most one survives.
+    await Booking.deleteOne({ _id: booking._id });
+    throw new Error('DATES_UNAVAILABLE');
+  }
+
+  return booking;
+}
+
 // @desc    Create a booking
 // @route   POST /api/bookings
 // @access  Private
 exports.createBooking = async (req, res, next) => {
-  // Use a MongoDB session/transaction to ensure atomic availability check + booking creation.
-  // This prevents race conditions where two concurrent requests could both pass
-  // the availability check before either creates a booking (double-booking).
-  const session = await mongoose.startSession();
-
   try {
     const { propertyId, checkIn, checkOut, guests, specialRequests } = req.body;
 
@@ -54,7 +131,7 @@ exports.createBooking = async (req, res, next) => {
       });
     }
 
-    // ── Check blocked dates (no session needed) ──────────────────────
+    // ── Check blocked dates ──────────────────────────────────────────
     const blockedConflict = property.unavailableDates?.some((range) => {
       const start = new Date(range.start);
       const end = new Date(range.end);
@@ -91,45 +168,39 @@ exports.createBooking = async (req, res, next) => {
       : 0;
     const total = subtotal + cleaningFee + serviceFee - discount;
 
-    // ── ATOMIC: Availability check + booking creation in transaction ──
+    // ── Create booking (atomic transaction or fallback) ──────────────
+    const bookingData = {
+      property: propertyId,
+      guest: req.user._id,
+      checkIn: checkInDate,
+      checkOut: checkOutDate,
+      guests,
+      pricing: { perNight, nights, subtotal, cleaningFee, serviceFee, discount, total },
+      specialRequests,
+    };
+
     let booking;
-    await session.withTransaction(async () => {
-      // Re-check availability INSIDE the transaction with session lock
-      const conflicting = await Booking.findOne({
-        property: propertyId,
-        status: { $in: ['pending', 'confirmed'] },
-        $or: [
-          { checkIn: { $lt: checkOutDate, $gte: checkInDate } },
-          { checkOut: { $gt: checkInDate, $lte: checkOutDate } },
-          { checkIn: { $lte: checkInDate }, checkOut: { $gte: checkOutDate } },
-        ],
-      }).session(session);
-
-      if (conflicting) {
-        throw new Error('DATES_UNAVAILABLE');
+    if (_txSupported === false) {
+      // Already know transactions aren't supported — use fallback directly
+      booking = await fallbackBooking(bookingData, checkInDate, checkOutDate);
+    } else {
+      try {
+        booking = await tryTransactionBooking(bookingData, checkInDate, checkOutDate);
+      } catch (txErr) {
+        if (txErr.message === 'TX_NOT_SUPPORTED') {
+          console.log('[BOOKING] Transactions not supported — using create-then-verify fallback');
+          booking = await fallbackBooking(bookingData, checkInDate, checkOutDate);
+        } else {
+          throw txErr;
+        }
       }
+    }
 
-      // Create booking inside the same transaction
-      const [created] = await Booking.create(
-        [{
-          property: propertyId,
-          guest: req.user._id,
-          checkIn: checkInDate,
-          checkOut: checkOutDate,
-          guests,
-          pricing: { perNight, nights, subtotal, cleaningFee, serviceFee, discount, total },
-          specialRequests,
-        }],
-        { session }
-      );
-      booking = created;
-    });
-
-    // Transaction committed successfully — booking is now guaranteed unique
+    // ── Populate & respond ──────────────────────────────────────────
     await booking.populate('property', 'title images location');
     await booking.populate('guest', 'name email');
 
-    // Notify host about new booking (non-blocking, outside transaction)
+    // Notify host about new booking (non-blocking)
     Notification.createNotification({
       user: property.host,
       type: 'booking_created',
@@ -153,8 +224,6 @@ exports.createBooking = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Property not available for selected dates' });
     }
     next(error);
-  } finally {
-    session.endSession();
   }
 };
 
