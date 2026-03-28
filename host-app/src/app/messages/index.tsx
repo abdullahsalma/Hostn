@@ -59,11 +59,13 @@ export default function MessagesScreen() {
   const {
     data,
     isLoading,
+    isError,
     refetch,
     isRefetching,
   } = useQuery({
     queryKey: ['conversations', queryParams],
     queryFn: () => hostService.getConversations(queryParams),
+    retry: false,
   });
 
   const conversations: Conversation[] = data?.data ?? [];
@@ -169,7 +171,12 @@ export default function MessagesScreen() {
       </View>
 
       {/* Conversations list */}
-      {isLoading ? (
+      {isError ? (
+        <View style={styles.loadingContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color={Colors.textTertiary} />
+          <Text style={{ ...Typography.body, color: Colors.textTertiary, marginTop: Spacing.md }}>حدث خطأ في تحميل البيانات</Text>
+        </View>
+      ) : isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
         </View>

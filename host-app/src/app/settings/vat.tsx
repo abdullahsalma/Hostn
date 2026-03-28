@@ -36,14 +36,16 @@ export default function VatScreen() {
   const [propertyPickerVisible, setPropertyPickerVisible] = useState(false);
   const [form, setForm] = useState<VatForm>(emptyForm);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['vatEntries'],
     queryFn: () => hostService.getVatEntries(),
+    retry: false,
   });
 
   const { data: propertiesData } = useQuery({
     queryKey: ['properties'],
     queryFn: () => hostService.getProperties(),
+    retry: false,
   });
 
   const entries: VatEntry[] = data?.data ?? [];
@@ -113,7 +115,12 @@ export default function VatScreen() {
         <Text style={styles.infoBannerText}>{'\u0646\u0633\u0628\u0629 \u0627\u0644\u0636\u0631\u064A\u0628\u0629 15%'}</Text>
       </View>
 
-      {isLoading ? (
+      {isError ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Ionicons name="alert-circle-outline" size={48} color={Colors.textTertiary} />
+          <Text style={{ ...Typography.body, color: Colors.textTertiary, marginTop: Spacing.md }}>حدث خطأ في تحميل البيانات</Text>
+        </View>
+      ) : isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
         </View>

@@ -39,14 +39,16 @@ export default function BookingRulesScreen() {
   const [unitPickerVisible, setUnitPickerVisible] = useState(false);
   const [form, setForm] = useState<RuleForm>(emptyForm);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['bookingRules'],
     queryFn: () => hostService.getBookingRules(),
+    retry: false,
   });
 
   const { data: propertiesData } = useQuery({
     queryKey: ['properties'],
     queryFn: () => hostService.getProperties(),
+    retry: false,
   });
 
   const rules: BookingRule[] = data?.data ?? [];
@@ -149,7 +151,12 @@ export default function BookingRulesScreen() {
         }
       />
 
-      {isLoading ? (
+      {isError ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Ionicons name="alert-circle-outline" size={48} color={Colors.textTertiary} />
+          <Text style={{ ...Typography.body, color: Colors.textTertiary, marginTop: Spacing.md }}>حدث خطأ في تحميل البيانات</Text>
+        </View>
+      ) : isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
         </View>
