@@ -74,10 +74,15 @@ exports.verifyOTP = async (req, res, next) => {
       });
     }
 
-    // Verify the OTP
-    const result = await OTP.verifyCode(phone, countryCode, otp);
-    if (!result.valid) {
-      return res.status(400).json({ success: false, message: result.message });
+    // Dev bypass: accept 000000 as valid OTP for testing
+    const isDevBypass = process.env.DEV_OTP_BYPASS === 'true' && otp === '000000';
+
+    if (!isDevBypass) {
+      // Verify the OTP
+      const result = await OTP.verifyCode(phone, countryCode, otp);
+      if (!result.valid) {
+        return res.status(400).json({ success: false, message: result.message });
+      }
     }
 
     // Find or create user
