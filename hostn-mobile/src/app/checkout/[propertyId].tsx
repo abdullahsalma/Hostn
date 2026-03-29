@@ -16,10 +16,13 @@ import { Image } from 'expo-image';
 
 import ScreenWrapper from '../../components/layout/ScreenWrapper';
 import HeaderBar from '../../components/layout/HeaderBar';
-import Input from '../../components/ui/Input';
+import MoyasarWebView, {
+  MoyasarPaymentConfig,
+} from '../../components/payment/MoyasarWebView';
 import { Colors, Spacing, Typography, Radius, Shadows } from '../../constants/theme';
 import { propertyService } from '../../services/property.service';
 import { bookingService } from '../../services/booking.service';
+import { paymentService } from '../../services/payment.service';
 import { useSearchStore } from '../../store/searchStore';
 import { formatCurrency, formatDate, formatNights } from '../../utils/format';
 
@@ -32,11 +35,11 @@ export default function CheckoutScreen() {
   const guests = useSearchStore((s) => s.guests);
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('bank_card');
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardExpiry, setCardExpiry] = useState('');
-  const [cardCvv, setCardCvv] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showLoadingModal, setShowLoadingModal] = useState(false);
+  const [showMoyasar, setShowMoyasar] = useState(false);
+  const [paymentConfig, setPaymentConfig] = useState<MoyasarPaymentConfig | null>(null);
+  const [bookingId, setBookingId] = useState<string | null>(null);
 
   const { data: property, isLoading } = useQuery({
     queryKey: ['property', propertyId],
@@ -50,34 +53,55 @@ export default function CheckoutScreen() {
 
   const perNight = property?.pricing?.perNight ?? 0;
   const cleaningFee = property?.pricing?.cleaningFee ?? 0;
+  const discountPercent = property?.pricing?.discountPercent ?? 0;
   const subtotal = perNight * nights;
   const serviceFee = Math.round(subtotal * 0.1);
-  const vat = Math.round((subtotal + cleaningFee + serviceFee) * 0.15);
-  const total = subtotal + cleaningFee + serviceFee + vat;
+  const discount = discountPercent > 0 ? Math.round(subtotal * (discountPercent / 100)) : 0;
+  // Saudi Arabia 15% VAT — applied on taxable amount (after discount)
+  const taxableAmount = subtotal + cleaningFee + serviceFee - discount;
+  const vat = Math.round(taxableAmount * 0.15);
+  const total = taxableAmount + vat;
 
   const handleConfirmBooking = async () => {
     if (!property) return;
-
-    if (paymentMethod === 'bank_card') {
-      if (!cardNumber.trim() || !cardExpiry.trim() || !cardCvv.trim()) {
-        Alert.alert('Missing Information', 'Please fill in all card details.');
-        return;
-      }
-    }
 
     setIsSubmitting(true);
     setShowLoadingModal(true);
 
     try {
-      await bookingService.create({
+      // Step 1: Create the booking
+      const booking = await bookingService.create({
         property: property._id,
         checkIn: checkIn || new Date().toISOString(),
         checkOut: checkOut || new Date(Date.now() + 86400000).toISOString(),
         guests: { adults: guests.adults, children: guests.children },
       });
 
-      setShowLoadingModal(false);
-      router.replace('/checkout/confirmation');
+      setBookingId(booking._id);
+
+      if (paymentMethod === 'bank_card') {
+        // Step 2: Initiate payment via Moyasar
+        const paymentData = await paymentService.initiatePayment(booking._id, 'creditcard');
+
+        const config: MoyasarPaymentConfig = {
+          paymentId: paymentData.paymentId,
+          amount: paymentData.amount,
+          currency: paymentData.currency,
+          publishableKey: paymentData.publishableKey,
+          callbackUrl: paymentData.callbackUrl,
+        };
+
+        setPaymentConfig(config);
+        setShowLoadingModal(false);
+        setIsSubmitting(false);
+
+        // Step 3: Show Moyasar WebView
+        setShowMoyasar(true);
+      } else {
+        // Pay Later: go directly to confirmation
+        setShowLoadingModal(false);
+        router.replace('/checkout/confirmation');
+      }
     } catch (error: any) {
       setShowLoadingModal(false);
       Alert.alert(
@@ -87,6 +111,45 @@ export default function CheckoutScreen() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handlePaymentSuccess = async (moyasarPaymentId: string) => {
+    setShowMoyasar(false);
+    setShowLoadingModal(true);
+
+    try {
+      // Step 6: Verify the payment
+      if (paymentConfig) {
+        await paymentService.verifyPayment(paymentConfig.paymentId);
+      }
+
+      setShowLoadingModal(false);
+
+      // Step 7: Navigate to confirmation
+      router.replace('/checkout/confirmation');
+    } catch (error: any) {
+      setShowLoadingModal(false);
+      Alert.alert(
+        'Payment Verification Failed',
+        error?.response?.data?.message || 'Payment could not be verified. Please contact support.'
+      );
+    }
+  };
+
+  const handlePaymentFailure = (error: string) => {
+    setShowMoyasar(false);
+    Alert.alert(
+      'Payment Failed',
+      error || 'Your payment could not be processed. Please try again.'
+    );
+  };
+
+  const handlePaymentClose = () => {
+    setShowMoyasar(false);
+    Alert.alert(
+      'Payment Cancelled',
+      'Your booking has been created but payment is pending. You can complete payment from your bookings.'
+    );
   };
 
   if (isLoading) {
@@ -192,12 +255,22 @@ export default function CheckoutScreen() {
             <Text style={styles.priceLabel}>Service fee (10%)</Text>
             <Text style={styles.priceValue}>{formatCurrency(serviceFee)}</Text>
           </View>
+          {discount > 0 && (
+            <View style={styles.priceRow}>
+              <Text style={[styles.priceLabel, { color: '#059669' }]}>
+                Discount ({discountPercent}%)
+              </Text>
+              <Text style={[styles.priceValue, { color: '#059669' }]}>
+                -{formatCurrency(discount)}
+              </Text>
+            </View>
+          )}
           <View style={styles.priceRow}>
             <Text style={styles.priceLabel}>VAT (15%)</Text>
             <Text style={styles.priceValue}>{formatCurrency(vat)}</Text>
           </View>
           <View style={[styles.priceRow, styles.totalRow]}>
-            <Text style={styles.totalLabel}>Total</Text>
+            <Text style={styles.totalLabel}>Total (incl. VAT)</Text>
             <Text style={styles.totalValue}>{formatCurrency(total)}</Text>
           </View>
         </View>
@@ -217,7 +290,7 @@ export default function CheckoutScreen() {
               {paymentMethod === 'bank_card' && <View style={styles.radioInner} />}
             </View>
             <Ionicons name="card-outline" size={20} color={Colors.textPrimary} />
-            <Text style={styles.paymentOptionText}>Bank Card</Text>
+            <Text style={styles.paymentOptionText}>Credit/Debit Card</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -235,49 +308,11 @@ export default function CheckoutScreen() {
           </TouchableOpacity>
 
           {paymentMethod === 'bank_card' && (
-            <View style={styles.cardForm}>
-              <Input
-                label="Card Number"
-                placeholder="1234 5678 9012 3456"
-                value={cardNumber}
-                onChangeText={(text) => {
-                  const cleaned = text.replace(/\D/g, '').slice(0, 16);
-                  const formatted = cleaned.replace(/(\d{4})/g, '$1 ').trim();
-                  setCardNumber(formatted);
-                }}
-                keyboardType="number-pad"
-                maxLength={19}
-              />
-              <View style={styles.cardRow}>
-                <View style={styles.cardHalf}>
-                  <Input
-                    label="Expiry Date"
-                    placeholder="MM/YY"
-                    value={cardExpiry}
-                    onChangeText={(text) => {
-                      const cleaned = text.replace(/\D/g, '').slice(0, 4);
-                      if (cleaned.length >= 3) {
-                        setCardExpiry(`${cleaned.slice(0, 2)}/${cleaned.slice(2)}`);
-                      } else {
-                        setCardExpiry(cleaned);
-                      }
-                    }}
-                    keyboardType="number-pad"
-                    maxLength={5}
-                  />
-                </View>
-                <View style={styles.cardHalf}>
-                  <Input
-                    label="CVV"
-                    placeholder="123"
-                    value={cardCvv}
-                    onChangeText={(text) => setCardCvv(text.replace(/\D/g, '').slice(0, 4))}
-                    keyboardType="number-pad"
-                    maxLength={4}
-                    secureTextEntry
-                  />
-                </View>
-              </View>
+            <View style={styles.cardNote}>
+              <Ionicons name="shield-checkmark-outline" size={18} color={Colors.primary} />
+              <Text style={styles.cardNoteText}>
+                You will be redirected to a secure payment page powered by Moyasar to enter your card details.
+              </Text>
             </View>
           )}
         </View>
@@ -289,7 +324,7 @@ export default function CheckoutScreen() {
       {/* Sticky Bottom */}
       <View style={styles.bottomBar}>
         <View style={styles.bottomPrice}>
-          <Text style={styles.bottomTotalLabel}>Total</Text>
+          <Text style={styles.bottomTotalLabel}>Total (incl. VAT)</Text>
           <Text style={styles.bottomTotalValue}>{formatCurrency(total)}</Text>
         </View>
         <TouchableOpacity
@@ -314,6 +349,17 @@ export default function CheckoutScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Moyasar Payment WebView */}
+      {paymentConfig && (
+        <MoyasarWebView
+          visible={showMoyasar}
+          paymentConfig={paymentConfig}
+          onSuccess={handlePaymentSuccess}
+          onFailure={handlePaymentFailure}
+          onClose={handlePaymentClose}
+        />
+      )}
     </ScreenWrapper>
   );
 }
@@ -335,8 +381,6 @@ const styles = StyleSheet.create({
     ...Typography.body,
     color: Colors.textSecondary,
   },
-
-  // Property Card
   propertyCard: {
     flexDirection: 'row',
     backgroundColor: Colors.surface,
@@ -377,8 +421,6 @@ const styles = StyleSheet.create({
     ...Typography.caption,
     color: Colors.textSecondary,
   },
-
-  // Sections
   section: {
     marginTop: Spacing.xl,
   },
@@ -387,8 +429,6 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     marginBottom: Spacing.md,
   },
-
-  // Dates
   datesRow: {
     flexDirection: 'row',
     backgroundColor: Colors.surface,
@@ -417,8 +457,6 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginTop: Spacing.sm,
   },
-
-  // Price
   priceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -446,8 +484,6 @@ const styles = StyleSheet.create({
     ...Typography.subtitle,
     color: Colors.primary,
   },
-
-  // Payment
   paymentOption: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -481,20 +517,21 @@ const styles = StyleSheet.create({
     ...Typography.body,
     color: Colors.textPrimary,
   },
-
-  // Card Form
-  cardForm: {
-    marginTop: Spacing.md,
-  },
-  cardRow: {
+  cardNote: {
     flexDirection: 'row',
-    gap: Spacing.md,
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
+    padding: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.sm,
   },
-  cardHalf: {
+  cardNoteText: {
+    ...Typography.small,
+    color: Colors.textSecondary,
     flex: 1,
+    lineHeight: 20,
   },
-
-  // Bottom Bar
   bottomBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -532,8 +569,6 @@ const styles = StyleSheet.create({
     ...Typography.bodyBold,
     color: Colors.textWhite,
   },
-
-  // Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: Colors.overlay,

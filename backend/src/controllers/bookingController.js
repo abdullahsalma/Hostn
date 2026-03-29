@@ -160,14 +160,18 @@ exports.createBooking = async (req, res, next) => {
     }
 
     // ── Calculate pricing ────────────────────────────────────────────
-    const perNight = property.discountedPrice || property.pricing.perNight;
+    // Always use original perNight; discount is a separate line item
+    const perNight = property.pricing.perNight;
     const subtotal = perNight * nights;
     const cleaningFee = property.pricing.cleaningFee || 0;
     const serviceFee = Math.round(subtotal * 0.1);
     const discount = property.pricing.discountPercent > 0
       ? Math.round(subtotal * (property.pricing.discountPercent / 100))
       : 0;
-    const total = subtotal + cleaningFee + serviceFee - discount;
+    // Saudi Arabia 15% VAT — applied on taxable amount (after discount)
+    const taxableAmount = subtotal + cleaningFee + serviceFee - discount;
+    const vat = Math.round(taxableAmount * 0.15);
+    const total = taxableAmount + vat;
 
     // ── Create booking (atomic transaction or fallback) ──────────────
     const bookingData = {
@@ -176,7 +180,7 @@ exports.createBooking = async (req, res, next) => {
       checkIn: checkInDate,
       checkOut: checkOutDate,
       guests,
-      pricing: { perNight, nights, subtotal, cleaningFee, serviceFee, discount, total },
+      pricing: { perNight, nights, subtotal, cleaningFee, serviceFee, discount, vat, total },
       specialRequests,
     };
 

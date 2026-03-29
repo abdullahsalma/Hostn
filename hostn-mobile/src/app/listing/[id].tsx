@@ -183,9 +183,14 @@ export default function ListingDetailScreen() {
 
   const perNight = property?.pricing?.perNight ?? 0;
   const cleaningFee = property?.pricing?.cleaningFee ?? 0;
+  const discountPercent = property?.pricing?.discountPercent ?? 0;
   const subtotal = perNight * nights;
   const serviceFee = Math.round(subtotal * 0.1);
-  const total = subtotal + cleaningFee + serviceFee;
+  const discount = discountPercent > 0 ? Math.round(subtotal * (discountPercent / 100)) : 0;
+  // Saudi Arabia 15% VAT — applied on taxable amount (after discount)
+  const taxableAmount = subtotal + cleaningFee + serviceFee - discount;
+  const vat = Math.round(taxableAmount * 0.15);
+  const total = taxableAmount + vat;
 
   if (propertyLoading) {
     return (
@@ -343,6 +348,27 @@ export default function ListingDetailScreen() {
             </View>
           )}
 
+          {/* Location */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Location</Text>
+            <View style={styles.locationCard}>
+              <Ionicons name="location" size={20} color={Colors.primary} />
+              <Text style={styles.locationCardText}>
+                {property.location.district
+                  ? `${property.location.district}, ${property.location.city}`
+                  : property.location.city}
+              </Text>
+            </View>
+            {(property.location as { isApproximate?: boolean }).isApproximate && (
+              <View style={styles.approximateNotice}>
+                <Ionicons name="information-circle-outline" size={16} color={Colors.textSecondary} />
+                <Text style={styles.approximateNoticeText}>
+                  Exact location shown after booking confirmation
+                </Text>
+              </View>
+            )}
+          </View>
+
           {/* Reviews */}
           {reviews.length > 0 && (
             <View style={styles.section}>
@@ -405,11 +431,25 @@ export default function ListingDetailScreen() {
               <Text style={styles.priceValue}>{formatCurrency(cleaningFee)}</Text>
             </View>
             <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>Service fee</Text>
+              <Text style={styles.priceLabel}>Service fee (10%)</Text>
               <Text style={styles.priceValue}>{formatCurrency(serviceFee)}</Text>
             </View>
+            {discount > 0 && (
+              <View style={styles.priceRow}>
+                <Text style={[styles.priceLabel, { color: '#059669' }]}>
+                  Discount ({discountPercent}%)
+                </Text>
+                <Text style={[styles.priceValue, { color: '#059669' }]}>
+                  -{formatCurrency(discount)}
+                </Text>
+              </View>
+            )}
+            <View style={styles.priceRow}>
+              <Text style={styles.priceLabel}>VAT (15%)</Text>
+              <Text style={styles.priceValue}>{formatCurrency(vat)}</Text>
+            </View>
             <View style={[styles.priceRow, styles.totalRow]}>
-              <Text style={styles.totalLabel}>Total</Text>
+              <Text style={styles.totalLabel}>Total (incl. VAT)</Text>
               <Text style={styles.totalValue}>{formatCurrency(total)}</Text>
             </View>
           </View>
@@ -721,6 +761,33 @@ const styles = StyleSheet.create({
     ...Typography.small,
     color: Colors.textSecondary,
     lineHeight: 20,
+  },
+
+  // Location
+  locationCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.sm,
+  },
+  locationCardText: {
+    ...Typography.body,
+    color: Colors.textPrimary,
+    flex: 1,
+  },
+  approximateNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+  },
+  approximateNoticeText: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+    fontStyle: 'italic',
   },
 
   // Price Breakdown

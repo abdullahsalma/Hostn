@@ -377,7 +377,10 @@ async function seed() {
       const subtotal = perNight * nights;
       const cleaningFee = property.pricing.cleaningFee || 0;
       const serviceFee = Math.round(subtotal * 0.1);
-      const total = subtotal + cleaningFee + serviceFee;
+      const discount = 0;
+      const taxableAmount = subtotal + cleaningFee + serviceFee - discount;
+      const vat = Math.round(taxableAmount * 0.15);
+      const total = taxableAmount + vat;
 
       const booking = await Booking.create({
         property: property._id,
@@ -385,7 +388,7 @@ async function seed() {
         checkIn,
         checkOut,
         guests: { adults: 2, children: 0, infants: 0 },
-        pricing: { perNight, nights, subtotal, cleaningFee, serviceFee, discount: 0, total },
+        pricing: { perNight, nights, subtotal, cleaningFee, serviceFee, discount, vat, total },
         status: i < 4 ? 'completed' : 'confirmed',
         paymentStatus: 'paid',
         confirmedAt: new Date(),

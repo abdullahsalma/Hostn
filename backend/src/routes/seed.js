@@ -133,15 +133,17 @@ router.post('/host-data', async (req, res) => {
           guests: { adults: 2, children: 0, infants: 0 },
           status: bd.status,
           paymentStatus: bd.pay,
-          pricing: {
-            perNight: bd.price,
-            nights,
-            subtotal,
-            cleaningFee: 50,
-            serviceFee: Math.round(subtotal * 0.1),
-            discount: 0,
-            total: subtotal + 50 + Math.round(subtotal * 0.1),
-          },
+          pricing: (() => {
+            const cleaningFee = 50;
+            const serviceFee = Math.round(subtotal * 0.1);
+            const discount = 0;
+            const taxableAmount = subtotal + cleaningFee + serviceFee - discount;
+            const vat = Math.round(taxableAmount * 0.15);
+            return {
+              perNight: bd.price, nights, subtotal, cleaningFee, serviceFee, discount, vat,
+              total: taxableAmount + vat,
+            };
+          })(),
         });
         results.bookings.push({ id: booking._id, status: bd.status, property: units[bd.propIdx].title });
       }

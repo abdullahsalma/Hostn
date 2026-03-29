@@ -43,14 +43,19 @@ export default function BookingWidget({ property }: BookingWidgetProps) {
   };
 
   const nights = checkIn && checkOut ? calculateNights(checkIn, checkOut) : 0;
-  const pricePerNight = property.pricing.discountPercent > 0
-    ? getDiscountedPrice(property.pricing.perNight, property.pricing.discountPercent)
-    : property.pricing.perNight;
+  // Always use original perNight; discount is shown as a separate line item
+  const pricePerNight = property.pricing.perNight;
 
   const subtotal = nights * pricePerNight;
   const cleaningFee = property.pricing.cleaningFee || 0;
-  const serviceFee = Math.round((subtotal + cleaningFee) * 0.1);
-  const total = subtotal + cleaningFee + serviceFee;
+  const serviceFee = Math.round(subtotal * 0.1);
+  const discount = property.pricing.discountPercent > 0
+    ? Math.round(subtotal * (property.pricing.discountPercent / 100))
+    : 0;
+  // Saudi Arabia 15% VAT — applied on taxable amount (after discount)
+  const taxableAmount = subtotal + cleaningFee + serviceFee - discount;
+  const vat = Math.round(taxableAmount * 0.15);
+  const total = taxableAmount + vat;
 
   const handleBookNow = () => {
     if (!checkIn || !checkOut) {
@@ -70,6 +75,9 @@ export default function BookingWidget({ property }: BookingWidgetProps) {
     router.push(`/booking/${property._id}?${params.toString()}`);
   };
 
+  const displayPrice = property.pricing.discountPercent > 0
+    ? getDiscountedPrice(property.pricing.perNight, property.pricing.discountPercent)
+    : property.pricing.perNight;
   const nightLabel = nights !== 1 ? t('booking.nights') : t('booking.nightSingle');
 
   return (
@@ -80,7 +88,7 @@ export default function BookingWidget({ property }: BookingWidgetProps) {
           {property.pricing.discountPercent > 0 ? (
             <div className="flex items-baseline gap-1.5">
               <span className="text-2xl font-bold text-primary-600">
-                {formatPrice(pricePerNight)}
+                {formatPrice(displayPrice)}
               </span>
               <span className="text-base text-gray-400 line-through">
                 {formatPrice(property.pricing.perNight)}
@@ -190,6 +198,16 @@ export default function BookingWidget({ property }: BookingWidgetProps) {
           <div className="flex justify-between text-gray-600">
             <span>{t('booking.serviceFee')}</span>
             <span>{formatPrice(serviceFee)}</span>
+          </div>
+          {discount > 0 && (
+            <div className="flex justify-between text-green-600">
+              <span>{t('booking.discount')} ({property.pricing.discountPercent}%)</span>
+              <span>-{formatPrice(discount)}</span>
+            </div>
+          )}
+          <div className="flex justify-between text-gray-600">
+            <span>{t('booking.vat')}</span>
+            <span>{formatPrice(vat)}</span>
           </div>
           <div className="flex justify-between font-bold text-gray-900 pt-3 border-t border-gray-200">
             <span>{t('booking.total')}</span>

@@ -6,7 +6,7 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { Property } from '@/types';
 import { propertiesApi, bookingsApi, paymentsApi } from '@/lib/api';
-import { formatPrice, formatDate, calculateNights, getDiscountedPrice } from '@/lib/utils';
+import { formatPrice, formatDate, calculateNights } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { CalendarDays, Users, CreditCard, Shield, ChevronRight, Lock, CheckCircle, Loader2 } from 'lucide-react';
@@ -164,13 +164,18 @@ function BookingContent() {
   }
 
   const nights = checkIn && checkOut ? calculateNights(checkIn, checkOut) : 0;
-  const pricePerNight = property.pricing.discountPercent > 0
-    ? getDiscountedPrice(property.pricing.perNight, property.pricing.discountPercent)
-    : property.pricing.perNight;
+  // Always use original perNight; discount is a separate line item
+  const pricePerNight = property.pricing.perNight;
   const subtotal = nights * pricePerNight;
   const cleaningFee = property.pricing.cleaningFee || 0;
-  const serviceFee = Math.round((subtotal + cleaningFee) * 0.1);
-  const total = subtotal + cleaningFee + serviceFee;
+  const serviceFee = Math.round(subtotal * 0.1);
+  const discount = property.pricing.discountPercent > 0
+    ? Math.round(subtotal * (property.pricing.discountPercent / 100))
+    : 0;
+  // Saudi Arabia 15% VAT — applied on taxable amount (after discount)
+  const taxableAmount = subtotal + cleaningFee + serviceFee - discount;
+  const vat = Math.round(taxableAmount * 0.15);
+  const total = taxableAmount + vat;
 
   const primaryImage = property.images.find((i) => i.isPrimary)?.url || property.images[0]?.url;
 
@@ -389,14 +394,18 @@ function BookingContent() {
                       <span>{isAr ? 'رسوم الخدمة' : 'Service fee'}</span>
                       <span>{formatPrice(serviceFee)}</span>
                     </div>
-                    {property.pricing.discountPercent > 0 && (
+                    {discount > 0 && (
                       <div className="flex justify-between text-green-600">
                         <span>{isAr ? `خصم (${property.pricing.discountPercent}%)` : `Discount (${property.pricing.discountPercent}%)`}</span>
-                        <span>-{formatPrice(property.pricing.perNight * nights * (property.pricing.discountPercent / 100))}</span>
+                        <span>-{formatPrice(discount)}</span>
                       </div>
                     )}
+                    <div className="flex justify-between text-gray-600">
+                      <span>{isAr ? 'ضريبة القيمة المضافة (15%)' : 'VAT (15%)'}</span>
+                      <span>{formatPrice(vat)}</span>
+                    </div>
                     <div className="flex justify-between font-bold text-gray-900 pt-3 border-t border-gray-200 text-base">
-                      <span>{isAr ? 'الإجمالي' : 'Total'}</span>
+                      <span>{isAr ? 'الإجمالي شامل الضريبة' : 'Total (incl. VAT)'}</span>
                       <span>{formatPrice(total)}</span>
                     </div>
                   </div>
