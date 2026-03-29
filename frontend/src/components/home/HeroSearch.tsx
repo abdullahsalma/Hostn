@@ -21,6 +21,7 @@ export default function HeroSearch() {
   const [citySearch, setCitySearch] = useState('');
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [propertyType, setPropertyType] = useState('');
+  const [showTypeDropdown, setShowTypeDropdown] = useState(false);
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
 
@@ -36,6 +37,7 @@ export default function HeroSearch() {
   const calendarRef = useRef<HTMLDivElement>(null);
   const calendarPopupRef = useRef<HTMLDivElement>(null);
   const cityDropdownRef = useRef<HTMLDivElement>(null);
+  const typeDropdownRef = useRef<HTMLDivElement>(null);
 
   const filteredCities = CITIES.filter((c) => {
     const q = citySearch.toLowerCase();
@@ -120,6 +122,9 @@ export default function HeroSearch() {
       if (cityDropdownRef.current && !cityDropdownRef.current.contains(target)) {
         setShowCityDropdown(false);
       }
+      if (typeDropdownRef.current && !typeDropdownRef.current.contains(target)) {
+        setShowTypeDropdown(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -189,7 +194,7 @@ export default function HeroSearch() {
           <h1 className="text-3xl sm:text-5xl md:text-7xl font-extrabold text-white mb-3 sm:mb-5 leading-[1.1] tracking-tight">
             {t('hero.title1')}
             <br />
-            <span className="font-display italic text-gradient-gold inline-block mt-1">
+            <span className={`${isAr ? 'font-display-ar' : 'font-display italic'} text-gradient-gold inline-block mt-1`}>
               {t('hero.title2')}
             </span>
           </h1>
@@ -309,23 +314,39 @@ export default function HeroSearch() {
               </div>
 
               {/* Type */}
-              <div className="relative">
+              <div className="relative" ref={typeDropdownRef}>
                 <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5 ltr:text-left rtl:text-right px-1">
                   {t('hero.propertyType')}
                 </label>
                 <div className="relative">
-                  <select
-                    value={propertyType}
-                    onChange={(e) => setPropertyType(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-100 rounded-xl text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-400/40 focus:border-primary-300 bg-gray-50/50 appearance-none cursor-pointer transition-all duration-200"
+                  <button
+                    type="button"
+                    onClick={() => setShowTypeDropdown(!showTypeDropdown)}
+                    className={`w-full px-4 py-3 border rounded-xl text-sm text-start bg-gray-50/50 cursor-pointer transition-all duration-200 ${
+                      showTypeDropdown ? 'border-primary-300 ring-2 ring-primary-400/40' : 'border-gray-100'
+                    } ${propertyType ? 'text-gray-800' : 'text-gray-800'}`}
                   >
-                    {PROPERTY_TYPES.map((type) => (
-                      <option key={type.value} value={type.value}>
-                        {type.label}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute ltr:right-3 rtl:left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                    {PROPERTY_TYPES.find(t => t.value === propertyType)?.label || PROPERTY_TYPES[0].label}
+                  </button>
+                  <ChevronDown className={`absolute ltr:right-3 rtl:left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none transition-transform ${showTypeDropdown ? 'rotate-180' : ''}`} />
+                  {showTypeDropdown && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-xl border border-gray-100 z-50 max-h-64 overflow-y-auto animate-fade-in-up">
+                      {PROPERTY_TYPES.map((type) => (
+                        <button
+                          key={type.value}
+                          type="button"
+                          onClick={() => { setPropertyType(type.value); setShowTypeDropdown(false); }}
+                          className={`w-full text-start px-4 py-2.5 text-sm transition-colors min-h-[44px] ${
+                            propertyType === type.value
+                              ? 'bg-primary-50 text-primary-700 font-medium'
+                              : 'text-gray-700 hover:bg-primary-50 hover:text-primary-700'
+                          }`}
+                        >
+                          {type.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -383,7 +404,7 @@ export default function HeroSearch() {
 
         {/* Quick city links */}
         <div
-          className="flex flex-wrap justify-center gap-2 mt-8 animate-fade-in-up"
+          className="relative z-0 flex flex-wrap justify-center gap-2 mt-8 animate-fade-in-up"
           style={{ animationDelay: '0.5s' }}
         >
           {CITIES.slice(0, 6).map((c) => (
@@ -401,7 +422,7 @@ export default function HeroSearch() {
 
         {/* Trust indicators */}
         <div
-          className="flex flex-wrap justify-center gap-4 sm:gap-6 md:gap-10 mt-6 sm:mt-10 animate-fade-in-up"
+          className="relative z-0 flex flex-wrap justify-center gap-4 sm:gap-6 md:gap-10 mt-6 sm:mt-10 animate-fade-in-up"
           style={{ animationDelay: '0.65s' }}
         >
           {[

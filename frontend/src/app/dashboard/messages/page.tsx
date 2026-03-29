@@ -2,29 +2,30 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { useRouter } from 'next/navigation';
-import Header from '@/components/layout/Header';
-import Footer from '@/components/layout/Footer';
 import { messagesApi } from '@/lib/api';
 import { Conversation, Message, User } from '@/types';
 import { MessageSquare, Search, Send, ArrowLeft, Ban, MoreVertical, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Image from 'next/image';
 
-function timeAgo(dateStr: string) {
+function timeAgo(dateStr: string, isAr: boolean) {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'Just now';
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return isAr ? 'الآن' : 'Just now';
+  if (mins < 60) return isAr ? `${mins} د` : `${mins}m ago`;
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
+  if (hrs < 24) return isAr ? `${hrs} س` : `${hrs}h ago`;
   const days = Math.floor(hrs / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Date(dateStr).toLocaleDateString();
+  if (days < 7) return isAr ? `${days} ي` : `${days}d ago`;
+  return new Date(dateStr).toLocaleDateString(isAr ? 'ar-SA' : undefined);
 }
 
 export default function GuestMessagesPage() {
   const { user, isAuthenticated, isLoading } = useAuth();
+  const { language } = useLanguage();
+  const isAr = language === 'ar';
   const router = useRouter();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -64,7 +65,7 @@ export default function GuestMessagesPage() {
       const res = await messagesApi.getMessages(id, { limit: 50 });
       setMessages(res.data.data || []);
       loadConversations();
-    } catch { toast.error('Failed to load messages'); }
+    } catch { toast.error(isAr ? 'فشل تحميل الرسائل' : 'Failed to load messages'); }
     finally { setMsgLoading(false); }
   };
 
@@ -91,7 +92,7 @@ export default function GuestMessagesPage() {
       setMessages(res.data.data || []);
       loadConversations();
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to send';
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || (isAr ? 'فشل الإرسال' : 'Failed to send');
       toast.error(msg);
     } finally { setSending(false); }
   };
@@ -103,7 +104,7 @@ export default function GuestMessagesPage() {
       toast.success(res.data.message);
       loadConversations();
       setShowMenu(false);
-    } catch { toast.error('Action failed'); }
+    } catch { toast.error(isAr ? 'فشل الإجراء' : 'Action failed'); }
   };
 
   const selectedConv = conversations.find(c => c._id === selectedId);
@@ -126,12 +127,10 @@ export default function GuestMessagesPage() {
   if (isLoading) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      <main className="max-w-6xl mx-auto px-4 py-8">
+    <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
-          <p className="text-sm text-gray-500 mt-1">Chat with hosts about your bookings</p>
+          <h1 className="text-2xl font-bold text-gray-900">{isAr ? 'الرسائل' : 'Messages'}</h1>
+          <p className="text-sm text-gray-500 mt-1">{isAr ? 'تحدث مع المضيفين بشأن حجوزاتك' : 'Chat with hosts about your bookings'}</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" style={{ height: 'calc(100vh - 260px)', minHeight: '500px' }}>
@@ -141,19 +140,19 @@ export default function GuestMessagesPage() {
               <div className="p-4 border-b border-gray-100">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input type="text" placeholder="Search..." value={search} onChange={e => setSearch(e.target.value)}
+                  <input type="text" placeholder={isAr ? 'بحث...' : 'Search...'} value={search} onChange={e => setSearch(e.target.value)}
                     className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" />
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto">
                 {loading ? (
-                  <div className="p-6 text-center text-sm text-gray-400">Loading...</div>
+                  <div className="p-6 text-center text-sm text-gray-400">{isAr ? 'جاري التحميل...' : 'Loading...'}</div>
                 ) : filtered.length === 0 ? (
                   <div className="flex-1 flex items-center justify-center p-6 text-center">
                     <div>
                       <MessageSquare className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-                      <p className="text-sm text-gray-500">No conversations yet</p>
-                      <p className="text-xs text-gray-400 mt-1">Start a conversation from a property page</p>
+                      <p className="text-sm text-gray-500">{isAr ? 'لا توجد محادثات بعد' : 'No conversations yet'}</p>
+                      <p className="text-xs text-gray-400 mt-1">{isAr ? 'ابدأ محادثة من صفحة العقار' : 'Start a conversation from a property page'}</p>
                     </div>
                   </div>
                 ) : filtered.map(conv => {
@@ -172,10 +171,10 @@ export default function GuestMessagesPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <span className={`text-sm ${unread > 0 ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>{other?.name || 'Unknown'}</span>
-                          <span className="text-xs text-gray-400">{conv.lastMessage?.timestamp ? timeAgo(conv.lastMessage.timestamp) : ''}</span>
+                          <span className="text-xs text-gray-400">{conv.lastMessage?.timestamp ? timeAgo(conv.lastMessage.timestamp, isAr) : ''}</span>
                         </div>
                         <div className="flex items-center justify-between mt-0.5">
-                          <p className={`text-xs truncate ${unread > 0 ? 'text-gray-800 font-medium' : 'text-gray-400'}`}>{conv.lastMessage?.content || 'No messages yet'}</p>
+                          <p className={`text-xs truncate ${unread > 0 ? 'text-gray-800 font-medium' : 'text-gray-400'}`}>{conv.lastMessage?.content || (isAr ? 'لا رسائل بعد' : 'No messages yet')}</p>
                           {unread > 0 && <span className="ml-2 bg-primary-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center flex-shrink-0">{unread > 9 ? '9+' : unread}</span>}
                         </div>
                       </div>
@@ -191,7 +190,7 @@ export default function GuestMessagesPage() {
                 <div className="flex-1 flex items-center justify-center p-6 text-center bg-gray-50/50">
                   <div>
                     <MessageSquare className="w-12 h-12 text-gray-200 mx-auto mb-3" />
-                    <p className="text-sm text-gray-500 font-medium">Select a conversation</p>
+                    <p className="text-sm text-gray-500 font-medium">{isAr ? 'اختر محادثة' : 'Select a conversation'}</p>
                   </div>
                 </div>
               ) : (
@@ -211,7 +210,7 @@ export default function GuestMessagesPage() {
                       {showMenu && (
                         <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-10 min-w-[160px]">
                           <button onClick={handleBlock} className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-red-600">
-                            <Ban className="w-4 h-4" />{selectedConv?.isBlocked ? 'Unblock' : 'Block User'}
+                            <Ban className="w-4 h-4" />{selectedConv?.isBlocked ? (isAr ? 'إلغاء الحظر' : 'Unblock') : (isAr ? 'حظر المستخدم' : 'Block User')}
                           </button>
                         </div>
                       )}
@@ -219,8 +218,8 @@ export default function GuestMessagesPage() {
                   </div>
 
                   <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/30">
-                    {msgLoading ? <div className="text-center text-sm text-gray-400 py-10">Loading...</div>
-                    : messages.length === 0 ? <div className="text-center text-sm text-gray-400 py-10">No messages yet</div>
+                    {msgLoading ? <div className="text-center text-sm text-gray-400 py-10">{isAr ? 'جاري التحميل...' : 'Loading...'}</div>
+                    : messages.length === 0 ? <div className="text-center text-sm text-gray-400 py-10">{isAr ? 'لا رسائل بعد' : 'No messages yet'}</div>
                     : messages.map(msg => {
                       const senderId = typeof msg.sender === 'string' ? msg.sender : msg.sender._id;
                       const isMe = senderId === user?._id;
@@ -243,14 +242,14 @@ export default function GuestMessagesPage() {
 
                   {selectedConv?.isBlocked ? (
                     <div className="p-4 border-t border-gray-100 bg-red-50 flex items-center gap-2 justify-center text-sm text-red-600">
-                      <AlertCircle className="w-4 h-4" /> This conversation is blocked
+                      <AlertCircle className="w-4 h-4" /> {isAr ? 'هذه المحادثة محظورة' : 'This conversation is blocked'}
                     </div>
                   ) : (
                     <div className="p-4 border-t border-gray-100">
                       <div className="flex items-center gap-2">
                         <input type="text" value={newMessage} onChange={e => setNewMessage(e.target.value)}
                           onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
-                          placeholder="Type a message..." disabled={sending}
+                          placeholder={isAr ? 'اكتب رسالة...' : 'Type a message...'} disabled={sending}
                           className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" />
                         <button onClick={handleSend} disabled={!newMessage.trim() || sending}
                           className="p-2.5 bg-primary-500 text-white rounded-xl hover:bg-primary-600 disabled:opacity-50 transition">
@@ -264,8 +263,6 @@ export default function GuestMessagesPage() {
             </div>
           </div>
         </div>
-      </main>
-      <Footer />
     </div>
   );
 }

@@ -9,6 +9,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithOtp: (phone: string, otp: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
   updateUser: (user: User) => void;
@@ -53,8 +54,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               saveAuth(freshUser);
             }
           })
-          .catch(() => {
-            // Cookie expired or invalid — clear stale localStorage
+          .catch(async () => {
+            // Cookie expired or invalid — clear HttpOnly cookie + stale localStorage
+            try { await authApi.logout(); } catch { /* ignore */ }
             localStorage.removeItem('hostn_user');
             setUser(null);
           })
@@ -77,6 +79,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     // The server sets an HttpOnly cookie in the response — no token in JS
     const res = await authApi.login({ email, password });
+    saveAuth(res.data.user);
+  };
+
+  const loginWithOtp = async (phone: string, otp: string) => {
+    const res = await authApi.verifyOtp({ phone, otp });
     saveAuth(res.data.user);
   };
 
@@ -120,6 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         isAuthenticated: !!user,
         login,
+        loginWithOtp,
         register,
         logout,
         updateUser,

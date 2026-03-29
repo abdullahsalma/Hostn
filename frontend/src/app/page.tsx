@@ -8,6 +8,7 @@ import HeroSearch from '@/components/home/HeroSearch';
 import { useLanguage } from '@/context/LanguageContext';
 import { Search, Shield, Star, Headphones, Home, Building, TreePine, Tent, Hotel, Users, CheckCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { format, addDays } from 'date-fns';
 import { propertiesApi } from '@/lib/api';
 
 const PROPERTY_TYPES = [
@@ -47,7 +48,7 @@ export default function HomePage() {
             {PROPERTY_TYPES.map(({ key, icon: Icon, label }) => (
               <Link
                 key={key}
-                href={`/listings?type=${key}`}
+                href={`/listings?type=${key}&city=Riyadh&checkIn=${format(new Date(), 'yyyy-MM-dd')}&checkOut=${format(addDays(new Date(), 1), 'yyyy-MM-dd')}`}
                 className="flex flex-col items-center gap-3 p-6 bg-gray-50 rounded-2xl hover:bg-primary-50 hover:border-primary-200 border-2 border-transparent transition-all"
               >
                 <Icon className="w-8 h-8 text-primary-600" />

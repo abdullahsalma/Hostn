@@ -4,9 +4,10 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { authApi } from '@/lib/api';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import { Mail, Lock, Eye, EyeOff, User, Phone } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, Phone, Smartphone } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useLanguage } from '@/context/LanguageContext';
 
@@ -73,14 +74,26 @@ const ACCENT_CLASSES = {
 
 export default function AuthForm({ mode, role }: AuthFormProps) {
   const router = useRouter();
-  const { login, register } = useAuth();
+  const { login, loginWithOtp, register } = useAuth();
   const { language } = useLanguage();
 
+  // Login method toggle
+  const [loginMethod, setLoginMethod] = useState<'phone' | 'email'>(role === 'admin' ? 'email' : 'phone');
+
+  // Email/password fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  // OTP fields
+  const [otpPhone, setOtpPhone] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -91,6 +104,63 @@ export default function AuthForm({ mode, role }: AuthFormProps) {
 
   const title = isLogin ? config.loginTitle[lang] : config.registerTitle[lang];
   const subtitle = isLogin ? config.loginSubtitle[lang] : config.registerSubtitle[lang];
+
+  // Start countdown timer
+  const startCountdown = () => {
+    setCountdown(60);
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) { clearInterval(timer); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  // Send OTP
+  const handleSendOtp = async () => {
+    if (!otpPhone || !/^5\d{8}$/.test(otpPhone)) {
+      setErrors({ otpPhone: lang === 'ar' ? 'رقم هاتف سعودي غير صالح (9 أرقام تبدأ بـ 5)' : 'Invalid Saudi phone (9 digits starting with 5)' });
+      return;
+    }
+    setErrors({});
+    setOtpLoading(true);
+    try {
+      await authApi.sendOtp({ phone: otpPhone });
+      setOtpSent(true);
+      startCountdown();
+      toast.success(lang === 'ar' ? 'تم إرسال رمز التحقق' : 'OTP sent successfully');
+    } catch (error: unknown) {
+      const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg || (lang === 'ar' ? 'فشل إرسال الرمز' : 'Failed to send OTP'));
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  // Verify OTP and login
+  const handleOtpLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpCode || otpCode.length < 4) {
+      setErrors({ otpCode: lang === 'ar' ? 'أدخل رمز التحقق' : 'Enter the verification code' });
+      return;
+    }
+    setErrors({});
+    setLoading(true);
+    try {
+      await loginWithOtp(otpPhone, otpCode);
+      toast.success(lang === 'ar' ? 'مرحباً بك!' : 'Welcome!');
+      const storedUser = localStorage.getItem('hostn_user');
+      const parsedUser = storedUser ? JSON.parse(storedUser) : null;
+      const userRole = parsedUser?.role || role;
+      const redirect = ROLE_CONFIG[userRole as Role]?.redirect || '/dashboard';
+      router.push(redirect);
+    } catch (error: unknown) {
+      const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg || (lang === 'ar' ? 'رمز التحقق غير صحيح' : 'Invalid verification code'));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -117,7 +187,6 @@ export default function AuthForm({ mode, role }: AuthFormProps) {
         toast.success(lang === 'ar' ? 'تم إنشاء الحساب!' : 'Account created!');
       }
 
-      // Read role from stored user for redirect
       const storedUser = localStorage.getItem('hostn_user');
       const parsedUser = storedUser ? JSON.parse(storedUser) : null;
       const userRole = parsedUser?.role || role;
@@ -151,82 +220,203 @@ export default function AuthForm({ mode, role }: AuthFormProps) {
           <p className="mt-2 text-gray-500">{subtitle}</p>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 space-y-5">
-          {!isLogin && (
+        {/* Login method toggle (only for login, non-admin) */}
+        {isLogin && role !== 'admin' && (
+          <div className="flex bg-gray-100 rounded-xl p-1 mb-6">
+            <button
+              type="button"
+              onClick={() => { setLoginMethod('phone'); setErrors({}); }}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                loginMethod === 'phone' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Smartphone className="w-4 h-4" />
+              {lang === 'ar' ? 'رقم الهاتف' : 'Phone'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setLoginMethod('email'); setErrors({}); }}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                loginMethod === 'email' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Mail className="w-4 h-4" />
+              {lang === 'ar' ? 'البريد الإلكتروني' : 'Email'}
+            </button>
+          </div>
+        )}
+
+        {/* Phone + OTP Login */}
+        {isLogin && loginMethod === 'phone' && role !== 'admin' ? (
+          <form onSubmit={handleOtpLogin} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 space-y-5">
+            {!otpSent ? (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    {lang === 'ar' ? 'رقم الهاتف' : 'Phone Number'}
+                  </label>
+                  <div className="flex gap-2">
+                    <div className="flex items-center px-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-600 font-medium">
+                      +966
+                    </div>
+                    <Input
+                      type="tel"
+                      placeholder="5XXXXXXXX"
+                      value={otpPhone}
+                      onChange={(e) => setOtpPhone(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                      leftIcon={<Phone className="w-4 h-4" />}
+                      error={errors.otpPhone}
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  onClick={handleSendOtp}
+                  isLoading={otpLoading}
+                  className={`w-full ${accent.bg} ${accent.hover} text-white ${accent.ring}`}
+                  size="lg"
+                >
+                  {lang === 'ar' ? 'إرسال رمز التحقق' : 'Send Verification Code'}
+                </Button>
+              </>
+            ) : (
+              <>
+                <div className="text-center mb-2">
+                  <p className="text-sm text-gray-600">
+                    {lang === 'ar' ? `تم إرسال رمز التحقق إلى` : 'Verification code sent to'}
+                  </p>
+                  <p className="text-sm font-bold text-gray-900 mt-1 dir-ltr">+966 {otpPhone}</p>
+                </div>
+                <Input
+                  label={lang === 'ar' ? 'رمز التحقق' : 'Verification Code'}
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="000000"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  error={errors.otpCode}
+                  className="text-center text-2xl tracking-[0.5em] font-mono"
+                />
+                <Button
+                  type="submit"
+                  isLoading={loading}
+                  className={`w-full ${accent.bg} ${accent.hover} text-white ${accent.ring}`}
+                  size="lg"
+                >
+                  {lang === 'ar' ? 'تسجيل الدخول' : 'Sign In'}
+                </Button>
+                <div className="flex items-center justify-between text-sm">
+                  <button
+                    type="button"
+                    onClick={() => { setOtpSent(false); setOtpCode(''); }}
+                    className={`${accent.text} font-medium hover:underline`}
+                  >
+                    {lang === 'ar' ? 'تغيير الرقم' : 'Change number'}
+                  </button>
+                  {countdown > 0 ? (
+                    <span className="text-gray-400">
+                      {lang === 'ar' ? `إعادة الإرسال (${countdown}ث)` : `Resend (${countdown}s)`}
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSendOtp}
+                      className={`${accent.text} font-medium hover:underline`}
+                    >
+                      {lang === 'ar' ? 'إعادة إرسال الرمز' : 'Resend code'}
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+
+            {otherModeLink && (
+              <p className="text-center text-sm text-gray-500 pt-2">
+                <Link href={otherModeLink.href} className={`${accent.text} font-medium hover:underline`}>
+                  {otherModeLink.label}
+                </Link>
+              </p>
+            )}
+          </form>
+        ) : (
+          /* Email + Password form (login or register) */
+          <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 space-y-5">
+            {!isLogin && (
+              <Input
+                label={lang === 'ar' ? 'الاسم الكامل' : 'Full Name'}
+                placeholder={lang === 'ar' ? 'أدخل اسمك' : 'Enter your name'}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                leftIcon={<User className="w-4 h-4" />}
+                error={errors.name}
+              />
+            )}
+
             <Input
-              label={lang === 'ar' ? 'الاسم الكامل' : 'Full Name'}
-              placeholder={lang === 'ar' ? 'أدخل اسمك' : 'Enter your name'}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              leftIcon={<User className="w-4 h-4" />}
-              error={errors.name}
+              label={lang === 'ar' ? 'البريد الإلكتروني' : 'Email'}
+              type="email"
+              placeholder={lang === 'ar' ? 'أدخل بريدك الإلكتروني' : 'Enter your email'}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              leftIcon={<Mail className="w-4 h-4" />}
+              error={errors.email}
             />
-          )}
 
-          <Input
-            label={lang === 'ar' ? 'البريد الإلكتروني' : 'Email'}
-            type="email"
-            placeholder={lang === 'ar' ? 'أدخل بريدك الإلكتروني' : 'Enter your email'}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            leftIcon={<Mail className="w-4 h-4" />}
-            error={errors.email}
-          />
-
-          <Input
-            label={lang === 'ar' ? 'كلمة المرور' : 'Password'}
-            type={showPassword ? 'text' : 'password'}
-            placeholder={lang === 'ar' ? 'أدخل كلمة المرور' : 'Enter your password'}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            leftIcon={<Lock className="w-4 h-4" />}
-            rightIcon={
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="focus:outline-none">
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            }
-            error={errors.password}
-          />
-
-          {isLogin && (
-            <div className="text-right rtl:text-left -mt-2">
-              <Link href="/auth/forgot-password" className={`text-sm ${accent.text} hover:underline`}>
-                {lang === 'ar' ? 'نسيت كلمة المرور؟' : 'Forgot password?'}
-              </Link>
-            </div>
-          )}
-
-          {!isLogin && (
             <Input
-              label={lang === 'ar' ? 'رقم الهاتف (اختياري)' : 'Phone (optional)'}
-              type="tel"
-              placeholder="+966 5XX XXX XXXX"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              leftIcon={<Phone className="w-4 h-4" />}
+              label={lang === 'ar' ? 'كلمة المرور' : 'Password'}
+              type={showPassword ? 'text' : 'password'}
+              placeholder={lang === 'ar' ? 'أدخل كلمة المرور' : 'Enter your password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              leftIcon={<Lock className="w-4 h-4" />}
+              rightIcon={
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="focus:outline-none">
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              }
+              error={errors.password}
             />
-          )}
 
-          <Button
-            type="submit"
-            isLoading={loading}
-            className={`w-full ${accent.bg} ${accent.hover} text-white ${accent.ring}`}
-            size="lg"
-          >
-            {isLogin
-              ? lang === 'ar' ? 'تسجيل الدخول' : 'Sign In'
-              : lang === 'ar' ? 'إنشاء حساب' : 'Create Account'}
-          </Button>
+            {isLogin && (
+              <div className="text-right rtl:text-left -mt-2">
+                <Link href="/auth/forgot-password" className={`text-sm ${accent.text} hover:underline`}>
+                  {lang === 'ar' ? 'نسيت كلمة المرور؟' : 'Forgot password?'}
+                </Link>
+              </div>
+            )}
 
-          {otherModeLink && (
-            <p className="text-center text-sm text-gray-500">
-              <Link href={otherModeLink.href} className={`${accent.text} font-medium hover:underline`}>
-                {otherModeLink.label}
-              </Link>
-            </p>
-          )}
-        </form>
+            {!isLogin && (
+              <Input
+                label={lang === 'ar' ? 'رقم الهاتف (اختياري)' : 'Phone (optional)'}
+                type="tel"
+                placeholder="+966 5XX XXX XXXX"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                leftIcon={<Phone className="w-4 h-4" />}
+              />
+            )}
+
+            <Button
+              type="submit"
+              isLoading={loading}
+              className={`w-full ${accent.bg} ${accent.hover} text-white ${accent.ring}`}
+              size="lg"
+            >
+              {isLogin
+                ? lang === 'ar' ? 'تسجيل الدخول' : 'Sign In'
+                : lang === 'ar' ? 'إنشاء حساب' : 'Create Account'}
+            </Button>
+
+            {otherModeLink && (
+              <p className="text-center text-sm text-gray-500">
+                <Link href={otherModeLink.href} className={`${accent.text} font-medium hover:underline`}>
+                  {otherModeLink.label}
+                </Link>
+              </p>
+            )}
+          </form>
+        )}
 
         {/* Back to role selection */}
         <p className="text-center mt-6 text-sm text-gray-400">

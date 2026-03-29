@@ -44,6 +44,7 @@ module.exports = {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         display: ['Playfair Display', 'Georgia', 'serif'],
+        'display-ar': ['Noto Kufi Arabic', 'Tajawal', 'Cairo', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
         card: '0 2px 20px rgba(0,0,0,0.06)',

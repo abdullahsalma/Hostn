@@ -63,11 +63,14 @@ export default function NewListingPage() {
         title: form.title,
         description: form.description,
         type: form.type,
-        city: form.city,
-        price: Number(form.price),
-        bedrooms: Number(form.bedrooms),
-        bathrooms: Number(form.bathrooms),
-        maxGuests: Number(form.maxGuests),
+        location: { city: form.city },
+        pricing: { perNight: Number(form.price) },
+        capacity: {
+          bedrooms: Number(form.bedrooms),
+          bathrooms: Number(form.bathrooms),
+          maxGuests: Number(form.maxGuests),
+          beds: Number(form.bedrooms),
+        },
       });
       toast.success(t.success[lang]);
       router.push('/host/listings');

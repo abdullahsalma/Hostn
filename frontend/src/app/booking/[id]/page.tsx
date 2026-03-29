@@ -155,9 +155,25 @@ function BookingContent() {
         toast.success(isAr ? 'تم إنشاء الحجز. يرجى إتمام الدفع.' : 'Booking created. Please complete payment.');
       }
     } catch (error: unknown) {
-      const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      if (msg) {
-        toast.error(isAr ? 'العقار غير متاح للتواريخ المحددة. يرجى اختيار تواريخ أخرى.' : msg);
+      const errData = (error as { response?: { data?: { code?: string; message?: string; params?: Record<string, number> } } })?.response?.data;
+      const errorMessages: Record<string, { en: string; ar: string }> = {
+        INVALID_DATES: { en: 'Invalid date format', ar: 'صيغة التاريخ غير صالحة' },
+        CHECKOUT_BEFORE_CHECKIN: { en: 'Check-out must be after check-in', ar: 'يجب أن يكون تاريخ المغادرة بعد تاريخ الوصول' },
+        CHECKIN_IN_PAST: { en: 'Check-in date cannot be in the past', ar: 'لا يمكن أن يكون تاريخ الوصول في الماضي' },
+        PROPERTY_NOT_FOUND: { en: 'Property not found', ar: 'العقار غير موجود' },
+        OWN_PROPERTY: { en: 'Cannot book your own property', ar: 'لا يمكنك حجز عقارك الخاص' },
+        NO_ADULTS: { en: 'At least one adult guest required', ar: 'مطلوب ضيف بالغ واحد على الأقل' },
+        MAX_CAPACITY: { en: `Exceeds max capacity of ${errData?.params?.max || ''} guests`, ar: `يتجاوز الحد الأقصى ${errData?.params?.max || ''} ضيوف` },
+        DATES_BLOCKED: { en: 'Property is blocked for selected dates', ar: 'العقار محجوب للتواريخ المحددة' },
+        MIN_STAY: { en: `Minimum stay is ${errData?.params?.min || ''} nights`, ar: `الحد الأدنى للإقامة ${errData?.params?.min || ''} ليالي` },
+        MAX_STAY: { en: `Maximum stay is ${errData?.params?.max || ''} nights`, ar: `الحد الأقصى للإقامة ${errData?.params?.max || ''} ليالي` },
+        DATES_UNAVAILABLE: { en: 'Property not available for selected dates', ar: 'العقار غير متاح للتواريخ المحددة' },
+      };
+      const mapped = errData?.code ? errorMessages[errData.code] : null;
+      if (mapped) {
+        toast.error(isAr ? mapped.ar : mapped.en);
+      } else if (errData?.message) {
+        toast.error(isAr ? 'فشل إنشاء الحجز. حاول مرة أخرى.' : errData.message);
       } else {
         toast.error(isAr ? 'فشل إنشاء الحجز. حاول مرة أخرى.' : 'Failed to create booking. Please try again.');
       }
@@ -260,9 +276,17 @@ function BookingContent() {
                               </p>
                             </div>
                           </div>
-                          <span className="text-sm font-semibold text-gray-700">
-                            {nights} {isAr ? (nights === 1 ? 'ليلة' : 'ليالي') : (nights !== 1 ? 'nights' : 'night')}
-                          </span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm font-semibold text-gray-700">
+                              {nights} {isAr ? (nights === 1 ? 'ليلة' : 'ليالي') : (nights !== 1 ? 'nights' : 'night')}
+                            </span>
+                            <Link
+                              href={`/listings/${id}`}
+                              className="text-xs font-medium text-primary-600 hover:text-primary-700 underline"
+                            >
+                              {isAr ? 'تعديل' : 'Edit'}
+                            </Link>
+                          </div>
                         </div>
 
                         <div className="flex items-center justify-between py-3 border-b border-gray-100">
@@ -275,9 +299,17 @@ function BookingContent() {
                               </p>
                             </div>
                           </div>
-                          <span className="text-sm font-semibold text-gray-700">
-                            {guestsCount} {isAr ? (guestsCount === 1 ? 'ضيف' : 'ضيوف') : (guestsCount !== 1 ? 'guests' : 'guest')}
-                          </span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm font-semibold text-gray-700">
+                              {guestsCount} {isAr ? (guestsCount === 1 ? 'ضيف' : 'ضيوف') : (guestsCount !== 1 ? 'guests' : 'guest')}
+                            </span>
+                            <Link
+                              href={`/listings/${id}`}
+                              className="text-xs font-medium text-primary-600 hover:text-primary-700 underline"
+                            >
+                              {isAr ? 'تعديل' : 'Edit'}
+                            </Link>
+                          </div>
                         </div>
 
                         <div className="flex items-center gap-3 py-3">

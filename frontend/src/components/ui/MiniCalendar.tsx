@@ -28,7 +28,13 @@ export default function MiniCalendar({
   locale = 'en',
   className = '',
 }: MiniCalendarProps) {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    if (checkIn) {
+      const d = new Date(checkIn);
+      return isNaN(d.getTime()) ? new Date() : d;
+    }
+    return new Date();
+  });
   const today = startOfDay(new Date());
 
   const unavailableSet = useMemo(

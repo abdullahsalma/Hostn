@@ -1,14 +1,15 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import PropertyCard from '@/components/listings/PropertyCard';
 import { useLanguage } from '@/context/LanguageContext';
 import { propertiesApi } from '@/lib/api';
+import { CITIES } from '@/lib/constants';
 import Link from 'next/link';
-import { Search } from 'lucide-react';
+import { Search, MapPin, Calendar, Users, SlidersHorizontal, X } from 'lucide-react';
 import { Property } from '@/types';
 
 export default function ListingsPage() {
@@ -21,13 +22,23 @@ export default function ListingsPage() {
 
 function ListingsContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const { language } = useLanguage();
   const lang = language as 'en' | 'ar';
+  const isAr = lang === 'ar';
 
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Search state — initialize from URL
   const [searchCity, setSearchCity] = useState(searchParams.get('city') || '');
   const [selectedType, setSelectedType] = useState(searchParams.get('type') || '');
+  const [checkIn, setCheckIn] = useState(searchParams.get('checkIn') || '');
+  const [checkOut, setCheckOut] = useState(searchParams.get('checkOut') || '');
+  const [minPrice, setMinPrice] = useState(searchParams.get('minPrice') || '');
+  const [maxPrice, setMaxPrice] = useState(searchParams.get('maxPrice') || '');
+  const [guests, setGuests] = useState(searchParams.get('guests') || '');
 
   const fetchProperties = async () => {
     setLoading(true);
@@ -35,6 +46,11 @@ function ListingsContent() {
       const params: Record<string, unknown> = {};
       if (searchCity) params.city = searchCity;
       if (selectedType) params.type = selectedType;
+      if (checkIn) params.checkIn = checkIn;
+      if (checkOut) params.checkOut = checkOut;
+      if (minPrice) params.minPrice = Number(minPrice);
+      if (maxPrice) params.maxPrice = Number(maxPrice);
+      if (guests) params.guests = Number(guests);
       const res = await propertiesApi.getAll(params);
       setProperties(res.data.properties || res.data.data || []);
     } catch {
@@ -43,6 +59,31 @@ function ListingsContent() {
       setLoading(false);
     }
   };
+
+  // Update URL when searching
+  const handleSearch = () => {
+    const params = new URLSearchParams();
+    if (searchCity) params.set('city', searchCity);
+    if (selectedType) params.set('type', selectedType);
+    if (checkIn) params.set('checkIn', checkIn);
+    if (checkOut) params.set('checkOut', checkOut);
+    if (minPrice) params.set('minPrice', minPrice);
+    if (maxPrice) params.set('maxPrice', maxPrice);
+    if (guests) params.set('guests', guests);
+    router.push(`/listings?${params.toString()}`);
+    fetchProperties();
+  };
+
+  const clearFilters = () => {
+    setMinPrice('');
+    setMaxPrice('');
+    setGuests('');
+    setCheckIn('');
+    setCheckOut('');
+    setShowFilters(false);
+  };
+
+  const hasActiveFilters = !!(minPrice || maxPrice || guests || checkIn || checkOut);
 
   useEffect(() => {
     fetchProperties();
@@ -66,9 +107,9 @@ function ListingsContent() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Breadcrumbs */}
           <nav className="text-sm text-gray-500 mb-4">
-            <Link href="/" className="hover:text-primary-600 transition-colors">{lang === 'ar' ? 'الرئيسية' : 'Home'}</Link>
+            <Link href="/" className="hover:text-primary-600 transition-colors">{isAr ? 'الرئيسية' : 'Home'}</Link>
             <span className="mx-1.5">/</span>
-            <span className="text-gray-700">{lang === 'ar' ? 'العقارات' : 'Properties'}</span>
+            <span className="text-gray-700">{isAr ? 'العقارات' : 'Properties'}</span>
             {searchCity && (
               <>
                 <span className="mx-1.5">/</span>
@@ -77,22 +118,128 @@ function ListingsContent() {
             )}
           </nav>
 
-          {/* Search + Filters */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-8">
-            <div className="flex-1 flex gap-2">
-              <input
-                type="text"
-                placeholder={lang === 'ar' ? 'ابحث عن مدينة...' : 'Search by city...'}
-                value={searchCity}
-                onChange={(e) => setSearchCity(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && fetchProperties()}
-                className="flex-1 input-base"
-              />
-              <button onClick={fetchProperties} className="btn-primary flex items-center gap-2">
-                <Search className="w-4 h-4" />
-                {lang === 'ar' ? 'بحث' : 'Search'}
-              </button>
+          {/* Search Bar */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              {/* City */}
+              <div className="relative">
+                <MapPin className="absolute ltr:left-3 rtl:right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <select
+                  value={searchCity}
+                  onChange={(e) => setSearchCity(e.target.value)}
+                  className="w-full ltr:pl-9 ltr:pr-3 rtl:pr-9 rtl:pl-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white"
+                >
+                  <option value="">{isAr ? 'جميع المدن' : 'All cities'}</option>
+                  {CITIES.map((c) => (
+                    <option key={c.value} value={c.value}>{isAr ? c.ar : c.en}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Check-in */}
+              <div className="relative">
+                <Calendar className="absolute ltr:left-3 rtl:right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="date"
+                  value={checkIn}
+                  onChange={(e) => setCheckIn(e.target.value)}
+                  placeholder={isAr ? 'تاريخ الوصول' : 'Check-in'}
+                  className="w-full ltr:pl-9 ltr:pr-3 rtl:pr-9 rtl:pl-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
+                />
+              </div>
+
+              {/* Check-out */}
+              <div className="relative">
+                <Calendar className="absolute ltr:left-3 rtl:right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="date"
+                  value={checkOut}
+                  onChange={(e) => setCheckOut(e.target.value)}
+                  min={checkIn || undefined}
+                  placeholder={isAr ? 'تاريخ المغادرة' : 'Check-out'}
+                  className="w-full ltr:pl-9 ltr:pr-3 rtl:pr-9 rtl:pl-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
+                />
+              </div>
+
+              {/* Guests */}
+              <div className="relative">
+                <Users className="absolute ltr:left-3 rtl:right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="number"
+                  min="1"
+                  max="20"
+                  value={guests}
+                  onChange={(e) => setGuests(e.target.value)}
+                  placeholder={isAr ? 'عدد الضيوف' : 'Guests'}
+                  className="w-full ltr:pl-9 ltr:pr-3 rtl:pr-9 rtl:pl-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
+                />
+              </div>
+
+              {/* Search button */}
+              <div className="flex gap-2">
+                <button onClick={handleSearch} className="flex-1 btn-primary flex items-center justify-center gap-2 rounded-xl">
+                  <Search className="w-4 h-4" />
+                  {isAr ? 'بحث' : 'Search'}
+                </button>
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`p-2.5 rounded-xl border transition-colors ${
+                    hasActiveFilters ? 'bg-primary-50 border-primary-200 text-primary-600' : 'border-gray-200 text-gray-500 hover:bg-gray-50'
+                  }`}
+                  title={isAr ? 'فلاتر إضافية' : 'More filters'}
+                >
+                  <SlidersHorizontal className="w-4 h-4" />
+                </button>
+              </div>
             </div>
+
+            {/* Expanded Filters */}
+            {showFilters && (
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-gray-700">{isAr ? 'فلاتر إضافية' : 'Additional Filters'}</h3>
+                  {hasActiveFilters && (
+                    <button onClick={clearFilters} className="text-xs text-primary-600 hover:text-primary-700 flex items-center gap-1">
+                      <X className="w-3 h-3" />
+                      {isAr ? 'مسح الفلاتر' : 'Clear filters'}
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">
+                      {isAr ? 'أقل سعر (ر.س)' : 'Min Price (SAR)'}
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={minPrice}
+                      onChange={(e) => setMinPrice(e.target.value)}
+                      placeholder="0"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">
+                      {isAr ? 'أعلى سعر (ر.س)' : 'Max Price (SAR)'}
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={maxPrice}
+                      onChange={(e) => setMaxPrice(e.target.value)}
+                      placeholder="5000"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <button onClick={handleSearch} className="w-full btn-primary rounded-xl py-2 text-sm">
+                      {isAr ? 'تطبيق الفلاتر' : 'Apply Filters'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Type tabs */}
@@ -112,6 +259,16 @@ function ListingsContent() {
             ))}
           </div>
 
+          {/* Results count */}
+          {!loading && (
+            <p className="text-sm text-gray-500 mb-4">
+              {isAr
+                ? `${properties.length} عقار`
+                : `${properties.length} ${properties.length === 1 ? 'property' : 'properties'} found`
+              }
+            </p>
+          )}
+
           {/* Results */}
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -130,7 +287,10 @@ function ListingsContent() {
           ) : properties.length === 0 ? (
             <div className="text-center py-20">
               <p className="text-gray-500 text-lg">
-                {lang === 'ar' ? 'لا توجد عقارات' : 'No properties found'}
+                {isAr ? 'لا توجد عقارات' : 'No properties found'}
+              </p>
+              <p className="text-sm text-gray-400 mt-2">
+                {isAr ? 'حاول تعديل معايير البحث' : 'Try adjusting your search criteria'}
               </p>
             </div>
           ) : (

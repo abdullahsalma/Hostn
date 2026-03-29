@@ -89,6 +89,10 @@ export const authApi = {
     api.post('/auth/forgot-password', data),
   resetPassword: (data: { token: string; password: string }) =>
     api.post('/auth/reset-password', data),
+  sendOtp: (data: { phone: string; countryCode?: string }) =>
+    api.post('/auth/send-otp', data),
+  verifyOtp: (data: { phone: string; otp: string; countryCode?: string }) =>
+    api.post('/auth/verify-otp', data),
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════

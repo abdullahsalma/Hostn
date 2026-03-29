@@ -99,36 +99,38 @@ exports.createBooking = async (req, res, next) => {
     const checkOutDate = new Date(checkOut);
 
     if (isNaN(checkInDate.getTime()) || isNaN(checkOutDate.getTime())) {
-      return res.status(400).json({ success: false, message: 'Invalid date format' });
+      return res.status(400).json({ success: false, code: 'INVALID_DATES', message: 'Invalid date format' });
     }
 
     if (checkInDate >= checkOutDate) {
-      return res.status(400).json({ success: false, message: 'Check-out must be after check-in' });
+      return res.status(400).json({ success: false, code: 'CHECKOUT_BEFORE_CHECKIN', message: 'Check-out must be after check-in' });
     }
 
     if (checkInDate < new Date(new Date().toDateString())) {
-      return res.status(400).json({ success: false, message: 'Check-in date cannot be in the past' });
+      return res.status(400).json({ success: false, code: 'CHECKIN_IN_PAST', message: 'Check-in date cannot be in the past' });
     }
 
     const property = await Property.findById(propertyId);
     if (!property || !property.isActive) {
-      return res.status(404).json({ success: false, message: 'Property not found' });
+      return res.status(404).json({ success: false, code: 'PROPERTY_NOT_FOUND', message: 'Property not found' });
     }
 
     // Check if user is trying to book their own property
     if (property.host.toString() === req.user._id.toString()) {
-      return res.status(400).json({ success: false, message: 'Cannot book your own property' });
+      return res.status(400).json({ success: false, code: 'OWN_PROPERTY', message: 'Cannot book your own property' });
     }
 
     // ── Guest count validation ────────────────────────────────────────
     const totalGuests = (guests?.adults || 0) + (guests?.children || 0);
     if (!guests?.adults || guests.adults < 1) {
-      return res.status(400).json({ success: false, message: 'At least one adult guest required' });
+      return res.status(400).json({ success: false, code: 'NO_ADULTS', message: 'At least one adult guest required' });
     }
     if (totalGuests > property.capacity.maxGuests) {
       return res.status(400).json({
         success: false,
+        code: 'MAX_CAPACITY',
         message: `Exceeds max capacity of ${property.capacity.maxGuests} guests`,
+        params: { max: property.capacity.maxGuests },
       });
     }
 
@@ -140,7 +142,7 @@ exports.createBooking = async (req, res, next) => {
     });
 
     if (blockedConflict) {
-      return res.status(400).json({ success: false, message: 'Property is blocked for selected dates' });
+      return res.status(400).json({ success: false, code: 'DATES_BLOCKED', message: 'Property is blocked for selected dates' });
     }
 
     // ── Night count validation ────────────────────────────────────────
@@ -149,13 +151,17 @@ exports.createBooking = async (req, res, next) => {
     if (property.rules?.minNights && nights < property.rules.minNights) {
       return res.status(400).json({
         success: false,
+        code: 'MIN_STAY',
         message: `Minimum stay is ${property.rules.minNights} nights`,
+        params: { min: property.rules.minNights },
       });
     }
     if (property.rules?.maxNights && nights > property.rules.maxNights) {
       return res.status(400).json({
         success: false,
+        code: 'MAX_STAY',
         message: `Maximum stay is ${property.rules.maxNights} nights`,
+        params: { max: property.rules.maxNights },
       });
     }
 
@@ -236,7 +242,7 @@ exports.createBooking = async (req, res, next) => {
     res.status(201).json({ success: true, data: booking });
   } catch (error) {
     if (error.message === 'DATES_UNAVAILABLE') {
-      return res.status(400).json({ success: false, message: 'Property not available for selected dates' });
+      return res.status(400).json({ success: false, code: 'DATES_UNAVAILABLE', message: 'Property not available for selected dates' });
     }
     next(error);
   }
