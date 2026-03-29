@@ -245,7 +245,14 @@ export default function PropertyDetailPage() {
                     lng={property.location.coordinates.lng}
                     title={property.title}
                     className="h-[300px]"
+                    isApproximate={(property.location as { isApproximate?: boolean }).isApproximate}
                   />
+                  {(property.location as { isApproximate?: boolean }).isApproximate && (
+                    <p className="mt-2 text-sm text-gray-500 italic flex items-center gap-1.5">
+                      <MapPin className="w-4 h-4" />
+                      Exact location shown after booking confirmation
+                    </p>
+                  )}
                 </div>
               )}
 

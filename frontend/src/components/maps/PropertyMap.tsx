@@ -8,11 +8,12 @@ interface PropertyMapProps {
   lng: number;
   title?: string;
   className?: string;
+  isApproximate?: boolean;
 }
 
 const MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY;
 
-export default function PropertyMap({ lat, lng, title, className = '' }: PropertyMapProps) {
+export default function PropertyMap({ lat, lng, title, className = '', isApproximate = false }: PropertyMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -44,11 +45,26 @@ export default function PropertyMap({ lat, lng, title, className = '' }: Propert
         ],
       });
 
-      new google.maps.Marker({
-        position: { lat, lng },
-        map,
-        title: title || 'Property Location',
-      });
+      if (isApproximate) {
+        // Show a semi-transparent circle instead of a pin for approximate locations
+        new google.maps.Circle({
+          center: { lat, lng },
+          radius: 500, // 500m radius
+          map,
+          fillColor: '#6366f1',
+          fillOpacity: 0.15,
+          strokeColor: '#6366f1',
+          strokeOpacity: 0.4,
+          strokeWeight: 2,
+        });
+        map.setZoom(14);
+      } else {
+        new google.maps.Marker({
+          position: { lat, lng },
+          map,
+          title: title || 'Property Location',
+        });
+      }
 
       setLoading(false);
     };

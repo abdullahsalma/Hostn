@@ -85,9 +85,21 @@ exports.getProperties = async (req, res, next) => {
       .skip(skip)
       .limit(safeLimit);
 
+    // Strip exact coordinates from search results (privacy)
+    const sanitizedProperties = properties.map(p => {
+      const obj = p.toObject();
+      if (obj.location && obj.location.coordinates) {
+        delete obj.location.coordinates;
+      }
+      if (obj.location) {
+        delete obj.location.address;
+      }
+      return obj;
+    });
+
     res.json({
       success: true,
-      data: properties,
+      data: sanitizedProperties,
       pagination: {
         total,
         page: safePage,
@@ -129,16 +141,28 @@ exports.getHomeFeed = async (req, res, next) => {
         .limit(6),
     ]);
 
+    // Strip exact coordinates from home feed results (privacy)
+    const stripLocation = (props) => props.map(p => {
+      const obj = p.toObject();
+      if (obj.location && obj.location.coordinates) {
+        delete obj.location.coordinates;
+      }
+      if (obj.location) {
+        delete obj.location.address;
+      }
+      return obj;
+    });
+
     res.json({
       success: true,
       data: {
-        featured,
+        featured: stripLocation(featured),
         cities,
         categories: {
-          luxury,
-          families,
-          business,
-          topRated,
+          luxury: stripLocation(luxury),
+          families: stripLocation(families),
+          business: stripLocation(business),
+          topRated: stripLocation(topRated),
         },
       },
     });
@@ -159,7 +183,43 @@ exports.getProperty = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Property not found' });
     }
 
-    res.json({ success: true, data: property });
+    const propertyObj = property.toObject();
+
+    // Location privacy: hide exact coordinates from public view
+    // Only show exact location to the property host or users with confirmed bookings
+    const isHost = req.user && property.host._id.toString() === req.user._id.toString();
+    const isAdmin = req.user && req.user.role === 'admin';
+
+    let hasConfirmedBooking = false;
+    if (req.user && !isHost && !isAdmin) {
+      const Booking = require('../models/Booking');
+      hasConfirmedBooking = await Booking.exists({
+        property: property._id,
+        guest: req.user._id,
+        status: { $in: ['confirmed', 'completed'] },
+        paymentStatus: 'paid',
+      });
+    }
+
+    if (!isHost && !isAdmin && !hasConfirmedBooking) {
+      // Return approximate location only
+      if (propertyObj.location && propertyObj.location.coordinates) {
+        // Add random jitter of ~300-800m
+        const jitterLat = (Math.random() - 0.5) * 0.01; // ~500m
+        const jitterLng = (Math.random() - 0.5) * 0.01;
+        propertyObj.location.coordinates = {
+          lat: propertyObj.location.coordinates.lat + jitterLat,
+          lng: propertyObj.location.coordinates.lng + jitterLng,
+        };
+        propertyObj.location.isApproximate = true;
+      }
+      // Remove exact street address, keep city and district
+      if (propertyObj.location) {
+        delete propertyObj.location.address;
+      }
+    }
+
+    res.json({ success: true, data: propertyObj });
   } catch (error) {
     next(error);
   }

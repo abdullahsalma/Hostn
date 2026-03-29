@@ -92,20 +92,17 @@ export default function PaymentMethodsScreen() {
       if (cleanedNumber.startsWith('5')) cardBrand = 'mastercard';
       else if (cleanedNumber.startsWith('3')) cardBrand = 'amex';
 
-      await paymentService.addMethod({
-        provider: 'moyasar',
-        tokenId: `tok_${Date.now()}`,
-        cardBrand,
-        cardLast4: cleanedNumber.slice(-4),
-        expiryMonth: parseInt(month, 10),
-        expiryYear: parseInt(`20${year}`, 10),
-      });
-
+      // In production, card tokenization should be handled via Moyasar's SDK
+      // to ensure PCI compliance. The token is generated client-side by Moyasar.
+      Alert.alert(
+        'Card Tokenization',
+        'Card payments are processed securely via Moyasar during checkout. Cards are saved automatically after your first successful payment.'
+      );
+      setShowAddForm(false);
       setCardNumber('');
       setCardExpiry('');
       setCardCvv('');
-      setShowAddForm(false);
-      queryClient.invalidateQueries({ queryKey: ['payment-methods'] });
+      return;
     } catch {
       Alert.alert('Error', 'Failed to add card.');
     } finally {

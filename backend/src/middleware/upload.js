@@ -1,27 +1,8 @@
 const multer = require('multer');
 const path = require('path');
-const crypto = require('crypto');
-const fs = require('fs');
 
-// ── Storage config: save to /uploads with unique filenames ────────────────────
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../../uploads');
-    // Ensure upload directory exists
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    // Generate safe unique name — strip original extension, use whitelisted ext
-    const ext = ALLOWED_EXTENSIONS.includes(path.extname(file.originalname).toLowerCase())
-      ? path.extname(file.originalname).toLowerCase()
-      : '.jpg'; // fallback
-    const name = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}${ext}`;
-    cb(null, name);
-  },
-});
+// ── Storage config: memory storage for Cloudinary uploads ───────────────────
+const storage = multer.memoryStorage();
 
 // ── File validation ──────────────────────────────────────────────────────────
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
@@ -52,28 +33,25 @@ const fileFilter = (req, file, cb) => {
 };
 
 /**
- * Validate magic bytes AFTER upload. Call this in the route handler.
+ * Validate magic bytes from a Buffer (in-memory).
  * Returns true if valid, throws if invalid.
+ * @param {Buffer} buffer - File buffer from multer memory storage
+ * @param {string} mimetype - Declared MIME type
  */
-function validateMagicBytes(filePath, mimetype) {
+function validateMagicBytes(buffer, mimetype) {
   const signatures = MAGIC_BYTES[mimetype];
   if (!signatures || signatures.length === 0) return true; // No signature to check
 
-  const buffer = Buffer.alloc(12);
-  const fd = fs.openSync(filePath, 'r');
-  fs.readSync(fd, buffer, 0, 12, 0);
-  fs.closeSync(fd);
+  const header = buffer.subarray(0, 12);
 
   const isValid = signatures.some((sig) => {
     for (let i = 0; i < sig.length; i++) {
-      if (buffer[i] !== sig[i]) return false;
+      if (header[i] !== sig[i]) return false;
     }
     return true;
   });
 
   if (!isValid) {
-    // Delete the uploaded file
-    fs.unlinkSync(filePath);
     throw new Error('File content does not match declared type. Upload rejected.');
   }
 
@@ -112,14 +90,14 @@ const handleUpload = (multerMiddleware) => (req, res, next) => {
       return res.status(400).json({ success: false, message: err.message });
     }
 
-    // Validate magic bytes for uploaded files
+    // Validate magic bytes for uploaded files (from buffer)
     try {
       if (req.file) {
-        validateMagicBytes(req.file.path, req.file.mimetype);
+        validateMagicBytes(req.file.buffer, req.file.mimetype);
       }
       if (req.files && Array.isArray(req.files)) {
         for (const file of req.files) {
-          validateMagicBytes(file.path, file.mimetype);
+          validateMagicBytes(file.buffer, file.mimetype);
         }
       }
     } catch (validationErr) {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { Search, MapPin, Calendar, ChevronDown, Star, Shield, Award } from 'lucide-react';
 import { format, addDays } from 'date-fns';
@@ -33,6 +34,7 @@ export default function HeroSearch() {
 
   // Refs for click-outside
   const calendarRef = useRef<HTMLDivElement>(null);
+  const calendarPopupRef = useRef<HTMLDivElement>(null);
   const cityDropdownRef = useRef<HTMLDivElement>(null);
 
   const filteredCities = CITIES.filter((c) => {
@@ -108,10 +110,14 @@ export default function HeroSearch() {
   // Click outside handler
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (calendarRef.current && !calendarRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        calendarRef.current && !calendarRef.current.contains(target) &&
+        calendarPopupRef.current && !calendarPopupRef.current.contains(target)
+      ) {
         setShowCalendar(false);
       }
-      if (cityDropdownRef.current && !cityDropdownRef.current.contains(e.target as Node)) {
+      if (cityDropdownRef.current && !cityDropdownRef.current.contains(target)) {
         setShowCityDropdown(false);
       }
     };
@@ -145,9 +151,9 @@ export default function HeroSearch() {
   const currentStepIndex = step === 'idle' ? -1 : steps.findIndex((s) => s.key === step);
 
   return (
-    <div className="relative min-h-[520px] sm:min-h-[600px] md:min-h-[720px] flex items-center justify-center overflow-hidden">
+    <div className="relative z-20 min-h-[520px] sm:min-h-[600px] md:min-h-[720px] flex items-center justify-center">
       {/* Background image */}
-      <div className="absolute inset-0">
+      <div className="absolute inset-0 overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center scale-105"
           style={{
@@ -212,7 +218,7 @@ export default function HeroSearch() {
 
         {/* Glass search box */}
         <div
-          className="animate-fade-in-up max-w-4xl mx-auto"
+          className="animate-fade-in-up max-w-4xl mx-auto relative z-50"
           style={{ animationDelay: '0.35s' }}
         >
           <div className="bg-white/95 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-2xl p-3 sm:p-4 md:p-5 border border-white/40">
@@ -354,62 +360,6 @@ export default function HeroSearch() {
                   </span>
                 </button>
 
-                {/* Calendar overlay — desktop: dropdown, mobile: bottom sheet */}
-                {showCalendar && (
-                  <>
-                    {/* Mobile backdrop */}
-                    <div
-                      className="sm:hidden fixed inset-0 bg-black/30 z-40 animate-fade-in"
-                      onClick={() => setShowCalendar(false)}
-                    />
-
-                    <div className={`
-                      z-50 bg-white shadow-2xl border border-gray-100
-                      sm:absolute sm:top-full sm:left-0 sm:right-0 sm:mt-2 sm:rounded-2xl sm:animate-fade-in-up sm:min-w-[300px]
-                      fixed bottom-0 left-0 right-0 rounded-t-2xl animate-slide-up sm:bottom-auto sm:left-auto sm:right-auto sm:rounded-b-2xl
-                      max-h-[80vh] sm:max-h-none overflow-y-auto
-                    `}>
-                      {/* Mobile drag handle */}
-                      <div className="sm:hidden flex justify-center pt-3 pb-1">
-                        <div className="w-10 h-1 bg-gray-300 rounded-full" />
-                      </div>
-
-                      {/* Calendar label */}
-                      <div className="px-4 pt-3 pb-1">
-                        <p className="text-xs font-semibold text-primary-600" aria-live="polite">
-                          {selectingCheckOut ? t('hero.selectCheckOut') : t('hero.selectCheckIn')}
-                        </p>
-                      </div>
-
-                      <MiniCalendar
-                        checkIn={checkIn}
-                        checkOut={checkOut}
-                        onSelectDate={handleDateSelect}
-                        locale={isAr ? 'ar' : 'en'}
-                      />
-
-                      {/* Duration shortcuts */}
-                      <div className="px-3 pb-4 sm:pb-3 pt-1 border-t border-gray-50">
-                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                          {t('hero.quickSelect')}
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {durationShortcuts.map((d) => (
-                            <button
-                              key={d.nights}
-                              type="button"
-                              onClick={() => handleDurationShortcut(d.nights)}
-                              aria-label={`${d.label} ${isAr ? 'بدءاً من اليوم' : 'starting today'}`}
-                              className="bg-primary-50 text-primary-600 hover:bg-primary-100 active:bg-primary-200 rounded-full px-3 py-1.5 sm:py-1 text-xs font-medium transition-colors min-h-[36px] sm:min-h-0"
-                            >
-                              {d.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                )}
               </div>
 
               {/* Search button */}
@@ -469,6 +419,67 @@ export default function HeroSearch() {
           ))}
         </div>
       </div>
+
+      {/* Calendar overlay — rendered via portal to escape transform stacking context */}
+      {showCalendar && typeof document !== 'undefined' && createPortal(
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/20 sm:bg-black/10 z-[998] animate-fade-in"
+            onClick={() => setShowCalendar(false)}
+          />
+
+          <div
+            ref={calendarPopupRef}
+            className={`
+              fixed z-[999] bg-white shadow-2xl border border-gray-100
+              bottom-0 left-0 right-0 rounded-t-2xl animate-slide-up
+              sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:animate-fade-in-up sm:w-[340px]
+              max-h-[80vh] overflow-y-auto
+            `}
+          >
+            {/* Mobile drag handle */}
+            <div className="sm:hidden flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 bg-gray-300 rounded-full" />
+            </div>
+
+            {/* Calendar label */}
+            <div className="px-4 pt-3 pb-1">
+              <p className="text-xs font-semibold text-primary-600" aria-live="polite">
+                {selectingCheckOut ? t('hero.selectCheckOut') : t('hero.selectCheckIn')}
+              </p>
+            </div>
+
+            <MiniCalendar
+              checkIn={checkIn}
+              checkOut={checkOut}
+              onSelectDate={handleDateSelect}
+              locale={isAr ? 'ar' : 'en'}
+            />
+
+            {/* Duration shortcuts */}
+            <div className="px-3 pb-4 sm:pb-3 pt-1 border-t border-gray-50">
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                {t('hero.quickSelect')}
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {durationShortcuts.map((d) => (
+                  <button
+                    key={d.nights}
+                    type="button"
+                    onClick={() => handleDurationShortcut(d.nights)}
+                    aria-label={`${d.label} ${isAr ? 'بدءاً من اليوم' : 'starting today'}`}
+                    className="bg-primary-50 text-primary-600 hover:bg-primary-100 active:bg-primary-200 rounded-full px-3 py-1.5 sm:py-1 text-xs font-medium transition-colors min-h-[36px] sm:min-h-0"
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </>,
+        document.body
+      )}
     </div>
   );
 }

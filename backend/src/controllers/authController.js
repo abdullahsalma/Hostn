@@ -67,18 +67,39 @@ exports.register = async (req, res, next) => {
   try {
     const { name, email, password, phone, role } = req.body;
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
+    const existingEmail = await User.findOne({ email });
+    if (existingEmail) {
       return res.status(400).json({ success: false, message: 'Email already registered' });
     }
 
-    const user = await User.create({
-      name,
-      email,
-      password,
-      phone,
-      role: role === 'host' ? 'host' : 'guest',
-    });
+    let user;
+
+    // Check if a phone-only user exists (registered via OTP on mobile)
+    if (phone) {
+      const phoneUser = await User.findOne({
+        phone,
+        $or: [{ email: { $exists: false } }, { email: null }],
+      });
+      if (phoneUser) {
+        // Merge: add email+password to existing phone account
+        phoneUser.name = name;
+        phoneUser.email = email;
+        phoneUser.password = password;
+        if (role === 'host') phoneUser.role = 'host';
+        await phoneUser.save();
+        user = phoneUser;
+      }
+    }
+
+    if (!user) {
+      user = await User.create({
+        name,
+        email,
+        password,
+        phone,
+        role: role === 'host' ? 'host' : 'guest',
+      });
+    }
 
     await sendAuthResponse(user, 201, res, req);
   } catch (error) {
@@ -97,7 +118,13 @@ exports.login = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Please provide email and password' });
     }
 
-    const user = await User.findOne({ email }).select('+password');
+    let user;
+    if (/^5\d{8}$/.test(email)) {
+      // User might be entering their Saudi phone number
+      user = await User.findOne({ phone: email }).select('+password');
+    } else {
+      user = await User.findOne({ email }).select('+password');
+    }
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
@@ -295,6 +322,84 @@ exports.toggleWishlist = async (req, res, next) => {
     await user.save();
     res.json({ success: true, wishlist: user.wishlist });
   } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Link phone number to account (for web users to enable mobile login)
+// @route   PUT /api/auth/link-phone
+// @access  Private
+exports.linkPhone = async (req, res, next) => {
+  try {
+    const { phone, otp, countryCode = '+966' } = req.body;
+
+    if (!phone || !otp) {
+      return res.status(400).json({ success: false, message: 'Phone and OTP are required' });
+    }
+
+    // Verify OTP first
+    const isDevBypass = process.env.DEV_OTP_BYPASS === 'true' && otp === '000000';
+    if (!isDevBypass) {
+      const OTP = require('../models/OTP');
+      const result = await OTP.verifyCode(phone, countryCode, otp);
+      if (!result.valid) {
+        return res.status(400).json({ success: false, message: result.message });
+      }
+    }
+
+    // Check if phone already used by another account
+    const existingPhoneUser = await User.findOne({ phone, _id: { $ne: req.user._id } });
+    if (existingPhoneUser) {
+      return res.status(400).json({ success: false, message: 'Phone number already linked to another account' });
+    }
+
+    // Link phone
+    req.user.phone = phone;
+    req.user.phoneVerified = true;
+    await req.user.save();
+
+    const userObj = req.user.toObject();
+    delete userObj.password;
+
+    res.json({ success: true, message: 'Phone linked successfully', user: userObj });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Link email+password to account (for mobile users to enable web login)
+// @route   PUT /api/auth/link-email
+// @access  Private
+exports.linkEmail = async (req, res, next) => {
+  try {
+    const { email, password, name } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: 'Email and password are required' });
+    }
+
+    // Check if email already used
+    const existingEmailUser = await User.findOne({ email: email.toLowerCase(), _id: { $ne: req.user._id } });
+    if (existingEmailUser) {
+      return res.status(400).json({ success: false, message: 'Email already registered to another account' });
+    }
+
+    // Link email + set password
+    req.user.email = email.toLowerCase();
+    req.user.password = password; // Will be hashed by pre-save hook
+    if (name && req.user.name?.startsWith('User ')) {
+      req.user.name = name;
+    }
+    await req.user.save();
+
+    const userObj = req.user.toObject();
+    delete userObj.password;
+
+    res.json({ success: true, message: 'Email linked successfully', user: userObj });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ success: false, message: 'Email already in use' });
+    }
     next(error);
   }
 };

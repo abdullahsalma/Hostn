@@ -1,6 +1,15 @@
-import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
-import PagerView from 'react-native-pager-view';
+import React, { useRef, useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Dimensions,
+  TouchableOpacity,
+  ScrollView,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
+  Platform,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, Typography, Radius } from '../../constants/theme';
@@ -33,13 +42,15 @@ const slides = [
 
 export default function OnboardingScreen() {
   const [currentPage, setCurrentPage] = useState(0);
-  const pagerRef = useRef<PagerView>(null);
+  const scrollRef = useRef<ScrollView>(null);
   const router = useRouter();
   const setOnboardingComplete = useAuthStore((s) => s.setOnboardingComplete);
 
   const handleNext = () => {
     if (currentPage < slides.length - 1) {
-      pagerRef.current?.setPage(currentPage + 1);
+      const nextPage = currentPage + 1;
+      scrollRef.current?.scrollTo({ x: nextPage * width, animated: true });
+      setCurrentPage(nextPage);
     } else {
       handleComplete();
     }
@@ -50,20 +61,31 @@ export default function OnboardingScreen() {
     router.replace('/(auth)/phone-entry');
   };
 
+  const handleScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetX = e.nativeEvent.contentOffset.x;
+    const page = Math.round(offsetX / width);
+    if (page >= 0 && page < slides.length && page !== currentPage) {
+      setCurrentPage(page);
+    }
+  }, [currentPage]);
+
   return (
     <ScreenWrapper style={styles.container}>
       <TouchableOpacity style={styles.skipButton} onPress={handleComplete}>
         <Text style={styles.skipText}>Skip</Text>
       </TouchableOpacity>
 
-      <PagerView
-        ref={pagerRef}
+      <ScrollView
+        ref={scrollRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onMomentumScrollEnd={handleScroll}
+        scrollEventThrottle={16}
         style={styles.pager}
-        initialPage={0}
-        onPageSelected={(e) => setCurrentPage(e.nativeEvent.position)}
       >
         {slides.map((slide) => (
-          <View key={slide.id} style={styles.slide}>
+          <View key={slide.id} style={[styles.slide, { width }]}>
             <View style={styles.iconContainer}>
               <Ionicons name={slide.icon} size={80} color={Colors.primary} />
             </View>
@@ -71,7 +93,7 @@ export default function OnboardingScreen() {
             <Text style={styles.subtitle}>{slide.subtitle}</Text>
           </View>
         ))}
-      </PagerView>
+      </ScrollView>
 
       <View style={styles.bottom}>
         <View style={styles.dots}>

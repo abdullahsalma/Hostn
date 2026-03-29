@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -88,7 +89,11 @@ export default function ChatScreen() {
     setOptimisticMessages((prev) => [tempMessage, ...prev]);
 
     try {
-      await messageService.sendMessage(conversationId, text);
+      const response = await messageService.sendMessage(conversationId, text);
+      // Show warning if message was filtered
+      if (response?.warning) {
+        Alert.alert('Message Filtered', response.warning);
+      }
       // Remove optimistic message and refetch
       setOptimisticMessages((prev) => prev.filter((m) => m._id !== tempMessage._id));
       queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });

@@ -34,8 +34,8 @@ export default function AddListingScreen() {
         description: form.description,
         type: form.type,
         location: { city: form.city },
-        pricing: { basePrice: Number(form.basePrice) },
-        details: {
+        pricing: { perNight: Number(form.basePrice) },
+        capacity: {
           bedrooms: Number(form.bedrooms),
           bathrooms: Number(form.bathrooms),
           maxGuests: Number(form.maxGuests),

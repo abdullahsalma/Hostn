@@ -74,7 +74,7 @@ export interface Booking {
   checkOut: string;
   totalAmount: number;
   hostAmount: number;
-  status: 'confirmed' | 'in_payment' | 'waiting' | 'cancelled' | 'no_show' | 'completed';
+  status: 'pending' | 'confirmed' | 'in_payment' | 'waiting' | 'cancelled' | 'no_show' | 'completed' | 'rejected';
   createdAt: string;
 }
 

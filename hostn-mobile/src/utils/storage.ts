@@ -1,41 +1,59 @@
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { MMKV } from 'react-native-mmkv';
 
 // MMKV for non-sensitive app state (fast, synchronous)
 export const mmkv = new MMKV({ id: 'hostn-app-storage' });
 
-// SecureStore for sensitive data (tokens)
+// Web fallback: expo-secure-store does not work on web, so use localStorage
+const isWeb = Platform.OS === 'web';
+
+const webStorage = {
+  async getItemAsync(key: string): Promise<string | null> {
+    try { return localStorage.getItem(key); } catch { return null; }
+  },
+  async setItemAsync(key: string, value: string): Promise<void> {
+    try { localStorage.setItem(key, value); } catch {}
+  },
+  async deleteItemAsync(key: string): Promise<void> {
+    try { localStorage.removeItem(key); } catch {}
+  },
+};
+
+const store = isWeb ? webStorage : SecureStore;
+
+// SecureStore for sensitive data (tokens) — with web fallback
 export const secureStorage = {
   async getToken(): Promise<string | null> {
     try {
-      return await SecureStore.getItemAsync('hostn_token');
+      return await store.getItemAsync('hostn_token');
     } catch {
       return null;
     }
   },
 
   async setToken(token: string): Promise<void> {
-    await SecureStore.setItemAsync('hostn_token', token);
+    await store.setItemAsync('hostn_token', token);
   },
 
   async removeToken(): Promise<void> {
-    await SecureStore.deleteItemAsync('hostn_token');
+    await store.deleteItemAsync('hostn_token');
   },
 
   async getRefreshToken(): Promise<string | null> {
     try {
-      return await SecureStore.getItemAsync('hostn_refresh_token');
+      return await store.getItemAsync('hostn_refresh_token');
     } catch {
       return null;
     }
   },
 
   async setRefreshToken(token: string): Promise<void> {
-    await SecureStore.setItemAsync('hostn_refresh_token', token);
+    await store.setItemAsync('hostn_refresh_token', token);
   },
 
   async removeRefreshToken(): Promise<void> {
-    await SecureStore.deleteItemAsync('hostn_refresh_token');
+    await store.deleteItemAsync('hostn_refresh_token');
   },
 };
 

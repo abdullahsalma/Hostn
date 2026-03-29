@@ -14,6 +14,12 @@ const warnInProduction = [
   'MOYASAR_WEBHOOK_SECRET',
 ];
 
+const warnCloudinary = [
+  'CLOUDINARY_CLOUD_NAME',
+  'CLOUDINARY_API_KEY',
+  'CLOUDINARY_API_SECRET',
+];
+
 const optionalWithWarning = [
   { key: 'CLIENT_URL', description: 'CORS origin for web frontend' },
   { key: 'REDIS_URL', description: 'Redis connection (rate limiting, caching)' },
@@ -45,6 +51,15 @@ function validateEnv() {
       console.warn('=== WARNING: Missing payment environment variables ===');
       missingPayment.forEach((key) => console.warn(`  - ${key}`));
       console.warn('Payment processing will be disabled until these are set.');
+    }
+
+    const missingCloudinary = warnCloudinary.filter(
+      (key) => !process.env[key] || process.env[key].trim() === ''
+    );
+    if (missingCloudinary.length > 0) {
+      console.warn('=== WARNING: Missing Cloudinary environment variables ===');
+      missingCloudinary.forEach((key) => console.warn(`  - ${key}`));
+      console.warn('Image uploads will fail until these are set.');
     }
   }
 

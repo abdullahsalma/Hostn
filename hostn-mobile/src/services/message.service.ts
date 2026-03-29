@@ -27,11 +27,11 @@ export const messageService = {
   },
 
   async sendMessage(conversationId: string, content: string) {
-    const { data } = await api.post<ApiResponse<Message>>(
+    const { data } = await api.post<ApiResponse<Message> & { warning?: string }>(
       `/messages/conversations/${conversationId}/messages`,
       { content }
     );
-    return data.data!;
+    return { ...data.data!, warning: data.warning };
   },
 
   async getUnreadCount() {

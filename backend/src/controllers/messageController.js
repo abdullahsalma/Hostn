@@ -204,11 +204,26 @@ exports.sendMessage = async (req, res) => {
       .replace(/&gt;/g, '>')
       .trim();
 
+    // Filter restricted contact information
+    const { filterContent, getViolationMessage } = require('../utils/contentFilter');
+    const filterResult = filterContent(sanitizedContent);
+
+    if (filterResult.hasViolation) {
+      // Log the violation but still send the filtered version
+      console.log(`[CHAT FILTER] User ${userId} attempted to share: ${filterResult.violations.join(', ')}`);
+    }
+
     const message = await Message.create({
       conversation: conversationId,
       sender: userId,
-      content: sanitizedContent,
+      content: filterResult.hasViolation ? filterResult.filtered : sanitizedContent,
       messageType: 'text',
+      ...(filterResult.hasViolation && {
+        metadata: {
+          filtered: true,
+          filterReason: filterResult.violations.join(', '),
+        },
+      }),
     });
 
     await message.populate('sender', 'name avatar role');
@@ -228,7 +243,13 @@ exports.sendMessage = async (req, res) => {
       });
     }
 
-    res.status(201).json({ success: true, data: message });
+    res.status(201).json({
+      success: true,
+      data: message,
+      ...(filterResult.hasViolation && {
+        warning: getViolationMessage(filterResult.violations),
+      }),
+    });
   } catch (error) {
     console.error('Error sending message:', error);
     res.status(500).json({ success: false, message: 'Failed to send message' });

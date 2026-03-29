@@ -167,6 +167,15 @@ export default function BookingsScreen() {
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
           )}
+          {item.status === 'completed' && (
+            <TouchableOpacity
+              style={styles.reviewButton}
+              onPress={() => router.push(`/review/${item._id}` as any)}
+            >
+              <Ionicons name="star-outline" size={16} color={Colors.primary} />
+              <Text style={styles.reviewButtonText}>Leave Review</Text>
+            </TouchableOpacity>
+          )}
         </TouchableOpacity>
       );
     },
@@ -340,6 +349,20 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     ...Typography.bodyBold,
     color: Colors.error,
+  },
+  reviewButton: {
+    marginTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+    paddingTop: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+  },
+  reviewButtonText: {
+    ...Typography.bodyBold,
+    color: Colors.primary,
   },
   emptyContainer: {
     flex: 1,

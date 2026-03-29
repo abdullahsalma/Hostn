@@ -1,5 +1,7 @@
+const RAILWAY_API_URL = 'https://tariqalkhathami-production-f47d.up.railway.app/api/v1';
+
 export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL || 'https://api.hostn.co/api/v1';
+  process.env.EXPO_PUBLIC_API_URL || RAILWAY_API_URL;
 
 export const GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_KEY || '';
 export const IS_MAPS_ENABLED = GOOGLE_MAPS_KEY.length > 0 && !GOOGLE_MAPS_KEY.startsWith('YOUR_');

@@ -2,13 +2,15 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors, Spacing, Radius, Typography } from '../../constants/theme';
 
-type Status = 'confirmed' | 'in_payment' | 'waiting' | 'cancelled' | 'no_show' | 'completed';
+type Status = 'pending' | 'confirmed' | 'in_payment' | 'waiting' | 'cancelled' | 'no_show' | 'completed' | 'rejected';
 
 const statusConfig: Record<Status, { bg: string; text: string; label: string; labelAr: string }> = {
+  pending: { bg: '#fef3c7', text: Colors.statusWaiting, label: 'Pending', labelAr: 'بانتظار القبول' },
   confirmed: { bg: '#dcfce7', text: Colors.statusConfirmed, label: 'Confirmed', labelAr: 'مؤكد' },
   in_payment: { bg: '#dbeafe', text: Colors.statusPayment, label: 'In Payment', labelAr: 'جاري السداد' },
   waiting: { bg: '#fef3c7', text: Colors.statusWaiting, label: 'Waiting', labelAr: 'منتظي' },
   cancelled: { bg: '#fecaca', text: Colors.statusCancelled, label: 'Cancelled', labelAr: 'ملغي' },
+  rejected: { bg: '#fecaca', text: Colors.statusCancelled, label: 'Rejected', labelAr: 'مرفوض' },
   no_show: { bg: '#f3f4f6', text: Colors.statusNoShow, label: 'No Show', labelAr: 'عدم حضور' },
   completed: { bg: '#dcfce7', text: Colors.statusConfirmed, label: 'Completed', labelAr: 'مكتمل' },
 };

@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -93,6 +94,12 @@ export default function ChatScreen() {
           ['conversation-messages', conversationId],
           context.previousMessages,
         );
+      }
+    },
+    onSuccess: (data: any) => {
+      // Show warning if message content was filtered
+      if (data?.warning) {
+        Alert.alert('Notice', data.warning);
       }
     },
     onSettled: () => {

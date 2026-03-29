@@ -13,6 +13,8 @@ const {
   toggleWishlist,
   forgotPassword,
   resetPassword,
+  linkPhone,
+  linkEmail,
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 const {
@@ -34,6 +36,8 @@ router.get('/me', protect, getMe);
 router.put('/profile', protect, updateProfileRules, updateProfile);
 router.put('/change-password', protect, changePasswordRules, changePassword);
 router.put('/upgrade-to-host', protect, upgradeToHost);
+router.put('/link-phone', protect, linkPhone);
+router.put('/link-email', protect, linkEmail);
 router.post('/wishlist/:propertyId', protect, mongoIdParam('propertyId'), toggleWishlist);
 
 module.exports = router;

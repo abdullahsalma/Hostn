@@ -10,6 +10,7 @@ import { initLanguage } from '../utils/i18n';
 import ToastContainer from '../components/ui/Toast';
 import NetworkBanner from '../components/ui/NetworkBanner';
 import { useNotifications } from '../hooks/useNotifications';
+import { connectSocket, disconnectSocket, setQueryClient } from '../services/socket';
 
 SplashScreen.preventAutoHideAsync();
 initLanguage();
@@ -24,6 +25,9 @@ const queryClient = new QueryClient({
   },
 });
 
+// Register queryClient with socket service
+setQueryClient(queryClient);
+
 export default function RootLayout() {
   const { initialize, isLoading, isAuthenticated, hasCompletedOnboarding, user } = useAuthStore();
   useNotifications();
@@ -36,6 +40,16 @@ export default function RootLayout() {
     };
     init();
   }, []);
+
+  // Connect/disconnect socket based on auth state
+  useEffect(() => {
+    if (isAuthenticated) {
+      connectSocket();
+    } else {
+      disconnectSocket();
+    }
+    return () => { disconnectSocket(); };
+  }, [isAuthenticated]);
 
   if (isLoading) return null;
 

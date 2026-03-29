@@ -70,7 +70,11 @@ export default function OTPVerifyScreen() {
     setError('');
 
     try {
-      const result = await authService.verifyOTP(phone!, otpCode);
+      if (!phone) {
+        setError('Phone number missing. Please go back and try again.');
+        return;
+      }
+      const result = await authService.verifyOTP(phone, otpCode);
       setAuth(result.token, result.user, result.refreshToken);
       router.replace('/(tabs)');
     } catch (err: any) {
@@ -84,8 +88,12 @@ export default function OTPVerifyScreen() {
   };
 
   const handleResend = async () => {
+    if (!phone) {
+      setError('Phone number missing. Please go back.');
+      return;
+    }
     try {
-      await authService.sendOTP(phone!);
+      await authService.sendOTP(phone);
       setCountdown(APP_CONFIG.otpResendSeconds);
       setError('');
     } catch {

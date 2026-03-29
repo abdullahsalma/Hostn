@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Share,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -26,10 +27,11 @@ const MENU_ITEMS: MenuItem[] = [
   { icon: 'wallet-outline', label: 'Wallet', route: '/account/wallet' },
   { icon: 'card-outline', label: 'Payment Methods', route: '/account/payment-methods' },
   { icon: 'notifications-outline', label: 'Notifications', route: '/account/notifications' },
+  { icon: 'chatbubble-ellipses-outline', label: 'Support', route: '/account/support' },
   { icon: 'help-circle-outline', label: 'FAQ', route: '/account/faq' },
   { icon: 'document-text-outline', label: 'Terms of Use', route: '/account/terms' },
   { icon: 'lock-closed-outline', label: 'Privacy Policy', route: '/account/privacy' },
-  { icon: 'share-social-outline', label: 'Invite Friends', route: '/account/invite' },
+  { icon: 'share-social-outline', label: 'Invite Friends' },
   { icon: 'log-out-outline', label: 'Logout', isLogout: true },
 ];
 
@@ -42,7 +44,7 @@ interface QuickLink {
 const QUICK_LINKS: QuickLink[] = [
   { icon: 'calendar-outline', label: 'Reservations', route: '/(tabs)/bookings' },
   { icon: 'wallet-outline', label: 'Wallet', route: '/account/wallet' },
-  { icon: 'star-outline', label: 'Ratings', route: '/account/ratings' },
+  { icon: 'star-outline', label: 'Notifications', route: '/account/notifications' },
 ];
 
 export default function MoreScreen() {
@@ -86,9 +88,21 @@ export default function MoreScreen() {
     ]);
   };
 
+  const handleInvite = async () => {
+    try {
+      await Share.share({
+        message: 'Check out Hostn — find premium vacation rentals in Saudi Arabia! https://hostn.co',
+      });
+    } catch {
+      // User cancelled
+    }
+  };
+
   const handleMenuPress = (item: MenuItem) => {
     if (item.isLogout) {
       handleLogout();
+    } else if (item.label === 'Invite Friends') {
+      handleInvite();
     } else if (item.route) {
       router.push(item.route as any);
     }
