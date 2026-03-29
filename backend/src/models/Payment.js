@@ -29,7 +29,7 @@ const paymentSchema = new mongoose.Schema(
     },
     provider: {
       type: String,
-      enum: ['moyasar', 'stripe', 'apple_pay', 'manual'],
+      enum: ['moyasar', 'stripe', 'apple_pay', 'tabby', 'tamara', 'manual'],
       default: 'moyasar',
     },
     // Provider fields (compatible with frontend schema)

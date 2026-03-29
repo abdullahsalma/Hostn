@@ -52,4 +52,30 @@ export const paymentService = {
     });
     return data.data!;
   },
+
+  // BNPL — Tabby & Tamara
+  async checkBnplAvailability(amount: number) {
+    const { data } = await api.get('/bnpl/availability', { params: { amount } });
+    return data.data;
+  },
+
+  async createTabbyCheckout(bookingId: string) {
+    const { data } = await api.post('/bnpl/tabby/create', { bookingId });
+    return data.data;
+  },
+
+  async verifyTabbyPayment(paymentId: string) {
+    const { data } = await api.post('/bnpl/tabby/verify', { paymentId });
+    return data;
+  },
+
+  async createTamaraCheckout(bookingId: string) {
+    const { data } = await api.post('/bnpl/tamara/create', { bookingId });
+    return data.data;
+  },
+
+  async verifyTamaraPayment(paymentId: string) {
+    const { data } = await api.post('/bnpl/tamara/verify', { paymentId });
+    return data;
+  },
 };

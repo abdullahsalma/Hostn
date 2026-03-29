@@ -280,4 +280,23 @@ export const couponsApi = {
   validate: (code: string) => api.post('/coupons/validate', { code }),
 };
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// BNPL (Buy Now Pay Later) — Tabby & Tamara
+// ═══════════════════════════════════════════════════════════════════════════════
+export const bnplApi = {
+  // Check availability for a given amount
+  checkAvailability: (amount: number) =>
+    api.get('/bnpl/availability', { params: { amount } }),
+  // Tabby
+  createTabbyCheckout: (data: { bookingId: string }) =>
+    api.post('/bnpl/tabby/create', data),
+  verifyTabbyPayment: (data: { paymentId: string; tabbyPaymentId?: string }) =>
+    api.post('/bnpl/tabby/verify', data),
+  // Tamara
+  createTamaraCheckout: (data: { bookingId: string }) =>
+    api.post('/bnpl/tamara/create', data),
+  verifyTamaraPayment: (data: { paymentId: string; orderId?: string }) =>
+    api.post('/bnpl/tamara/verify', data),
+};
+
 export default api;

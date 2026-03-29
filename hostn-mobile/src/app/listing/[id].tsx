@@ -498,6 +498,11 @@ export default function ListingDetailScreen() {
         <View style={styles.bottomPrice}>
           <Text style={styles.bottomPriceAmount}>{formatCurrency(perNight)}</Text>
           <Text style={styles.bottomPriceLabel}> / night</Text>
+          {perNight > 0 && perNight <= 5000 && (
+            <Text style={styles.bnplHint}>
+              or 4 x {formatCurrency(Math.ceil((perNight / 4) * 100) / 100)}
+            </Text>
+          )}
         </View>
         <TouchableOpacity style={styles.bookButton} onPress={handleBookNow}>
           <Text style={styles.bookButtonText}>Book Now</Text>
@@ -907,6 +912,11 @@ const styles = StyleSheet.create({
   bottomPriceLabel: {
     ...Typography.small,
     color: Colors.textSecondary,
+  },
+  bnplHint: {
+    fontSize: 10,
+    color: '#059669',
+    marginTop: 1,
   },
   bookButton: {
     backgroundColor: Colors.primary,

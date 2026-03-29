@@ -19,6 +19,7 @@ const PropertyMap = dynamic(() => import('@/components/maps/PropertyMap'), {
   loading: () => <div className="h-[300px] bg-gray-100 rounded-xl animate-pulse" />,
 });
 import StarRating from '@/components/ui/StarRating';
+import BnplWidget from '@/components/payment/BnplWidget';
 import { useLanguage } from '@/context/LanguageContext';
 
 export default function PropertyDetailPage() {
@@ -267,9 +268,10 @@ export default function PropertyDetailPage() {
               </div>
             </div>
 
-            {/* Right column – Booking widget */}
+            {/* Right column – Booking widget + BNPL */}
             <div className="lg:col-span-1">
               <BookingWidget property={property} />
+              <BnplWidget total={property.pricing.perNight} />
             </div>
           </div>
         </div>

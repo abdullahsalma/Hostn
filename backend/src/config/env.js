@@ -20,10 +20,17 @@ const warnCloudinary = [
   'CLOUDINARY_API_SECRET',
 ];
 
+const warnBnpl = [
+  'TABBY_SECRET_KEY',
+  'TABBY_PUBLIC_KEY',
+  'TAMARA_TOKEN',
+];
+
 const optionalWithWarning = [
   { key: 'CLIENT_URL', description: 'CORS origin for web frontend' },
   { key: 'REDIS_URL', description: 'Redis connection (rate limiting, caching)' },
   { key: 'GOOGLE_MAPS_SERVER_KEY', description: 'Geocoding and maps (Phase 27+)' },
+  { key: 'TAMARA_NOTIFICATION_TOKEN', description: 'Tamara webhook verification token' },
 ];
 
 function validateEnv() {
@@ -51,6 +58,15 @@ function validateEnv() {
       console.warn('=== WARNING: Missing payment environment variables ===');
       missingPayment.forEach((key) => console.warn(`  - ${key}`));
       console.warn('Payment processing will be disabled until these are set.');
+    }
+
+    const missingBnpl = warnBnpl.filter(
+      (key) => !process.env[key] || process.env[key].trim() === ''
+    );
+    if (missingBnpl.length > 0) {
+      console.warn('=== WARNING: Missing BNPL environment variables ===');
+      missingBnpl.forEach((key) => console.warn(`  - ${key}`));
+      console.warn('BNPL (Tabby/Tamara) will be disabled until these are set.');
     }
 
     const missingCloudinary = warnCloudinary.filter(

@@ -11,6 +11,7 @@ import StarRating from '@/components/ui/StarRating';
 import toast from 'react-hot-toast';
 import { useLanguage } from '@/context/LanguageContext';
 import { format } from 'date-fns';
+import BnplWidget from '@/components/payment/BnplWidget';
 
 interface BookingWidgetProps {
   property: Property;
@@ -213,7 +214,14 @@ export default function BookingWidget({ property }: BookingWidgetProps) {
             <span>{t('booking.total')}</span>
             <span>{formatPrice(total)}</span>
           </div>
+          {/* BNPL installment preview */}
+          <BnplWidget total={total} compact />
         </div>
+      )}
+
+      {/* BNPL widget when no dates selected — show based on per-night price */}
+      {nights === 0 && property.pricing.perNight > 0 && property.pricing.perNight <= 5000 && (
+        <BnplWidget total={property.pricing.perNight} compact />
       )}
     </div>
   );

@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  Linking,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -26,7 +27,7 @@ import { paymentService } from '../../services/payment.service';
 import { useSearchStore } from '../../store/searchStore';
 import { formatCurrency, formatDate, formatNights } from '../../utils/format';
 
-type PaymentMethod = 'bank_card' | 'pay_later';
+type PaymentMethod = 'bank_card' | 'tabby' | 'tamara' | 'pay_later';
 
 export default function CheckoutScreen() {
   const { propertyId } = useLocalSearchParams<{ propertyId: string }>();
@@ -97,6 +98,67 @@ export default function CheckoutScreen() {
 
         // Step 3: Show Moyasar WebView
         setShowMoyasar(true);
+      } else if (paymentMethod === 'tabby') {
+        // BNPL: Tabby — redirect to Tabby checkout
+        const tabbyData = await paymentService.createTabbyCheckout(booking._id);
+        setShowLoadingModal(false);
+        setIsSubmitting(false);
+
+        if (tabbyData.redirectUrl) {
+          await Linking.openURL(tabbyData.redirectUrl);
+          // After returning from Tabby, verify payment
+          Alert.alert(
+            'Tabby Payment',
+            'Did you complete the payment on Tabby?',
+            [
+              { text: 'No', style: 'cancel' },
+              {
+                text: 'Yes, verify',
+                onPress: async () => {
+                  try {
+                    setShowLoadingModal(true);
+                    await paymentService.verifyTabbyPayment(tabbyData.paymentId);
+                    setShowLoadingModal(false);
+                    router.replace('/checkout/confirmation');
+                  } catch {
+                    setShowLoadingModal(false);
+                    Alert.alert('Error', 'Could not verify Tabby payment. Please try again.');
+                  }
+                },
+              },
+            ]
+          );
+        }
+      } else if (paymentMethod === 'tamara') {
+        // BNPL: Tamara — redirect to Tamara checkout
+        const tamaraData = await paymentService.createTamaraCheckout(booking._id);
+        setShowLoadingModal(false);
+        setIsSubmitting(false);
+
+        if (tamaraData.checkoutUrl) {
+          await Linking.openURL(tamaraData.checkoutUrl);
+          Alert.alert(
+            'Tamara Payment',
+            'Did you complete the payment on Tamara?',
+            [
+              { text: 'No', style: 'cancel' },
+              {
+                text: 'Yes, verify',
+                onPress: async () => {
+                  try {
+                    setShowLoadingModal(true);
+                    await paymentService.verifyTamaraPayment(tamaraData.paymentId);
+                    setShowLoadingModal(false);
+                    router.replace('/checkout/confirmation');
+                  } catch {
+                    setShowLoadingModal(false);
+                    Alert.alert('Error', 'Could not verify Tamara payment. Please try again.');
+                  }
+                },
+              },
+            ]
+          );
+        }
       } else {
         // Pay Later: go directly to confirmation
         setShowLoadingModal(false);
@@ -293,6 +355,58 @@ export default function CheckoutScreen() {
             <Text style={styles.paymentOptionText}>Credit/Debit Card</Text>
           </TouchableOpacity>
 
+          {/* Tabby — Split in 4 */}
+          {total > 0 && total <= 5000 && (
+            <TouchableOpacity
+              style={[
+                styles.paymentOption,
+                paymentMethod === 'tabby' && styles.paymentOptionActive,
+                paymentMethod === 'tabby' && { borderColor: '#7C3AED' },
+              ]}
+              onPress={() => setPaymentMethod('tabby')}
+            >
+              <View style={[styles.radioOuter, paymentMethod === 'tabby' && { borderColor: '#7C3AED' }]}>
+                {paymentMethod === 'tabby' && <View style={[styles.radioInner, { backgroundColor: '#7C3AED' }]} />}
+              </View>
+              <Ionicons name="wallet-outline" size={20} color="#7C3AED" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.paymentOptionText}>Tabby — Split in 4</Text>
+                <Text style={styles.bnplSubtext}>
+                  4 x {formatCurrency(Math.ceil((total / 4) * 100) / 100)} interest-free
+                </Text>
+              </View>
+              <View style={[styles.bnplBadge, { backgroundColor: '#F3E8FF' }]}>
+                <Text style={[styles.bnplBadgeText, { color: '#7C3AED' }]}>tabby</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {/* Tamara — Split in 4 */}
+          {total > 0 && total <= 5000 && (
+            <TouchableOpacity
+              style={[
+                styles.paymentOption,
+                paymentMethod === 'tamara' && styles.paymentOptionActive,
+                paymentMethod === 'tamara' && { borderColor: '#2563EB' },
+              ]}
+              onPress={() => setPaymentMethod('tamara')}
+            >
+              <View style={[styles.radioOuter, paymentMethod === 'tamara' && { borderColor: '#2563EB' }]}>
+                {paymentMethod === 'tamara' && <View style={[styles.radioInner, { backgroundColor: '#2563EB' }]} />}
+              </View>
+              <Ionicons name="time-outline" size={20} color="#2563EB" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.paymentOptionText}>Tamara — Split in 4</Text>
+                <Text style={styles.bnplSubtext}>
+                  4 x {formatCurrency(Math.ceil((total / 4) * 100) / 100)} no late fees
+                </Text>
+              </View>
+              <View style={[styles.bnplBadge, { backgroundColor: '#DBEAFE' }]}>
+                <Text style={[styles.bnplBadgeText, { color: '#2563EB' }]}>tamara</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity
             style={[
               styles.paymentOption,
@@ -312,6 +426,18 @@ export default function CheckoutScreen() {
               <Ionicons name="shield-checkmark-outline" size={18} color={Colors.primary} />
               <Text style={styles.cardNoteText}>
                 You will be redirected to a secure payment page powered by Moyasar to enter your card details.
+              </Text>
+            </View>
+          )}
+
+          {(paymentMethod === 'tabby' || paymentMethod === 'tamara') && (
+            <View style={[styles.cardNote, { backgroundColor: '#F0FDF4' }]}>
+              <Ionicons name="checkmark-circle-outline" size={18} color="#059669" />
+              <Text style={[styles.cardNoteText, { color: '#065F46' }]}>
+                {paymentMethod === 'tabby'
+                  ? 'Split your payment into 4 interest-free installments with Tabby. No hidden fees.'
+                  : 'Split your payment into 4 installments with Tamara. No late fees, no interest.'
+                }
               </Text>
             </View>
           )}
@@ -531,6 +657,21 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     flex: 1,
     lineHeight: 20,
+  },
+  bnplSubtext: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  bnplBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  bnplBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   bottomBar: {
     flexDirection: 'row',

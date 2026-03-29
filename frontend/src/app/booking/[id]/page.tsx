@@ -5,11 +5,11 @@ import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { Property } from '@/types';
-import { propertiesApi, bookingsApi, paymentsApi } from '@/lib/api';
+import { propertiesApi, bookingsApi, paymentsApi, bnplApi } from '@/lib/api';
 import { formatPrice, formatDate, calculateNights } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { CalendarDays, Users, CreditCard, Shield, ChevronRight, Lock, CheckCircle, Loader2 } from 'lucide-react';
+import { CalendarDays, Users, CreditCard, Shield, ChevronRight, Lock, CheckCircle, Loader2, Clock, Banknote } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
@@ -37,6 +37,7 @@ function BookingContent() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [paymentConfig, setPaymentConfig] = useState<any>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'tabby' | 'tamara'>('card');
 
   const isAr = language === 'ar';
 
@@ -120,24 +121,42 @@ function BookingContent() {
       const newBookingId = bookingRes.data.data._id;
       setBookingId(newBookingId);
 
-      // Step 2: Initiate payment
-      const paymentRes = await paymentsApi.initiate({
-        bookingId: newBookingId,
-      });
+      if (paymentMethod === 'tabby' || paymentMethod === 'tamara') {
+        // BNPL flow — redirect to Tabby/Tamara checkout
+        const bnplRes = paymentMethod === 'tabby'
+          ? await bnplApi.createTabbyCheckout({ bookingId: newBookingId })
+          : await bnplApi.createTamaraCheckout({ bookingId: newBookingId });
 
-      const config = paymentRes.data.paymentConfig;
-      setPaymentConfig(config);
+        const data = bnplRes.data.data;
+        const redirectUrl = data.redirectUrl || data.checkoutUrl;
 
-      // Store payment ID in localStorage for verification later
-      localStorage.setItem(`hostn_payment_${newBookingId}`, paymentRes.data.paymentId);
+        // Store payment ID for verification after callback
+        localStorage.setItem(`hostn_bnpl_payment_${newBookingId}`, data.paymentId);
+        localStorage.setItem(`hostn_bnpl_provider_${newBookingId}`, paymentMethod);
 
-      // Move to payment step
-      setStep(2);
-      toast.success(isAr ? 'تم إنشاء الحجز. يرجى إتمام الدفع.' : 'Booking created. Please complete payment.');
+        toast.success(isAr ? 'جاري التحويل للدفع بالأقساط...' : 'Redirecting to installment payment...');
+
+        // Redirect to provider checkout
+        window.location.href = redirectUrl;
+      } else {
+        // Card flow — Moyasar
+        const paymentRes = await paymentsApi.initiate({
+          bookingId: newBookingId,
+        });
+
+        const config = paymentRes.data.paymentConfig;
+        setPaymentConfig(config);
+
+        // Store payment ID in localStorage for verification later
+        localStorage.setItem(`hostn_payment_${newBookingId}`, paymentRes.data.paymentId);
+
+        // Move to payment step
+        setStep(2);
+        toast.success(isAr ? 'تم إنشاء الحجز. يرجى إتمام الدفع.' : 'Booking created. Please complete payment.');
+      }
     } catch (error: unknown) {
       const msg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
       if (msg) {
-        // Show the server error message (e.g., "Property is not available for selected dates")
         toast.error(isAr ? 'العقار غير متاح للتواريخ المحددة. يرجى اختيار تواريخ أخرى.' : msg);
       } else {
         toast.error(isAr ? 'فشل إنشاء الحجز. حاول مرة أخرى.' : 'Failed to create booking. Please try again.');
@@ -306,6 +325,113 @@ function BookingContent() {
                           <p className="font-semibold text-gray-900">{user?.name}</p>
                           <p className="text-sm text-gray-500">{user?.email}</p>
                         </div>
+                      </div>
+                    </div>
+
+                    {/* Payment method selection */}
+                    <div className="bg-white rounded-2xl p-6 shadow-card">
+                      <h2 className="font-bold text-gray-900 text-lg mb-4">
+                        {isAr ? 'طريقة الدفع' : 'Payment method'}
+                      </h2>
+                      <div className="space-y-3">
+                        {/* Credit/Debit Card */}
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod('card')}
+                          className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
+                            paymentMethod === 'card'
+                              ? 'border-primary-500 bg-primary-50'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                            paymentMethod === 'card' ? 'border-primary-500' : 'border-gray-300'
+                          }`}>
+                            {paymentMethod === 'card' && (
+                              <div className="w-2.5 h-2.5 rounded-full bg-primary-500" />
+                            )}
+                          </div>
+                          <CreditCard className="w-5 h-5 text-gray-600" />
+                          <div className="flex-1 text-left rtl:text-right">
+                            <p className="text-sm font-semibold text-gray-800">
+                              {isAr ? 'بطاقة ائتمان / مدى' : 'Credit Card / mada'}
+                            </p>
+                            <p className="text-xs text-gray-500">Visa, Mastercard, mada</p>
+                          </div>
+                          <div className="flex gap-1.5">
+                            <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded">VISA</span>
+                            <span className="px-2 py-0.5 bg-red-50 text-red-600 text-[10px] font-bold rounded">MC</span>
+                            <span className="px-2 py-0.5 bg-yellow-50 text-yellow-700 text-[10px] font-bold rounded">mada</span>
+                          </div>
+                        </button>
+
+                        {/* Tabby — 4 installments */}
+                        {total > 0 && total <= 5000 && (
+                          <button
+                            type="button"
+                            onClick={() => setPaymentMethod('tabby')}
+                            className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
+                              paymentMethod === 'tabby'
+                                ? 'border-purple-500 bg-purple-50'
+                                : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                          >
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                              paymentMethod === 'tabby' ? 'border-purple-500' : 'border-gray-300'
+                            }`}>
+                              {paymentMethod === 'tabby' && (
+                                <div className="w-2.5 h-2.5 rounded-full bg-purple-500" />
+                              )}
+                            </div>
+                            <Banknote className="w-5 h-5 text-purple-600" />
+                            <div className="flex-1 text-left rtl:text-right">
+                              <p className="text-sm font-semibold text-gray-800">
+                                {isAr ? 'تابي — قسّمها على 4' : 'Tabby — Split in 4'}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {isAr
+                                  ? `4 دفعات × ${formatPrice(Math.ceil((total / 4) * 100) / 100)} بدون فوائد`
+                                  : `4 × ${formatPrice(Math.ceil((total / 4) * 100) / 100)} interest-free`
+                                }
+                              </p>
+                            </div>
+                            <span className="px-2.5 py-1 bg-purple-100 text-purple-700 text-[10px] font-bold rounded-lg">tabby</span>
+                          </button>
+                        )}
+
+                        {/* Tamara — 4 installments */}
+                        {total > 0 && total <= 5000 && (
+                          <button
+                            type="button"
+                            onClick={() => setPaymentMethod('tamara')}
+                            className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
+                              paymentMethod === 'tamara'
+                                ? 'border-blue-500 bg-blue-50'
+                                : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                          >
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                              paymentMethod === 'tamara' ? 'border-blue-500' : 'border-gray-300'
+                            }`}>
+                              {paymentMethod === 'tamara' && (
+                                <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                              )}
+                            </div>
+                            <Clock className="w-5 h-5 text-blue-600" />
+                            <div className="flex-1 text-left rtl:text-right">
+                              <p className="text-sm font-semibold text-gray-800">
+                                {isAr ? 'تمارا — قسّمها على 4' : 'Tamara — Split in 4'}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {isAr
+                                  ? `4 دفعات × ${formatPrice(Math.ceil((total / 4) * 100) / 100)} بدون رسوم تأخير`
+                                  : `4 × ${formatPrice(Math.ceil((total / 4) * 100) / 100)} no late fees`
+                                }
+                              </p>
+                            </div>
+                            <span className="px-2.5 py-1 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-lg">tamara</span>
+                          </button>
+                        )}
                       </div>
                     </div>
                   </>
