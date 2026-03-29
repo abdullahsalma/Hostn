@@ -27,11 +27,11 @@ The system features a production-hardened single-backend architecture with role-
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                      CLIENTS                                 │
-│  Next.js Web (SSR)  │  React Native Mobile  │  iOS (Swift)  │
-│  (no API routes)    │  (Expo Router)        │               │
-└────────┬────────────┴──────────┬────────────┴────────┬──────┘
-         │                       │                      │
-         ▼                       ▼                      ▼
+│  Next.js Web (SSR)  │  Host App (Expo)  │  User App (Expo)  │
+│  (no API routes)    │  React Native     │  React Native     │
+└────────┬────────────┴────────┬──────────┴────────┬──────────┘
+         │                     │                    │
+         ▼                     ▼                    ▼
 ┌─────────────────────────────────────────────────────────────┐
 │              EXPRESS.JS API (Single Backend)                  │
 │                    /api/v1/*                                  │
@@ -208,7 +208,6 @@ hostn/
 │   └── package.json
 │
 ├── docker-compose.yml              # API + MongoDB + Redis
-├── ios/                            # Native iOS Apps (SwiftUI)
 └── README.md
 ```
 
