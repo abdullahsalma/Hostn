@@ -54,7 +54,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.moyasar.com",
               "font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com",
               "img-src 'self' data: blob: https://images.unsplash.com https://*.unsplash.com https://api.dicebear.com https://cdn.moyasar.com https://maps.googleapis.com https://maps.gstatic.com https://*.ggpht.com",
-              "connect-src 'self' https://api.moyasar.com https://*.mongodb.net https://maps.googleapis.com",
+              "connect-src 'self' http://localhost:5000 https://api.moyasar.com https://*.mongodb.net https://maps.googleapis.com",
               "frame-src 'self' https://cdn.moyasar.com https://api.moyasar.com",
               "object-src 'none'",
               "base-uri 'self'",

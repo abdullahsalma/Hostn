@@ -20,7 +20,8 @@ interface RecentBooking {
   checkIn: string;
   checkOut: string;
   status: string;
-  totalPrice: number;
+  totalPrice?: number;
+  pricing?: { total?: number };
 }
 
 const t: Record<string, Record<string, string>> = {
@@ -40,6 +41,13 @@ const t: Record<string, Record<string, string>> = {
   loading: { en: 'Loading...', ar: '\u062c\u0627\u0631\u064a \u0627\u0644\u062a\u062d\u0645\u064a\u0644...' },
 };
 
+const statusLabels: Record<string, { en: string; ar: string }> = {
+  pending: { en: 'Pending', ar: 'قيد الانتظار' },
+  confirmed: { en: 'Confirmed', ar: 'مؤكد' },
+  cancelled: { en: 'Cancelled', ar: 'ملغى' },
+  completed: { en: 'Completed', ar: 'مكتمل' },
+};
+
 const statusColors: Record<string, string> = {
   confirmed: 'bg-emerald-100 text-emerald-700',
   pending: 'bg-yellow-100 text-yellow-700',
@@ -50,6 +58,7 @@ const statusColors: Record<string, string> = {
 export default function HostDashboardPage() {
   const { language } = useLanguage();
   const lang = language as 'en' | 'ar';
+  const isAr = lang === 'ar';
   const [stats, setStats] = useState<Stats>({ totalProperties: 0, activeBookings: 0, totalEarnings: 0, averageRating: 0 });
   const [bookings, setBookings] = useState<RecentBooking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -139,10 +148,10 @@ export default function HostDashboardPage() {
                     <td className="p-3 text-gray-600">{new Date(booking.checkOut).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')}</td>
                     <td className="p-3">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[booking.status] || 'bg-gray-100 text-gray-600'}`}>
-                        {booking.status}
+                        {statusLabels[booking.status]?.[lang] || booking.status}
                       </span>
                     </td>
-                    <td className="p-3 font-medium text-gray-900">{booking.totalPrice?.toLocaleString()} SAR</td>
+                    <td className="p-3 font-medium text-gray-900">{(booking.pricing?.total || booking.totalPrice || 0).toLocaleString()} {isAr ? 'ر.س' : 'SAR'}</td>
                   </tr>
                 ))}
               </tbody>

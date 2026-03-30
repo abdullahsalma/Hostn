@@ -7,6 +7,7 @@ import { reviewsApi } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 import StarRating from '@/components/ui/StarRating';
 import { Star, MessageSquare } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface ReviewsListProps {
   propertyId: string;
@@ -15,6 +16,8 @@ interface ReviewsListProps {
 }
 
 export default function ReviewsList({ propertyId, averageRating, reviewCount }: ReviewsListProps) {
+  const { language } = useLanguage();
+  const isAr = language === 'ar';
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -68,7 +71,7 @@ export default function ReviewsList({ propertyId, averageRating, reviewCount }: 
           <Star className="w-8 h-8 text-amber-400 fill-amber-400" />
           <div>
             <div className="text-3xl font-bold text-gray-900">{averageRating.toFixed(1)}</div>
-            <div className="text-sm text-gray-500">{reviewCount} review{reviewCount !== 1 ? 's' : ''}</div>
+            <div className="text-sm text-gray-500">{reviewCount} {isAr ? 'تقييم' : (reviewCount !== 1 ? 'reviews' : 'review')}</div>
           </div>
         </div>
       )}
@@ -76,7 +79,7 @@ export default function ReviewsList({ propertyId, averageRating, reviewCount }: 
       {reviews.length === 0 ? (
         <div className="text-center py-10 text-gray-500">
           <MessageSquare className="w-10 h-10 mx-auto mb-3 text-gray-300" />
-          <p>No reviews yet. Be the first to review!</p>
+          <p>{isAr ? 'لا توجد تقييمات بعد. كن أول من يقيّم!' : 'No reviews yet. Be the first to review!'}</p>
         </div>
       ) : (
         <div className="space-y-6">

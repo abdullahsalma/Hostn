@@ -176,4 +176,17 @@ router.post('/host-data', async (req, res) => {
   }
 });
 
+// DEV ONLY: promote a user to admin
+router.post('/make-admin', async (req, res) => {
+  if (process.env.NODE_ENV === 'production') return res.status(404).json({ success: false });
+  const { email, secret } = req.body;
+  if (secret !== 'hostn_seed_2026_x') return res.status(403).json({ success: false });
+  const user = await User.findOne({ email });
+  if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+  user.role = 'admin';
+  user.adminRole = 'super';
+  await user.save();
+  res.json({ success: true, message: `${email} is now admin` });
+});
+
 module.exports = router;

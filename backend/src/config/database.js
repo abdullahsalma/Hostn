@@ -40,6 +40,21 @@ const connectDB = async () => {
     }
   }
 
+  // In development, fall back to in-memory MongoDB so devs don't need a local install
+  if (process.env.NODE_ENV !== 'production') {
+    try {
+      console.log('Local MongoDB unavailable — starting in-memory MongoDB for development...');
+      const { MongoMemoryServer } = require('mongodb-memory-server');
+      const mongod = await MongoMemoryServer.create();
+      const uri = mongod.getUri();
+      await mongoose.connect(uri);
+      console.log(`In-Memory MongoDB Connected: ${uri}`);
+      return;
+    } catch (memError) {
+      console.error(`In-memory MongoDB failed: ${memError.message}`);
+    }
+  }
+
   console.error('=== FATAL: Could not connect to MongoDB after all retries. Exiting. ===');
   process.exit(1);
 };

@@ -27,7 +27,8 @@ export default function PropertyDetailPage() {
   const [property, setProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAllAmenities, setShowAllAmenities] = useState(false);
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const isAr = language === 'ar';
 
   useEffect(() => {
     const fetchProperty = async () => {
@@ -240,7 +241,7 @@ export default function PropertyDetailPage() {
               {/* Location Map */}
               {property.location.coordinates?.lat && property.location.coordinates?.lng && (
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-4">Location</h2>
+                  <h2 className="text-xl font-bold text-gray-900 mb-4">{isAr ? 'الموقع' : 'Location'}</h2>
                   <PropertyMap
                     lat={property.location.coordinates.lat}
                     lng={property.location.coordinates.lng}

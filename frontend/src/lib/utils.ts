@@ -16,11 +16,18 @@ export function formatPrice(price: number, currency = 'SAR') {
 }
 
 export function formatDate(date: string | Date, fmt = 'MMM d, yyyy') {
-  return format(new Date(date), fmt);
+  if (!date) return '';
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return '';
+  return format(d, fmt);
 }
 
 export function calculateNights(checkIn: string | Date, checkOut: string | Date) {
-  return differenceInDays(new Date(checkOut), new Date(checkIn));
+  if (!checkIn || !checkOut) return 0;
+  const d1 = new Date(checkIn);
+  const d2 = new Date(checkOut);
+  if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return 0;
+  return differenceInDays(d2, d1);
 }
 
 export function getPropertyTypeLabel(type: string) {
@@ -36,33 +43,33 @@ export function getPropertyTypeLabel(type: string) {
   return labels[type] || type;
 }
 
-export function getAmenityLabel(amenity: string) {
-  const labels: Record<string, string> = {
-    wifi: 'WiFi',
-    pool: 'Swimming Pool',
-    parking: 'Free Parking',
-    ac: 'Air Conditioning',
-    kitchen: 'Kitchen',
-    tv: 'TV',
-    washer: 'Washer',
-    dryer: 'Dryer',
-    gym: 'Gym',
-    bbq: 'BBQ',
-    garden: 'Garden',
-    balcony: 'Balcony',
-    sea_view: 'Sea View',
-    mountain_view: 'Mountain View',
-    elevator: 'Elevator',
-    security: '24/7 Security',
-    pet_friendly: 'Pet Friendly',
-    smoking_allowed: 'Smoking Allowed',
-    breakfast_included: 'Breakfast Included',
-    heating: 'Heating',
-    beach_access: 'Beach Access',
-    fireplace: 'Fireplace',
-    hot_tub: 'Hot Tub',
+export function getAmenityLabel(amenity: string, lang: 'en' | 'ar' = 'en') {
+  const labels: Record<string, { en: string; ar: string }> = {
+    wifi: { en: 'WiFi', ar: 'واي فاي' },
+    pool: { en: 'Swimming Pool', ar: 'مسبح' },
+    parking: { en: 'Free Parking', ar: 'موقف سيارات' },
+    ac: { en: 'Air Conditioning', ar: 'تكييف' },
+    kitchen: { en: 'Kitchen', ar: 'مطبخ' },
+    tv: { en: 'TV', ar: 'تلفزيون' },
+    washer: { en: 'Washer', ar: 'غسالة' },
+    dryer: { en: 'Dryer', ar: 'مجفف' },
+    gym: { en: 'Gym', ar: 'صالة رياضية' },
+    bbq: { en: 'BBQ', ar: 'شواء' },
+    garden: { en: 'Garden', ar: 'حديقة' },
+    balcony: { en: 'Balcony', ar: 'شرفة' },
+    sea_view: { en: 'Sea View', ar: 'إطلالة بحرية' },
+    mountain_view: { en: 'Mountain View', ar: 'إطلالة جبلية' },
+    elevator: { en: 'Elevator', ar: 'مصعد' },
+    security: { en: '24/7 Security', ar: 'أمن ٢٤ ساعة' },
+    pet_friendly: { en: 'Pet Friendly', ar: 'يسمح بالحيوانات' },
+    smoking_allowed: { en: 'Smoking Allowed', ar: 'يسمح بالتدخين' },
+    breakfast_included: { en: 'Breakfast Included', ar: 'إفطار مشمول' },
+    heating: { en: 'Heating', ar: 'تدفئة' },
+    beach_access: { en: 'Beach Access', ar: 'وصول للشاطئ' },
+    fireplace: { en: 'Fireplace', ar: 'مدفأة' },
+    hot_tub: { en: 'Hot Tub', ar: 'جاكوزي' },
   };
-  return labels[amenity] || amenity;
+  return labels[amenity]?.[lang] || amenity;
 }
 
 export function getAmenityIcon(amenity: string) {

@@ -23,6 +23,12 @@ export default function AdminUsersPage() {
   const isAr = language === 'ar';
   const isSuperAdmin = currentUser?.role === 'admin' && (currentUser?.adminRole || 'super') === 'super';
 
+  const roleLabels: Record<string, { en: string; ar: string }> = {
+    guest: { en: 'Guest', ar: 'ضيف' },
+    host: { en: 'Host', ar: 'مضيف' },
+    admin: { en: 'Admin', ar: 'مشرف' },
+  };
+
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -136,7 +142,7 @@ export default function AdminUsersPage() {
                     <td className="px-4 py-3 text-gray-600 hidden md:table-cell">{user.email}</td>
                     <td className="px-4 py-3">
                       <span className="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-primary-50 text-primary-700 capitalize">
-                        {user.role}
+                        {roleLabels[user.role]?.[language] || user.role}
                       </span>
                       {user.role === 'admin' && isSuperAdmin && user._id !== currentUser?._id ? (
                         <select
