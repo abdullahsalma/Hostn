@@ -7,8 +7,10 @@
  *
  * API Docs: https://authenticasa.docs.apiary.io/#reference
  *
- * Uses native fetch (Node.js 20+) — no axios dependency needed.
+ * Uses node-fetch for maximum compatibility across Node.js versions.
  */
+
+const fetch = (...args) => import('node-fetch').then(({ default: f }) => f(...args));
 
 const AUTHENTICA_BASE_URL = 'https://api.authentica.sa/api/v2';
 const API_KEY = process.env.AUTHENTICA_API_KEY;
@@ -28,6 +30,11 @@ async function authenticaRequest(method, endpoint, body = null) {
   }
 
   const url = `${AUTHENTICA_BASE_URL}${endpoint}`;
+
+  // Create abort controller with manual timeout for Node.js compatibility
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+
   const options = {
     method,
     headers: {
@@ -35,24 +42,28 @@ async function authenticaRequest(method, endpoint, body = null) {
       'Content-Type': 'application/json',
       'X-Authorization': API_KEY,
     },
-    signal: AbortSignal.timeout(15000),
+    signal: controller.signal,
   };
 
   if (body) {
     options.body = JSON.stringify(body);
   }
 
-  const response = await fetch(url, options);
-  const data = await response.json().catch(() => ({}));
+  try {
+    const response = await fetch(url, options);
+    const data = await response.json().catch(() => ({}));
 
-  if (!response.ok) {
-    const err = new Error(data?.message || `Authentica API error: ${response.status}`);
-    err.status = response.status;
-    err.data = data;
-    throw err;
+    if (!response.ok) {
+      const err = new Error(data?.message || `Authentica API error: ${response.status}`);
+      err.status = response.status;
+      err.data = data;
+      throw err;
+    }
+
+    return data;
+  } finally {
+    clearTimeout(timeout);
   }
-
-  return data;
 }
 
 /**
