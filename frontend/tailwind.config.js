@@ -42,7 +42,7 @@ module.exports = {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Rubik', 'system-ui', 'sans-serif'],
         display: ['Playfair Display', 'Georgia', 'serif'],
         'display-ar': ['Noto Kufi Arabic', 'Tajawal', 'Cairo', 'system-ui', 'sans-serif'],
       },

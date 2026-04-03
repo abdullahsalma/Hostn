@@ -31,9 +31,9 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     html.setAttribute('dir', language === 'ar' ? 'rtl' : 'ltr');
 
     if (language === 'ar') {
-      html.style.fontFamily = "'Noto Sans Arabic', 'Inter', system-ui, sans-serif";
+      html.style.fontFamily = "'Noto Kufi Arabic', 'Rubik', system-ui, sans-serif";
     } else {
-      html.style.fontFamily = "'Inter', system-ui, sans-serif";
+      html.style.fontFamily = "'Rubik', system-ui, sans-serif";
     }
   }, [language]);
 

@@ -16,8 +16,13 @@ export default function ContactPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.email || !form.message) {
+    if (!form.name || !form.email || !form.subject || !form.message) {
       toast.error(language === 'ar' ? 'يرجى تعبئة جميع الحقول المطلوبة' : 'Please fill in all required fields');
+      return;
+    }
+    // Validate email has a proper domain (e.g. user@domain.com, not user@domain)
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      toast.error(language === 'ar' ? 'يرجى إدخال بريد إلكتروني صالح' : 'Please enter a valid email address');
       return;
     }
     setSending(true);
@@ -102,7 +107,7 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {language === 'ar' ? 'الموضوع' : 'Subject'}
+                    {language === 'ar' ? 'الموضوع *' : 'Subject *'}
                   </label>
                   <input
                     type="text"

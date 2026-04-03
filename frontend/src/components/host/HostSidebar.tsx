@@ -156,7 +156,7 @@ export default function HostSidebar({ collapsed, onToggle, mobileOpen, onMobileC
           href="/"
           className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"
         >
-          <ArrowLeft className="w-[18px] h-[18px] flex-shrink-0" />
+          <ArrowLeft className="w-[18px] h-[18px] flex-shrink-0 rtl:rotate-180" />
           {!collapsed && <span>{isAr ? '\u0627\u0644\u0639\u0648\u062F\u0629 \u0644\u0644\u0645\u0648\u0642\u0639' : 'Back to site'}</span>}
         </Link>
 

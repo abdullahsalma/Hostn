@@ -90,7 +90,7 @@ export default function ForgotPasswordPage() {
               href="/auth/login"
               className="inline-flex items-center gap-1.5 text-sm text-primary-600 hover:text-primary-700 font-medium"
             >
-              <ArrowLeft className="w-3.5 h-3.5" />
+              <ArrowLeft className="w-3.5 h-3.5 rtl:rotate-180" />
               {language === 'ar' ? 'العودة لتسجيل الدخول' : 'Back to Sign In'}
             </Link>
           </div>

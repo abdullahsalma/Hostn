@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -96,6 +96,24 @@ export default function AuthForm({ mode, role }: AuthFormProps) {
 
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Refs for auto-focus (F1/I1: phone input, I2: OTP input)
+  const phoneInputRef = useRef<HTMLInputElement>(null);
+  const otpInputRef = useRef<HTMLInputElement>(null);
+
+  // I1/F1: Auto-focus phone input on load
+  useEffect(() => {
+    if (loginMethod === 'phone' && !otpSent && phoneInputRef.current) {
+      setTimeout(() => phoneInputRef.current?.focus(), 100);
+    }
+  }, [loginMethod, otpSent]);
+
+  // I2: Auto-focus OTP input after sending code
+  useEffect(() => {
+    if (otpSent && otpInputRef.current) {
+      setTimeout(() => otpInputRef.current?.focus(), 100);
+    }
+  }, [otpSent]);
 
   const config = ROLE_CONFIG[role];
   const accent = ACCENT_CLASSES[config.accent as keyof typeof ACCENT_CLASSES];
@@ -264,14 +282,17 @@ export default function AuthForm({ mode, role }: AuthFormProps) {
                       +966
                     </div>
                     <Input
+                      ref={phoneInputRef}
                       type="tel"
                       placeholder="5XXXXXXXX"
                       value={otpPhone}
                       onChange={(e) => setOtpPhone(e.target.value.replace(/\D/g, '').slice(0, 9))}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSendOtp(); } }}
                       leftIcon={<Phone className="w-4 h-4" />}
                       error={errors.otpPhone}
                       className="flex-1"
                       dir="ltr"
+                      autoFocus
                     />
                   </div>
                 </div>
@@ -294,6 +315,7 @@ export default function AuthForm({ mode, role }: AuthFormProps) {
                   <p className="text-sm font-bold text-gray-900 mt-1" dir="ltr">+966 {otpPhone}</p>
                 </div>
                 <Input
+                  ref={otpInputRef}
                   label={lang === 'ar' ? 'رمز التحقق' : 'Verification Code'}
                   type="text"
                   inputMode="numeric"
@@ -303,6 +325,7 @@ export default function AuthForm({ mode, role }: AuthFormProps) {
                   error={errors.otpCode}
                   className="text-center text-2xl tracking-[0.5em] font-mono"
                   dir="ltr"
+                  autoFocus
                 />
                 <Button
                   type="submit"

@@ -187,7 +187,7 @@ export default function HostTopNav({ onMenuClick, title }: HostTopNavProps) {
                     onClick={logout}
                     className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-red-600 hover:bg-red-50 transition-colors"
                   >
-                    <LogOut className="w-4 h-4" />
+                    <LogOut className="w-4 h-4 rtl:rotate-180" />
                     {isAr ? '\u062A\u0633\u062C\u064A\u0644 \u0627\u0644\u062E\u0631\u0648\u062C' : 'Sign out'}
                   </button>
                 </div>

@@ -84,7 +84,7 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
   const nightLabel = nights !== 1 ? t('booking.nights') : t('booking.nightSingle');
 
   return (
-    <div className="card p-6 sticky top-24">
+    <div className="card p-6 sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto">
       {/* Price header */}
       <div className="flex items-center justify-between mb-5">
         <div>

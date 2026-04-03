@@ -86,7 +86,7 @@ export default function NewListingPage() {
   return (
     <div className="max-w-2xl mx-auto">
       <Link href="/host/listings" className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-4">
-        <ArrowLeft className="w-4 h-4" />
+        <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
         {t.back[lang]}
       </Link>
 
