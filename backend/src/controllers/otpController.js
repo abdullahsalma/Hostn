@@ -171,6 +171,27 @@ exports.verifyOTP = async (req, res, next) => {
       `${countryCode}${phone}`,                 // +966500000000
       phone.replace(/^0+/, ''),                 // strip leading zeros
     ];
+
+    // Fix corrupted Extended JSON dates before Mongoose hydration.
+    // Some docs have createdAt/updatedAt as { $date: '...' } objects
+    // (from a MongoDB import) instead of native BSON Date — this makes
+    // Mongoose throw "Cast to date failed" on findOne or save.
+    const rawCol = User.collection;
+    const rawDoc = await rawCol.findOne({ phone: { $in: phoneVariants } });
+    if (rawDoc) {
+      const dateFix = {};
+      if (rawDoc.createdAt && typeof rawDoc.createdAt === 'object' && rawDoc.createdAt.$date) {
+        dateFix.createdAt = new Date(rawDoc.createdAt.$date);
+      }
+      if (rawDoc.updatedAt && typeof rawDoc.updatedAt === 'object' && rawDoc.updatedAt.$date) {
+        dateFix.updatedAt = new Date(rawDoc.updatedAt.$date);
+      }
+      if (Object.keys(dateFix).length > 0) {
+        await rawCol.updateOne({ _id: rawDoc._id }, { $set: dateFix });
+        console.log(`[OTP] Fixed corrupted date fields for user ${rawDoc._id}`);
+      }
+    }
+
     let user = await User.findOne({ phone: { $in: phoneVariants } });
     let isNewUser = false;
 
