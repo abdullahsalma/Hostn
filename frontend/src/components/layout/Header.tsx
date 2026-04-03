@@ -57,7 +57,7 @@ export default function Header() {
                   className="text-sm text-gray-400 hover:text-red-500 transition-colors"
                   title={lang === 'ar' ? 'تسجيل الخروج' : 'Sign Out'}
                 >
-                  <LogOut className="w-4 h-4" />
+                  <LogOut className="w-4 h-4 rtl:rotate-180" />
                 </button>
               </div>
             ) : (

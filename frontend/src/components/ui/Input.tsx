@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { cn } from '@/lib/utils';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -8,15 +8,10 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   rightIcon?: React.ReactNode;
 }
 
-export default function Input({
-  label,
-  error,
-  leftIcon,
-  rightIcon,
-  className,
-  id,
-  ...props
-}: InputProps) {
+const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
+  { label, error, leftIcon, rightIcon, className, id, ...props },
+  ref
+) {
   const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
 
   return (
@@ -33,6 +28,7 @@ export default function Input({
           </div>
         )}
         <input
+          ref={ref}
           id={inputId}
           className={cn(
             'input-base',
@@ -52,4 +48,6 @@ export default function Input({
       {error && <p className="mt-1.5 text-xs text-red-500">{error}</p>}
     </div>
   );
-}
+});
+
+export default Input;

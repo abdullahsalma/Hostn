@@ -283,9 +283,11 @@ function PropertyDetailContent() {
             </div>
 
             {/* Right column – Booking widget + BNPL */}
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-1 space-y-4">
               <BookingWidget property={property} initialCheckIn={initialCheckIn} initialCheckOut={initialCheckOut} />
-              <BnplWidget total={property.pricing.perNight} />
+              <div className="relative z-0">
+                <BnplWidget total={property.pricing.perNight} />
+              </div>
             </div>
           </div>
         </div>

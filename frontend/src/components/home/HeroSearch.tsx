@@ -65,15 +65,12 @@ export default function HeroSearch() {
 
   const today = format(new Date(), 'yyyy-MM-dd');
 
-  // City selection handler — triggers step flow
+  // City selection handler — updates city, does NOT auto-open calendar
   const handleCitySelect = useCallback((cityValue: string, cityLabel: string) => {
     setCity(cityValue);
     setCitySearch(cityLabel);
     setShowCityDropdown(false);
-    // Auto-advance to dates step
     setStep('dates');
-    setShowCalendar(true);
-    setSelectingCheckOut(false);
   }, []);
 
   // Calendar date selection handler

@@ -196,7 +196,7 @@ export default function GuestMessagesPage() {
               ) : (
                 <>
                   <div className="p-4 border-b border-gray-100 flex items-center gap-3">
-                    <button onClick={() => setSelectedId(null)} className="md:hidden text-gray-500"><ArrowLeft className="w-5 h-5" /></button>
+                    <button onClick={() => setSelectedId(null)} className="md:hidden text-gray-500"><ArrowLeft className="w-5 h-5 rtl:rotate-180" /></button>
                     <div className="w-9 h-9 rounded-full bg-gray-200 flex-shrink-0 overflow-hidden">
                       {getOtherParticipant(selectedConv!)?.avatar ? (
                         <Image src={getOtherParticipant(selectedConv!)!.avatar!} alt="" width={36} height={36} className="w-full h-full object-cover" />
