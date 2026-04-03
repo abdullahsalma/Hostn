@@ -428,7 +428,7 @@ export default function SearchFilters() {
             ref={calendarPopupRef}
             className="fixed z-[999] bg-white shadow-2xl border border-gray-100
               bottom-0 left-0 right-0 rounded-t-2xl animate-slide-up
-              sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:animate-fade-in-up sm:w-[340px]
+              sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:animate-fade-in-up sm:w-[340px] md:w-[620px]
               max-h-[80vh] overflow-y-auto"
           >
             {/* Mobile drag handle */}
@@ -443,12 +443,23 @@ export default function SearchFilters() {
                 }
               </p>
             </div>
-            <MiniCalendar
-              checkIn={filters.checkIn}
-              checkOut={filters.checkOut}
-              onSelectDate={handleDateSelect}
-              locale={isAr ? 'ar' : 'en'}
-            />
+            <div className="hidden md:block">
+              <MiniCalendar
+                checkIn={filters.checkIn}
+                checkOut={filters.checkOut}
+                onSelectDate={handleDateSelect}
+                locale={isAr ? 'ar' : 'en'}
+                dual
+              />
+            </div>
+            <div className="md:hidden">
+              <MiniCalendar
+                checkIn={filters.checkIn}
+                checkOut={filters.checkOut}
+                onSelectDate={handleDateSelect}
+                locale={isAr ? 'ar' : 'en'}
+              />
+            </div>
             {/* Clear dates */}
             {filters.checkIn && (
               <div className="px-3 pb-3 pt-1 border-t border-gray-50">

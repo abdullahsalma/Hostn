@@ -220,7 +220,7 @@ export default function HeroSearch() {
 
         {/* Glass search box */}
         <div
-          className="animate-fade-in-up max-w-4xl mx-auto relative z-50"
+          className="animate-fade-in-up max-w-5xl mx-auto relative z-50"
           style={{ animationDelay: '0.35s' }}
         >
           <div className="bg-white/95 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-2xl p-3 sm:p-4 md:p-5 border border-white/40">
@@ -452,7 +452,7 @@ export default function HeroSearch() {
             className={`
               fixed z-[999] bg-white shadow-2xl border border-gray-100
               bottom-0 left-0 right-0 rounded-t-2xl animate-slide-up
-              sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:animate-fade-in-up sm:w-[340px]
+              sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:animate-fade-in-up sm:w-[340px] md:w-[620px]
               max-h-[80vh] overflow-y-auto
             `}
           >
@@ -468,12 +468,23 @@ export default function HeroSearch() {
               </p>
             </div>
 
-            <MiniCalendar
-              checkIn={checkIn}
-              checkOut={checkOut}
-              onSelectDate={handleDateSelect}
-              locale={isAr ? 'ar' : 'en'}
-            />
+            <div className="hidden md:block">
+              <MiniCalendar
+                checkIn={checkIn}
+                checkOut={checkOut}
+                onSelectDate={handleDateSelect}
+                locale={isAr ? 'ar' : 'en'}
+                dual
+              />
+            </div>
+            <div className="md:hidden">
+              <MiniCalendar
+                checkIn={checkIn}
+                checkOut={checkOut}
+                onSelectDate={handleDateSelect}
+                locale={isAr ? 'ar' : 'en'}
+              />
+            </div>
 
             {/* Duration shortcuts */}
             <div className="px-3 pb-4 sm:pb-3 pt-1 border-t border-gray-50">

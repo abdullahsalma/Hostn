@@ -73,7 +73,14 @@ export default function HostDashboardPage() {
         hostApi.getStats(),
         hostApi.getRecentBookings(),
       ]);
-      setStats(statsRes.data.data || statsRes.data);
+      const raw = statsRes.data.data || statsRes.data;
+      // Map nested backend response to flat stats shape
+      setStats({
+        totalProperties: raw.totalProperties ?? raw.properties?.total ?? 0,
+        activeBookings: raw.activeBookings ?? raw.bookings?.confirmed ?? raw.bookings?.total ?? 0,
+        totalEarnings: raw.totalEarnings ?? raw.earnings?.total ?? 0,
+        averageRating: raw.averageRating ?? raw.reviews?.averageRating ?? 0,
+      });
       setBookings(bookingsRes.data.data || bookingsRes.data || []);
     } catch {
       toast.error(lang === 'ar' ? '\u0641\u0634\u0644 \u0641\u064a \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a' : 'Failed to load data');

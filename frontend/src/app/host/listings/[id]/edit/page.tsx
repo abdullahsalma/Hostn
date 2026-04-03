@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
 import { propertiesApi } from '@/lib/api';
+import { CITIES } from '@/lib/constants';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -67,11 +68,11 @@ export default function EditListingPage() {
         title: p.title || '',
         description: p.description || '',
         type: p.type || '',
-        city: p.city || '',
-        price: String(p.price || ''),
-        bedrooms: String(p.bedrooms || 1),
-        bathrooms: String(p.bathrooms || 1),
-        maxGuests: String(p.maxGuests || 2),
+        city: p.location?.city || p.city || '',
+        price: String(p.pricing?.perNight || p.price || ''),
+        bedrooms: String(p.capacity?.bedrooms || p.bedrooms || 1),
+        bathrooms: String(p.capacity?.bathrooms || p.bathrooms || 1),
+        maxGuests: String(p.capacity?.maxGuests || p.maxGuests || 2),
       });
     } catch {
       toast.error(t.loadError[lang]);
@@ -149,7 +150,12 @@ export default function EditListingPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t.city[lang]}</label>
-            <input name="city" value={form.city} onChange={handleChange} required className={inputClass} />
+            <select name="city" value={form.city} onChange={handleChange} required className={inputClass}>
+              <option value="">{lang === 'ar' ? 'اختر المدينة' : 'Select city'}</option>
+              {CITIES.map((c) => (
+                <option key={c.value} value={c.value}>{lang === 'ar' ? c.ar : c.en}</option>
+              ))}
+            </select>
           </div>
         </div>
 

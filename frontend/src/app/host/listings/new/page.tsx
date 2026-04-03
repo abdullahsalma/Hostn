@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
 import { propertiesApi } from '@/lib/api';
+import { CITIES } from '@/lib/constants';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -115,7 +116,12 @@ export default function NewListingPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t.city[lang]}</label>
-            <input name="city" value={form.city} onChange={handleChange} required className={inputClass} />
+            <select name="city" value={form.city} onChange={handleChange} required className={inputClass}>
+              <option value="">{lang === 'ar' ? 'اختر المدينة' : 'Select city'}</option>
+              {CITIES.map((c) => (
+                <option key={c.value} value={c.value}>{lang === 'ar' ? c.ar : c.en}</option>
+              ))}
+            </select>
           </div>
         </div>
 
