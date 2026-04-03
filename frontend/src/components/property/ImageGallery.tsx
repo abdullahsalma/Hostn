@@ -85,7 +85,7 @@ export default function ImageGallery({ images, title }: ImageGalleryProps) {
             onClick={prev}
             className="absolute left-4 text-white bg-white/10 rounded-full p-3 hover:bg-white/20 transition-colors"
           >
-            <ChevronLeft className="w-6 h-6" />
+            <ChevronLeft className="w-6 h-6 rtl:rotate-180" />
           </button>
 
           <div className="relative w-full max-w-4xl mx-16 aspect-video">
@@ -102,7 +102,7 @@ export default function ImageGallery({ images, title }: ImageGalleryProps) {
             onClick={next}
             className="absolute right-4 text-white bg-white/10 rounded-full p-3 hover:bg-white/20 transition-colors"
           >
-            <ChevronRight className="w-6 h-6" />
+            <ChevronRight className="w-6 h-6 rtl:rotate-180" />
           </button>
 
           <div className="absolute bottom-4 left-0 right-0 flex justify-center">

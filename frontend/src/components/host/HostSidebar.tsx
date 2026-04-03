@@ -87,9 +87,9 @@ export default function HostSidebar({ collapsed, onToggle, mobileOpen, onMobileC
           className="hidden lg:flex w-7 h-7 bg-gray-100 rounded-lg items-center justify-center hover:bg-gray-200 transition-colors"
         >
           {collapsed ? (
-            <ChevronRight className="w-3.5 h-3.5 text-gray-500" />
+            <ChevronRight className="w-3.5 h-3.5 text-gray-500 rtl:rotate-180" />
           ) : (
-            <ChevronLeft className="w-3.5 h-3.5 text-gray-500" />
+            <ChevronLeft className="w-3.5 h-3.5 text-gray-500 rtl:rotate-180" />
           )}
         </button>
       </div>

@@ -64,11 +64,16 @@ export default function EditListingPage() {
     try {
       const res = await propertiesApi.getOne(id);
       const p = res.data.data || res.data;
+      // Match city value to CITIES constant (case-insensitive + Arabic support)
+      const rawCity = p.location?.city || p.city || '';
+      const matchedCity = CITIES.find(
+        (c) => c.value.toLowerCase() === rawCity.toLowerCase() || c.en.toLowerCase() === rawCity.toLowerCase() || c.ar === rawCity
+      );
       setForm({
         title: p.title || '',
         description: p.description || '',
         type: p.type || '',
-        city: p.location?.city || p.city || '',
+        city: matchedCity ? matchedCity.value : rawCity,
         price: String(p.pricing?.perNight || p.price || ''),
         bedrooms: String(p.capacity?.bedrooms || p.bedrooms || 1),
         bathrooms: String(p.capacity?.bathrooms || p.bathrooms || 1),

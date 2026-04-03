@@ -999,12 +999,12 @@ export default function PropertyForm({ initialData, isEditing = false }: Propert
           disabled={currentStep === 1}
           className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
-          <ChevronLeft className="w-4 h-4" /> {isAr ? 'السابق' : 'Previous'}
+          <ChevronLeft className="w-4 h-4 rtl:rotate-180" /> {isAr ? 'السابق' : 'Previous'}
         </button>
 
         <div className="flex gap-3">
           {currentStep < steps.length ? (
-            <Button onClick={nextStep} rightIcon={<ChevronRight className="w-4 h-4" />}>
+            <Button onClick={nextStep} rightIcon={<ChevronRight className="w-4 h-4 rtl:rotate-180" />}>
               {isAr ? 'التالي' : 'Continue'}
             </Button>
           ) : (

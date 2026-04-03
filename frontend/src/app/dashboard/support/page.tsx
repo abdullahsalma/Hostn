@@ -138,7 +138,7 @@ export default function SupportPage() {
                       <span className="text-xs text-gray-400">{ticket.messages?.length || 0} {isAr ? 'رسائل' : 'messages'}</span>
                     </div>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-gray-500 transition" />
+                  <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-gray-500 transition rtl:rotate-180" />
                 </div>
               </Link>
             ))}

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { Search, MapPin, Calendar, ChevronDown, Star, Shield, Award } from 'lucide-react';
 import { format, addDays } from 'date-fns';
@@ -55,6 +54,7 @@ export default function HeroSearch() {
   ];
 
   const handleSearch = () => {
+    setShowCalendar(false);
     const params = new URLSearchParams();
     if (city) params.set('city', city);
     if (propertyType) params.set('type', propertyType);
@@ -65,44 +65,40 @@ export default function HeroSearch() {
 
   const today = format(new Date(), 'yyyy-MM-dd');
 
-  // City selection handler — updates city, does NOT auto-open calendar
+  // City selection handler — updates city, auto-opens property type dropdown
   const handleCitySelect = useCallback((cityValue: string, cityLabel: string) => {
     setCity(cityValue);
     setCitySearch(cityLabel);
     setShowCityDropdown(false);
+    setShowTypeDropdown(true);
     setStep('dates');
   }, []);
 
-  // Calendar date selection handler
+  // Calendar date selection handler — calendar stays open, only closes via outside click or search
   const handleDateSelect = useCallback((dateStr: string) => {
     if (!selectingCheckOut) {
-      // Selecting check-in
       setCheckIn(dateStr);
       setCheckOut('');
       setSelectingCheckOut(true);
     } else {
-      // Selecting check-out
       if (dateStr > checkIn) {
         setCheckOut(dateStr);
         setSelectingCheckOut(false);
-        setShowCalendar(false);
         setStep('ready');
       } else {
-        // Clicked before check-in — reset to new check-in
         setCheckIn(dateStr);
         setCheckOut('');
       }
     }
   }, [selectingCheckOut, checkIn]);
 
-  // Duration shortcut handler
+  // Duration shortcut handler — calendar stays open
   const handleDurationShortcut = useCallback((nights: number) => {
     const startDate = checkIn || today;
     const endDate = format(addDays(new Date(startDate), nights), 'yyyy-MM-dd');
     setCheckIn(startDate);
     setCheckOut(endDate);
     setSelectingCheckOut(false);
-    setShowCalendar(false);
     setStep('ready');
   }, [checkIn, today]);
 
@@ -332,7 +328,7 @@ export default function HeroSearch() {
                         <button
                           key={type.value}
                           type="button"
-                          onClick={() => { setPropertyType(type.value); setShowTypeDropdown(false); }}
+                          onClick={() => { setPropertyType(type.value); setShowTypeDropdown(false); setShowCalendar(true); setStep('dates'); if (!checkIn) setSelectingCheckOut(false); }}
                           className={`w-full text-start px-4 py-2.5 text-sm transition-colors min-h-[44px] ${
                             propertyType === type.value
                               ? 'bg-primary-50 text-primary-700 font-medium'
@@ -377,7 +373,6 @@ export default function HeroSearch() {
                     }
                   </span>
                 </button>
-
               </div>
 
               {/* Search button */}
@@ -397,6 +392,57 @@ export default function HeroSearch() {
               </div>
             </div>
           </div>
+
+          {/* Calendar dropdown — inside search container so it scrolls with page */}
+          {showCalendar && (
+            <div
+              ref={calendarPopupRef}
+              className="absolute left-0 right-0 top-full mt-2 z-[60] bg-white shadow-2xl border border-gray-100 rounded-2xl max-h-[80vh] overflow-y-auto animate-fade-in-up"
+            >
+              <div className="px-4 pt-3 pb-1">
+                <p className="text-xs font-semibold text-primary-600" aria-live="polite">
+                  {selectingCheckOut ? t('hero.selectCheckOut') : t('hero.selectCheckIn')}
+                </p>
+              </div>
+
+              <div className="hidden md:block">
+                <MiniCalendar
+                  checkIn={checkIn}
+                  checkOut={checkOut}
+                  onSelectDate={handleDateSelect}
+                  locale={isAr ? 'ar' : 'en'}
+                  dual
+                />
+              </div>
+              <div className="md:hidden">
+                <MiniCalendar
+                  checkIn={checkIn}
+                  checkOut={checkOut}
+                  onSelectDate={handleDateSelect}
+                  locale={isAr ? 'ar' : 'en'}
+                />
+              </div>
+
+              <div className="px-3 pb-4 sm:pb-3 pt-1 border-t border-gray-50">
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                  {t('hero.quickSelect')}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {durationShortcuts.map((d) => (
+                    <button
+                      key={d.nights}
+                      type="button"
+                      onClick={() => handleDurationShortcut(d.nights)}
+                      aria-label={`${d.label} ${isAr ? 'بدءاً من اليوم' : 'starting today'}`}
+                      className="bg-primary-50 text-primary-600 hover:bg-primary-100 active:bg-primary-200 rounded-full px-3 py-1.5 sm:py-1 text-xs font-medium transition-colors min-h-[36px] sm:min-h-0"
+                    >
+                      {d.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Quick city links */}
@@ -438,77 +484,6 @@ export default function HeroSearch() {
         </div>
       </div>
 
-      {/* Calendar overlay — rendered via portal to escape transform stacking context */}
-      {showCalendar && typeof document !== 'undefined' && createPortal(
-        <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black/20 sm:bg-black/10 z-[998] animate-fade-in"
-            onClick={() => setShowCalendar(false)}
-          />
-
-          <div
-            ref={calendarPopupRef}
-            className={`
-              fixed z-[999] bg-white shadow-2xl border border-gray-100
-              bottom-0 left-0 right-0 rounded-t-2xl animate-slide-up
-              sm:bottom-auto sm:left-1/2 sm:right-auto sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:animate-fade-in-up sm:w-[340px] md:w-[620px]
-              max-h-[80vh] overflow-y-auto
-            `}
-          >
-            {/* Mobile drag handle */}
-            <div className="sm:hidden flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 bg-gray-300 rounded-full" />
-            </div>
-
-            {/* Calendar label */}
-            <div className="px-4 pt-3 pb-1">
-              <p className="text-xs font-semibold text-primary-600" aria-live="polite">
-                {selectingCheckOut ? t('hero.selectCheckOut') : t('hero.selectCheckIn')}
-              </p>
-            </div>
-
-            <div className="hidden md:block">
-              <MiniCalendar
-                checkIn={checkIn}
-                checkOut={checkOut}
-                onSelectDate={handleDateSelect}
-                locale={isAr ? 'ar' : 'en'}
-                dual
-              />
-            </div>
-            <div className="md:hidden">
-              <MiniCalendar
-                checkIn={checkIn}
-                checkOut={checkOut}
-                onSelectDate={handleDateSelect}
-                locale={isAr ? 'ar' : 'en'}
-              />
-            </div>
-
-            {/* Duration shortcuts */}
-            <div className="px-3 pb-4 sm:pb-3 pt-1 border-t border-gray-50">
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                {t('hero.quickSelect')}
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {durationShortcuts.map((d) => (
-                  <button
-                    key={d.nights}
-                    type="button"
-                    onClick={() => handleDurationShortcut(d.nights)}
-                    aria-label={`${d.label} ${isAr ? 'بدءاً من اليوم' : 'starting today'}`}
-                    className="bg-primary-50 text-primary-600 hover:bg-primary-100 active:bg-primary-200 rounded-full px-3 py-1.5 sm:py-1 text-xs font-medium transition-colors min-h-[36px] sm:min-h-0"
-                  >
-                    {d.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </>,
-        document.body
-      )}
     </div>
   );
 }

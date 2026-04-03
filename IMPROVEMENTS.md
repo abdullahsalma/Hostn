@@ -31,12 +31,16 @@
 | F3 | 2026-04-03 | `/host/listings/new` — Editing listing does not show original city and price | AMS | Fixed data mapping: `p.location.city`, `p.pricing.perNight`, `p.capacity.*` | Done |
 | F4 | 2026-04-03 | `/` — Clicking city opens calendar automatically; calendar scrolls with page | AMS | Removed auto-open calendar after city select; calendar uses fixed portal | Done |
 | F5 | 2026-04-03 | `/host/earnings` — Shows "Something went wrong"; LTR layout with Arabic text | AMS | Resolved in upstream codebase | Done |
-| F6 | 2026-04-03 | Sitewide — Back arrow points wrong direction in RTL | AMS | Added `rtl:rotate-180` to all ArrowLeft icons | Done |
+| F6 | 2026-04-03 | Sitewide — Back arrow points wrong direction in RTL | AMS | Added `rtl:rotate-180` to all directional icons (ArrowLeft, ArrowRight, ChevronLeft, ChevronRight) | Done |
 | F7 | 2026-04-03 | Sitewide — LogOut icon points wrong direction in RTL | AMS | Added `rtl:rotate-180` to LogOut icons in Sidebar, Header, HostTopNav | Done |
 | F8 | 2026-04-03 | `/host` — "Total Properties" card empty | AMS | Fixed: mapped nested API response (`properties.total`, `earnings.total`, etc.) to flat stats | Done |
-| F9 | 2026-04-03 | `/listings/[id]` — Sticky price box overlaps BNPL widget on scroll | AMS | Added max-height with overflow scroll on sticky card; wrapped BnplWidget with z-0 | Done |
+| F9 | 2026-04-03 | `/listings/[id]` — Sticky price box overlaps BNPL widget on scroll | AMS | Moved BNPL inside sticky BookingWidget; removed duplicate from page | Done |
 | F10 | 2026-04-03 | `/booking/[id]` — "Book for N nights" redirects to 404 when not logged in | AMS | Fixed redirect from `/auth/login` to `/auth/guest/login` | Done |
 | F11 | 2026-04-03 | `/contact` — Email accepted without proper domain (e.g. word@word) | AMS | Added regex validation requiring domain TLD | Done |
+| F12 | 2026-04-03 | `/` — Calendar pinned on screen, scrolls with page instead of search bar | AMS | Moved calendar from fixed portal to absolute inside search container | Done |
+| F13 | 2026-04-03 | `/` — Selecting date dismisses calendar prematurely | AMS | Calendar now stays open; only closes on click outside or search | Done |
+| F14 | 2026-04-03 | `/host/listings/[id]/edit` — City dropdown always shows "Select city" | AMS | Added case-insensitive + Arabic matching for city values from API | Done |
+| F15 | 2026-04-03 | `/` — Font Rubik not loading reliably | AMS | Added Google Fonts link tag in layout.tsx head for reliable loading | Done |
 
 ## Improvements
 
@@ -54,3 +58,5 @@
 | I10 | 2026-04-03 | `/listings` — Date picker should display calendar like homepage | AMS | Re-applied: MiniCalendar portal with dual view on desktop | Done |
 | I11 | 2026-04-03 | `/listings` — Guests should be picker with +/- for adults and kids | AMS | Re-applied: guest picker with +/- buttons for adults and children | Done |
 | I12 | 2026-04-03 | `/contact` — Subject field should be required | AMS | Added `*` label and validation check | Done |
+| I13 | 2026-04-03 | `/` — City select should auto-open property type dropdown | AMS | handleCitySelect now opens type dropdown automatically | Done |
+| I14 | 2026-04-03 | `/` — Property type select should auto-open calendar | AMS | Type selection now opens calendar automatically | Done |

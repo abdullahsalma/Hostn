@@ -85,7 +85,7 @@ export default function FeaturedListings({
             className="hidden md:flex items-center gap-1 text-sm font-semibold text-primary-600 hover:text-primary-700 transition-colors"
           >
             {t('featured.viewAll')}
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight className="w-4 h-4 rtl:rotate-180" />
           </Link>
         </div>
 
@@ -101,7 +101,7 @@ export default function FeaturedListings({
             className="btn-outline inline-flex items-center gap-2"
           >
             {t('featured.viewAllProperties')}
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight className="w-4 h-4 rtl:rotate-180" />
           </Link>
         </div>
       </div>

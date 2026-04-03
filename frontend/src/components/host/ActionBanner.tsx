@@ -95,7 +95,7 @@ export default function ActionBanner({ items }: ActionBannerProps) {
               href={item.href}
               className="flex items-center gap-1 text-xs font-semibold text-primary-600 hover:text-primary-700 px-3 py-1.5 rounded-lg hover:bg-white/60 transition-colors flex-shrink-0"
             >
-              View <ArrowRight className="w-3 h-3" />
+              View <ArrowRight className="w-3 h-3 rtl:rotate-180" />
             </Link>
 
             <button
