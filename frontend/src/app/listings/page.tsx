@@ -15,7 +15,8 @@ import {
 } from 'lucide-react';
 import { Property } from '@/types';
 import MiniCalendar from '@/components/ui/MiniCalendar';
-import { format } from 'date-fns';
+import { format, addDays } from 'date-fns';
+import { calculateNights } from '@/lib/utils';
 
 export default function ListingsPage() {
   return (
@@ -198,6 +199,22 @@ function ListingsContent() {
     if (!guests) setShowGuestPicker(true);
   }, [guests]);
 
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const handleDurationShortcut = useCallback((nights: number) => {
+    const startDate = checkIn || today;
+    const endDate = format(addDays(new Date(startDate), nights), 'yyyy-MM-dd');
+    setCheckIn(startDate);
+    setCheckOut(endDate);
+    setSelectingCheckOut(false);
+  }, [checkIn, today]);
+
+  const durationShortcuts = [
+    { nights: 1, label: isAr ? 'ليلة' : '1 Night' },
+    { nights: 2, label: isAr ? 'ليلتان' : '2 Nights' },
+    { nights: 3, label: isAr ? '3 ليالي' : '3 Nights' },
+    { nights: 7, label: isAr ? 'أسبوع' : '1 Week' },
+  ];
+
   // Format date display
   const formatDateDisplay = (dateStr: string) => {
     if (!dateStr) return null;
@@ -340,6 +357,11 @@ function ListingsContent() {
                       : checkIn ? `${formatDateDisplay(checkIn)} \u2014 ...`
                         : isAr ? '\u062A\u0627\u0631\u064A\u062E \u0627\u0644\u0648\u0635\u0648\u0644 \u2014 \u0627\u0644\u0645\u063A\u0627\u062F\u0631\u0629' : 'Check-in \u2014 Check-out'}
                   </span>
+                  {checkIn && checkOut && (
+                    <span className="text-xs text-primary-500 font-medium ms-1">
+                      {(() => { const n = calculateNights(checkIn, checkOut); return isAr ? `${n} ليلة` : `${n} night${n > 1 ? 's' : ''}`; })()}
+                    </span>
+                  )}
                 </button>
                 {showCalendar && (
                   <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-xl border border-gray-100 z-50 min-w-[300px] md:min-w-[580px]">
@@ -355,6 +377,19 @@ function ListingsContent() {
                     </div>
                     <div className="md:hidden">
                       <MiniCalendar checkIn={checkIn} checkOut={checkOut} onSelectDate={handleDateSelect} onConfirm={handleCalendarConfirm} locale={isAr ? 'ar' : 'en'} />
+                    </div>
+                    <div className="px-3 pb-3 pt-1 border-t border-gray-50">
+                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                        {isAr ? 'اختيار سريع' : 'Quick select'}
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {durationShortcuts.map((d) => (
+                          <button key={d.nights} type="button" onClick={() => handleDurationShortcut(d.nights)}
+                            className="bg-primary-50 text-primary-600 hover:bg-primary-100 rounded-full px-3 py-1.5 text-xs font-medium transition-colors">
+                            {d.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -398,10 +433,12 @@ function ListingsContent() {
                         <button type="button" onClick={() => setChildren((c) => Math.min(10, c + 1))} disabled={children >= 10} className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:border-primary-400 hover:text-primary-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"><Plus className="w-3.5 h-3.5" /></button>
                       </div>
                     </div>
-                    {/* OK button */}
-                    <button type="button" onClick={() => { setShowGuestPicker(false); }} className="w-full py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors">
-                      {isAr ? '\u062A\u0645' : 'OK'}
-                    </button>
+                    {/* Confirm button */}
+                    <div className="flex ltr:justify-end rtl:justify-start">
+                      <button type="button" onClick={() => { setShowGuestPicker(false); }} className="px-6 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors">
+                        {isAr ? '\u062A\u0623\u0643\u064A\u062F' : 'Confirm'}
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const User = require('../models/User');
 const RefreshToken = require('../models/RefreshToken');
+const { sendVerificationCode } = require('../services/email');
 
 // Short-lived access token (15 min)
 const generateAccessToken = (user) => {
@@ -294,16 +295,18 @@ exports.updateProfile = async (req, res, next) => {
         }
       );
 
-      // In production this would send an email. For now return success.
-      // The code is logged in dev for testing.
-      if (process.env.NODE_ENV !== 'production') {
-        console.log(`[DEV] Email verification code for ${normalizedEmail}: ${code}`);
+      // Send verification email
+      try {
+        const lang = req.headers['accept-language']?.startsWith('ar') ? 'ar' : 'en';
+        await sendVerificationCode(normalizedEmail, code, lang);
+      } catch (emailErr) {
+        console.error('[EMAIL] Failed to send verification email:', emailErr.message);
       }
 
       return res.json({
         success: true,
         message: 'Verification code sent to new email',
-        // Include code in dev for testing (remove in production)
+        // Include code in dev for testing
         ...(process.env.NODE_ENV !== 'production' && { devCode: code }),
       });
     }

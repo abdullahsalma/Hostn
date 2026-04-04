@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { messagesApi } from '@/lib/api';
 import { Conversation, Message, User } from '@/types';
 import { MessageSquare, Search, Send, ArrowLeft, Ban, MoreVertical, AlertCircle } from 'lucide-react';
@@ -22,11 +22,12 @@ function timeAgo(dateStr: string, isAr: boolean) {
   return new Date(dateStr).toLocaleDateString(isAr ? 'ar-SA' : undefined);
 }
 
-export default function GuestMessagesPage() {
+function GuestMessagesContent() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { language } = useLanguage();
   const isAr = language === 'ar';
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -37,6 +38,7 @@ export default function GuestMessagesPage() {
   const [sending, setSending] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const autoOpenedRef = useRef(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.push('/auth/login?redirect=/dashboard/messages');
@@ -49,9 +51,35 @@ export default function GuestMessagesPage() {
     } catch { /* silent */ } finally { setLoading(false); }
   }, []);
 
+  // Auto-open conversation when navigated from property page with ?host=&property= params
   useEffect(() => {
-    if (isAuthenticated) {
+    if (!isAuthenticated || autoOpenedRef.current) return;
+    const hostId = searchParams.get('host');
+    if (!hostId) return;
+    autoOpenedRef.current = true;
+    const propertyId = searchParams.get('property') || undefined;
+
+    (async () => {
+      try {
+        const res = await messagesApi.createConversation({ recipientId: hostId, propertyId });
+        const conv = res.data.data;
+        if (conv?._id) {
+          await loadConversations();
+          selectConversation(conv._id);
+        }
+      } catch {
+        toast.error(isAr ? 'فشل فتح المحادثة' : 'Failed to open conversation');
+        await loadConversations();
+      }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, searchParams]);
+
+  useEffect(() => {
+    if (isAuthenticated && !autoOpenedRef.current) {
       loadConversations();
+    }
+    if (isAuthenticated) {
       const t = setInterval(loadConversations, 10000);
       return () => clearInterval(t);
     }
@@ -264,5 +292,13 @@ export default function GuestMessagesPage() {
           </div>
         </div>
     </div>
+  );
+}
+
+export default function GuestMessagesPage() {
+  return (
+    <Suspense fallback={null}>
+      <GuestMessagesContent />
+    </Suspense>
   );
 }

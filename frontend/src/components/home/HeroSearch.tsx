@@ -7,6 +7,7 @@ import { format, addDays } from 'date-fns';
 import { useLanguage } from '@/context/LanguageContext';
 import { CITIES } from '@/lib/constants';
 import MiniCalendar from '@/components/ui/MiniCalendar';
+import { calculateNights } from '@/lib/utils';
 
 type SearchStep = 'idle' | 'location' | 'dates' | 'ready';
 
@@ -372,6 +373,11 @@ export default function HeroSearch() {
                         : t('hero.checkIn') + ' — ' + t('hero.checkOut')
                     }
                   </span>
+                  {checkIn && checkOut && (
+                    <span className="text-xs text-primary-500 font-medium ms-1">
+                      {(() => { const n = calculateNights(checkIn, checkOut); return isAr ? `${n} ليلة` : `${n} night${n > 1 ? 's' : ''}`; })()}
+                    </span>
+                  )}
                 </button>
               </div>
 
@@ -397,7 +403,7 @@ export default function HeroSearch() {
           {showCalendar && (
             <div
               ref={calendarPopupRef}
-              className="absolute left-0 right-0 top-full mt-2 z-[60] bg-white shadow-2xl border border-gray-100 rounded-2xl max-h-[80vh] overflow-y-auto animate-fade-in-up"
+              className="absolute ltr:left-0 rtl:right-0 top-full mt-2 z-[60] bg-white shadow-2xl border border-gray-100 rounded-2xl max-h-[80vh] overflow-y-auto animate-fade-in-up w-full max-w-[620px]"
             >
               <div className="px-4 pt-3 pb-1">
                 <p className="text-xs font-semibold text-primary-600" aria-live="polite">
@@ -456,7 +462,17 @@ export default function HeroSearch() {
             <button
               key={c.value}
               onClick={() => {
-                handleCitySelect(c.value, isAr ? c.ar : c.en);
+                if (checkIn && checkOut) {
+                  // If dates already picked, go with those
+                  const params = new URLSearchParams({ city: c.value, checkIn, checkOut });
+                  router.push(`/listings?${params.toString()}`);
+                } else {
+                  // Default: 1 night from today
+                  const todayStr = format(new Date(), 'yyyy-MM-dd');
+                  const tomorrowStr = format(addDays(new Date(), 1), 'yyyy-MM-dd');
+                  const params = new URLSearchParams({ city: c.value, checkIn: todayStr, checkOut: tomorrowStr });
+                  router.push(`/listings?${params.toString()}`);
+                }
               }}
               className="bg-white/10 hover:bg-white/20 text-white/80 hover:text-white text-xs sm:text-sm px-3 sm:px-4 py-1 sm:py-1.5 rounded-full backdrop-blur-sm transition-all duration-300 border border-white/5 hover:border-white/15"
             >

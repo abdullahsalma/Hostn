@@ -15,6 +15,14 @@ export function formatPrice(price: number, currency = 'SAR') {
   }).format(price);
 }
 
+/** Returns just the formatted number (no currency symbol) — use with SarSymbol component */
+export function formatPriceNumber(price: number) {
+  return new Intl.NumberFormat('en-SA', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(price);
+}
+
 export function formatDate(date: string | Date, fmt = 'MMM d, yyyy') {
   if (!date) return '';
   const d = new Date(date);

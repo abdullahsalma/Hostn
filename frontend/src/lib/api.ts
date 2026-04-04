@@ -195,12 +195,15 @@ export const notificationsApi = {
 // ═══════════════════════════════════════════════════════════════════════════════
 export const messagesApi = {
   getConversations: () => api.get('/messages/conversations'),
+  createConversation: (data: { recipientId: string; propertyId?: string; bookingId?: string }) =>
+    api.post('/messages/conversations', data),
   getMessages: (conversationId: string, params?: Record<string, unknown>) =>
-    api.get(`/messages/${conversationId}`, { params }),
+    api.get(`/messages/conversations/${conversationId}`, { params }),
   sendMessage: (conversationId: string, data: { content: string }) =>
-    api.post(`/messages/${conversationId}`, data),
+    api.post(`/messages/conversations/${conversationId}/messages`, data),
   toggleBlock: (conversationId: string) =>
-    api.put(`/messages/${conversationId}/block`),
+    api.put(`/messages/conversations/${conversationId}/block`),
+  getUnreadCount: () => api.get('/messages/unread-count'),
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════

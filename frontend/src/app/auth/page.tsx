@@ -6,7 +6,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth, getRoleRedirect } from '@/context/AuthContext';
 import { authApi } from '@/lib/api';
 import { useLanguage } from '@/context/LanguageContext';
-import { Phone, ArrowLeft, ChevronDown, Shield } from 'lucide-react';
+import { Phone, ArrowLeft, ChevronDown } from 'lucide-react';
+import Header from '@/components/layout/Header';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import toast from 'react-hot-toast';
@@ -149,13 +150,12 @@ function AuthContent() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
+    <div className="min-h-screen bg-gray-50">
+      <Header />
+      <div className="flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <Link href="/" className="text-2xl font-bold text-gray-900 inline-block mb-6">
-            Hostn
-          </Link>
           <h1 className="text-2xl font-bold text-gray-900">
             {isAr ? '\u0645\u0631\u062D\u0628\u0627\u064B \u0628\u0643 \u0641\u064A Hostn' : 'Welcome to Hostn'}
           </h1>
@@ -303,16 +303,13 @@ function AuthContent() {
           )}
         </form>
 
-        {/* Admin link + Back */}
-        <div className="flex items-center justify-between mt-6 text-sm text-gray-400">
+        {/* Back */}
+        <div className="mt-6 text-sm text-gray-400 text-center">
           <Link href="/" className="hover:text-gray-600 hover:underline">
             <ArrowLeft className="w-3.5 h-3.5 inline rtl:rotate-180" /> {isAr ? '\u0627\u0644\u0631\u0626\u064A\u0633\u064A\u0629' : 'Home'}
           </Link>
-          <Link href="/auth/admin/login" className="hover:text-gray-600 hover:underline flex items-center gap-1">
-            <Shield className="w-3.5 h-3.5" />
-            {isAr ? '\u062F\u062E\u0648\u0644 \u0627\u0644\u0645\u0634\u0631\u0641' : 'Admin'}
-          </Link>
         </div>
+      </div>
       </div>
     </div>
   );

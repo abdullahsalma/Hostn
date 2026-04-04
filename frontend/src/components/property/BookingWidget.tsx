@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Property } from '@/types';
-import { formatPrice, calculateNights, getDiscountedPrice } from '@/lib/utils';
-import { Calendar, Users, ChevronDown } from 'lucide-react';
+import { formatPrice, formatPriceNumber, calculateNights, getDiscountedPrice } from '@/lib/utils';
+import { Calendar, Users, Minus, Plus } from 'lucide-react';
 import MiniCalendar from '@/components/ui/MiniCalendar';
 import Button from '@/components/ui/Button';
 import StarRating from '@/components/ui/StarRating';
@@ -12,6 +12,7 @@ import toast from 'react-hot-toast';
 import { useLanguage } from '@/context/LanguageContext';
 import { format } from 'date-fns';
 import BnplWidget from '@/components/payment/BnplWidget';
+import SarSymbol from '@/components/ui/SarSymbol';
 
 interface BookingWidgetProps {
   property: Property;
@@ -21,7 +22,8 @@ interface BookingWidgetProps {
 
 export default function BookingWidget({ property, initialCheckIn = '', initialCheckOut = '' }: BookingWidgetProps) {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const isAr = language === 'ar';
   const [checkIn, setCheckIn] = useState(initialCheckIn);
   const [checkOut, setCheckOut] = useState(initialCheckOut);
   const [guests, setGuests] = useState(1);
@@ -91,17 +93,17 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
           {property.pricing.discountPercent > 0 ? (
             <div className="flex items-baseline gap-1.5">
               <span className="text-2xl font-bold text-primary-600">
-                {formatPrice(displayPrice)}
+                {formatPriceNumber(displayPrice)} <SarSymbol />
               </span>
               <span className="text-base text-gray-400 line-through">
-                {formatPrice(property.pricing.perNight)}
+                {formatPriceNumber(property.pricing.perNight)}
               </span>
               <span className="text-sm text-gray-500">{t('booking.perNight')}</span>
             </div>
           ) : (
             <div className="flex items-baseline gap-1">
               <span className="text-2xl font-bold text-primary-600">
-                {formatPrice(pricePerNight)}
+                {formatPriceNumber(pricePerNight)} <SarSymbol />
               </span>
               <span className="text-sm text-gray-500">{t('booking.perNight')}</span>
             </div>
@@ -161,20 +163,24 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
         )}
         <div className="border-t border-gray-200 p-3">
           <label className="block text-xs font-semibold text-gray-500 mb-1">{t('booking.guests')}</label>
-          <div className="relative">
-            <Users className="absolute left-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-            <select
-              value={guests}
-              onChange={(e) => setGuests(Number(e.target.value))}
-              className="pl-5 w-full text-sm font-medium text-gray-800 focus:outline-none appearance-none"
-            >
-              {[...Array(property.capacity.maxGuests)].map((_, i) => (
-                <option key={i + 1} value={i + 1}>
-                  {i + 1} {i > 0 ? t('booking.guestsCount') : t('booking.guestCount')}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5 text-gray-400" />
+              <span className="text-sm font-medium text-gray-800">
+                {guests} {guests > 1 ? t('booking.guestsCount') : t('booking.guestCount')}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => setGuests((g) => Math.max(1, g - 1))} disabled={guests <= 1}
+                className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:border-primary-400 hover:text-primary-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                <Minus className="w-3 h-3" />
+              </button>
+              <span className="w-5 text-center text-sm font-medium">{guests}</span>
+              <button type="button" onClick={() => setGuests((g) => Math.min(property.capacity.maxGuests, g + 1))} disabled={guests >= property.capacity.maxGuests}
+                className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:border-primary-400 hover:text-primary-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                <Plus className="w-3 h-3" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -189,32 +195,32 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
       {nights > 0 && (
         <div className="space-y-3 text-sm">
           <div className="flex justify-between text-gray-600">
-            <span>{formatPrice(pricePerNight)} × {nights} {nightLabel}</span>
-            <span>{formatPrice(subtotal)}</span>
+            <span>{formatPriceNumber(pricePerNight)} <SarSymbol /> × {nights} {nightLabel}</span>
+            <span>{formatPriceNumber(subtotal)} <SarSymbol /></span>
           </div>
           {cleaningFee > 0 && (
             <div className="flex justify-between text-gray-600">
               <span>{t('booking.cleaningFee')}</span>
-              <span>{formatPrice(cleaningFee)}</span>
+              <span>{formatPriceNumber(cleaningFee)} <SarSymbol /></span>
             </div>
           )}
           <div className="flex justify-between text-gray-600">
             <span>{t('booking.serviceFee')}</span>
-            <span>{formatPrice(serviceFee)}</span>
+            <span>{formatPriceNumber(serviceFee)} <SarSymbol /></span>
           </div>
           {discount > 0 && (
             <div className="flex justify-between text-green-600">
               <span>{t('booking.discount')} ({property.pricing.discountPercent}%)</span>
-              <span>-{formatPrice(discount)}</span>
+              <span>-{formatPriceNumber(discount)} <SarSymbol /></span>
             </div>
           )}
           <div className="flex justify-between text-gray-600">
             <span>{t('booking.vat')}</span>
-            <span>{formatPrice(vat)}</span>
+            <span>{formatPriceNumber(vat)} <SarSymbol /></span>
           </div>
           <div className="flex justify-between font-bold text-gray-900 pt-3 border-t border-gray-200">
             <span>{t('booking.total')}</span>
-            <span>{formatPrice(total)}</span>
+            <span>{formatPriceNumber(total)} <SarSymbol /></span>
           </div>
           {/* BNPL installment preview */}
           <BnplWidget total={total} />

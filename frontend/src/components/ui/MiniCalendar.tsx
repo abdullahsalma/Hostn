@@ -200,13 +200,13 @@ export default function MiniCalendar({
       )}
 
       {onConfirm && checkIn && checkOut && (
-        <div className="px-1 pt-2 pb-1 border-t border-gray-100 mt-2">
+        <div className="px-1 pt-2 pb-1 border-t border-gray-100 mt-2 flex ltr:justify-end rtl:justify-start">
           <button
             type="button"
             onClick={onConfirm}
-            className="w-full py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
+            className="px-6 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
           >
-            {locale === 'ar' ? '\u062A\u0645' : 'OK'}
+            {locale === 'ar' ? '\u062A\u0623\u0643\u064A\u062F' : 'Confirm'}
           </button>
         </div>
       )}

@@ -32,12 +32,6 @@ export default function Header() {
               {lang === 'ar' ? 'المدونة' : 'Blog'}
             </Link>
 
-            {!isAuthenticated && (
-              <Link href="/auth" className="text-sm font-medium text-emerald-600 hover:text-emerald-700 transition-colors">
-                {t('nav.becomeHost')}
-              </Link>
-            )}
-
             <button
               onClick={toggleLanguage}
               className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
@@ -57,7 +51,7 @@ export default function Header() {
                 </Link>
                 <button
                   onClick={logout}
-                  className="text-sm text-gray-400 hover:text-red-500 transition-colors"
+                  className="text-sm text-red-500 hover:text-red-600 transition-colors"
                   title={lang === 'ar' ? 'تسجيل الخروج' : 'Sign Out'}
                 >
                   <LogOut className="w-4 h-4 rtl:rotate-180" />
