@@ -16,7 +16,7 @@ import {
 import { Property } from '@/types';
 import MiniCalendar from '@/components/ui/MiniCalendar';
 import { format, addDays } from 'date-fns';
-import { calculateNights } from '@/lib/utils';
+import { calculateNights, getNightLabel } from '@/lib/utils';
 import { DISTRICTS, DIRECTIONS } from '@/lib/constants';
 
 export default function ListingsPage() {
@@ -389,7 +389,7 @@ function ListingsContent() {
                   </span>
                   {checkIn && checkOut && (
                     <span className="text-xs text-primary-500 font-medium ms-1">
-                      {(() => { const n = calculateNights(checkIn, checkOut); return isAr ? `${n} ليلة` : `${n} night${n > 1 ? 's' : ''}`; })()}
+                      {(() => { const n = calculateNights(checkIn, checkOut); return `${n} ${getNightLabel(n, isAr ? 'ar' : 'en')}`; })()}
                     </span>
                   )}
                 </button>
@@ -628,7 +628,7 @@ function ListingsContent() {
                 icon={Ruler}
                 label={areaRange < 1500
                   ? `${isAr ? '\u062D\u062A\u0649' : 'Up to'} ${areaRange} m\u00B2`
-                  : (isAr ? '\u0627\u0644\u0645\u0633\u0627\u062D\u0629' : 'Area')}
+                  : (isAr ? '\u0627\u0644\u0645\u0633\u0627\u062D\u0629 (m\u00B2)' : 'Area (m\u00B2)')}
                 active={areaRange < 1500}
                 onClick={() => setOpenFilter(openFilter === 'area' ? null : 'area')}
                 onClear={areaRange < 1500 ? () => setAreaRange(1500) : undefined}
@@ -758,7 +758,7 @@ function ListingsContent() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {properties.map((property) => (
-                <PropertyCard key={property._id} property={property} checkIn={checkIn} checkOut={checkOut} />
+                <PropertyCard key={property._id} property={property} checkIn={checkIn} checkOut={checkOut} adults={adults} children={children} />
               ))}
             </div>
           )}

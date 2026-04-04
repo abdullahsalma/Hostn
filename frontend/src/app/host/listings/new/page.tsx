@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
 import { propertiesApi, uploadApi } from '@/lib/api';
-import { CITIES } from '@/lib/constants';
+import { CITIES, DISTRICTS } from '@/lib/constants';
 import { getAmenityLabel, getAmenityIcon } from '@/lib/utils';
 import { Loader2, ArrowLeft, Upload, X, ImagePlus } from 'lucide-react';
 import Link from 'next/link';
@@ -102,7 +102,12 @@ export default function NewListingPage() {
   const [images, setImages] = useState<{ url: string; isPrimary: boolean }[]>([]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (name === 'city') {
+      setForm({ ...form, city: value, district: '' });
+    } else {
+      setForm({ ...form, [name]: value });
+    }
   };
 
   const toggleAmenity = (amenity: string) => {
@@ -134,8 +139,13 @@ export default function NewListingPage() {
           setImages((prev) => [...prev, { url, isPrimary: prev.length === 0 }]);
         }
       }
-    } catch {
-      toast.error(lang === 'ar' ? '\u0641\u0634\u0644 \u0631\u0641\u0639 \u0627\u0644\u0635\u0648\u0631\u0629' : 'Failed to upload image');
+    } catch (err: unknown) {
+      const errMsg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      if (errMsg) {
+        toast.error(errMsg);
+      } else {
+        toast.error(lang === 'ar' ? 'فشل رفع الصورة. تأكد أن الملف صورة (JPEG, PNG, WebP) وأقل من 5MB' : 'Failed to upload image. Ensure file is an image (JPEG, PNG, WebP) under 5MB');
+      }
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -161,8 +171,20 @@ export default function NewListingPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.title || !form.type || !form.city || !form.price) {
-      toast.error(lang === 'ar' ? '\u0623\u0643\u0645\u0644 \u0627\u0644\u062d\u0642\u0648\u0644 \u0627\u0644\u0645\u0637\u0644\u0648\u0628\u0629' : 'Fill in required fields');
+    // Field-specific validation
+    const missing: string[] = [];
+    if (!form.title) missing.push(lang === 'ar' ? 'العنوان' : 'Title');
+    if (!form.type) missing.push(lang === 'ar' ? 'نوع العقار' : 'Property Type');
+    if (!form.city) missing.push(lang === 'ar' ? 'المدينة' : 'City');
+    if (!form.price || Number(form.price) <= 0) missing.push(lang === 'ar' ? 'السعر لليلة' : 'Price per Night');
+    if (missing.length > 0) {
+      toast.error(lang === 'ar'
+        ? `الحقول المطلوبة: ${missing.join('، ')}`
+        : `Required fields: ${missing.join(', ')}`);
+      return;
+    }
+    if (images.length === 0) {
+      toast.error(lang === 'ar' ? 'أضف صورة واحدة على الأقل' : 'Add at least one photo');
       return;
     }
     setSubmitting(true);
@@ -200,14 +222,23 @@ export default function NewListingPage() {
       });
       toast.success(t.success[lang]);
       router.push('/host/listings');
-    } catch {
-      toast.error(t.error[lang]);
+    } catch (err: unknown) {
+      const errData = (err as { response?: { data?: { message?: string; errors?: Record<string, { message: string }> } } })?.response?.data;
+      if (errData?.errors) {
+        // Mongoose validation errors — show first field error
+        const firstError = Object.values(errData.errors)[0]?.message;
+        toast.error(firstError || t.error[lang]);
+      } else if (errData?.message) {
+        toast.error(errData.message);
+      } else {
+        toast.error(t.error[lang]);
+      }
     } finally {
       setSubmitting(false);
     }
   };
 
-  const inputClass = 'w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none text-sm transition-colors';
+  const inputClass = 'w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50/50 focus:ring-2 focus:ring-primary-400/40 focus:border-primary-300 focus:bg-white outline-none text-sm transition-all duration-200';
   const sectionTitle = 'text-base font-semibold text-gray-900 mb-3';
 
   return (
@@ -257,8 +288,18 @@ export default function NewListingPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t.district[lang]}</label>
-            <input name="district" value={form.district} onChange={handleChange} className={inputClass}
-              placeholder={lang === 'ar' ? '\u0645\u062b\u0644: \u062d\u064a \u0627\u0644\u0634\u0627\u0637\u0626' : 'e.g. Al Shati District'} />
+            {form.city && DISTRICTS[form.city]?.length > 0 ? (
+              <select name="district" value={form.district} onChange={handleChange} className={inputClass}>
+                <option value="">{lang === 'ar' ? 'اختر الحي' : 'Select district'}</option>
+                {DISTRICTS[form.city].map((d) => (
+                  <option key={d.value} value={d.value}>{lang === 'ar' ? d.ar : d.en}</option>
+                ))}
+              </select>
+            ) : (
+              <input name="district" value={form.district} onChange={handleChange} className={inputClass}
+                placeholder={form.city ? (lang === 'ar' ? 'أدخل اسم الحي' : 'Enter district name') : (lang === 'ar' ? 'اختر المدينة أولاً' : 'Select a city first')}
+                disabled={!form.city} />
+            )}
           </div>
         </div>
 

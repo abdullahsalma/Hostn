@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Property, PropertyType, AmenityType } from '@/types';
 import { propertiesApi } from '@/lib/api';
-import { getAmenityLabel, getAmenityIcon, formatPrice, cn } from '@/lib/utils';
+import { getAmenityLabel, getAmenityIcon, formatPrice, cn, getNightLabel } from '@/lib/utils';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import {
@@ -935,8 +935,8 @@ export default function PropertyForm({ initialData, isEditing = false }: Propert
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-gray-600">
                   <span className="bg-gray-50 px-3 py-2 rounded-lg">{isAr ? 'الدخول:' : 'Check-in:'} {form.checkInTime}</span>
                   <span className="bg-gray-50 px-3 py-2 rounded-lg">{isAr ? 'الخروج:' : 'Check-out:'} {form.checkOutTime}</span>
-                  <span className="bg-gray-50 px-3 py-2 rounded-lg">{isAr ? `أدنى ${form.minNights} ليلة` : `Min ${form.minNights} night${form.minNights !== 1 ? 's' : ''}`}</span>
-                  <span className="bg-gray-50 px-3 py-2 rounded-lg">{isAr ? `أقصى ${form.maxNights} ليلة` : `Max ${form.maxNights} nights`}</span>
+                  <span className="bg-gray-50 px-3 py-2 rounded-lg">{isAr ? `أدنى ${form.minNights} ${getNightLabel(form.minNights, 'ar')}` : `Min ${form.minNights} ${getNightLabel(form.minNights, 'en')}`}</span>
+                  <span className="bg-gray-50 px-3 py-2 rounded-lg">{isAr ? `أقصى ${form.maxNights} ${getNightLabel(form.maxNights, 'ar')}` : `Max ${form.maxNights} ${getNightLabel(form.maxNights, 'en')}`}</span>
                 </div>
                 <div className="flex gap-2 mt-2 text-xs">
                   {form.smokingAllowed && <span className="bg-green-50 text-green-700 px-2.5 py-1 rounded-lg">{isAr ? 'التدخين مسموح' : 'Smoking OK'}</span>}

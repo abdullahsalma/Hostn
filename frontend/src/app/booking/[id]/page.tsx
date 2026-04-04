@@ -6,7 +6,7 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { Property } from '@/types';
 import { propertiesApi, bookingsApi, paymentsApi, bnplApi } from '@/lib/api';
-import { formatPrice, formatPriceNumber, formatDate, calculateNights } from '@/lib/utils';
+import { formatPrice, formatPriceNumber, formatDate, calculateNights, getNightLabel } from '@/lib/utils';
 import SarSymbol from '@/components/ui/SarSymbol';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -223,8 +223,8 @@ function BookingContent() {
           <div className="max-w-4xl mx-auto">
             {/* Back to property link */}
             {step === 1 && (
-              <Link href={`/listings/${id}`} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-primary-600 mb-4 transition-colors">
-                <ChevronRight className="w-4 h-4 rotate-180" />
+              <Link href={`/listings/${id}?${new URLSearchParams({ ...(checkIn ? { checkIn } : {}), ...(checkOut ? { checkOut } : {}), ...(guestsCount > 0 ? { adults: String(guestsCount) } : {}) }).toString()}`} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-primary-600 mb-4 transition-colors">
+                <ChevronRight className="w-4 h-4 ltr:rotate-180" />
                 {isAr ? 'العودة للعقار' : 'Back to property'}
               </Link>
             )}
@@ -279,10 +279,10 @@ function BookingContent() {
                           </div>
                           <div className="flex items-center gap-3">
                             <span className="text-sm font-semibold text-gray-700">
-                              {nights} {isAr ? (nights === 1 ? 'ليلة' : 'ليالي') : (nights !== 1 ? 'nights' : 'night')}
+                              {nights} {getNightLabel(nights, isAr ? 'ar' : 'en')}
                             </span>
                             <Link
-                              href={`/listings/${id}`}
+                              href={`/listings/${id}?${new URLSearchParams({ ...(checkIn ? { checkIn } : {}), ...(checkOut ? { checkOut } : {}), ...(guestsCount > 1 ? { adults: String(guestsCount) } : {}) }).toString()}`}
                               className="text-xs font-medium text-primary-600 hover:text-primary-700 underline"
                             >
                               {isAr ? 'تعديل' : 'Edit'}
@@ -305,7 +305,7 @@ function BookingContent() {
                               {guestsCount} {isAr ? (guestsCount === 1 ? 'ضيف' : 'ضيوف') : (guestsCount !== 1 ? 'guests' : 'guest')}
                             </span>
                             <Link
-                              href={`/listings/${id}`}
+                              href={`/listings/${id}?${new URLSearchParams({ ...(checkIn ? { checkIn } : {}), ...(checkOut ? { checkOut } : {}), ...(guestsCount > 0 ? { adults: String(guestsCount) } : {}) }).toString()}`}
                               className="text-xs font-medium text-primary-600 hover:text-primary-700 underline"
                             >
                               {isAr ? 'تعديل' : 'Edit'}
@@ -540,7 +540,7 @@ function BookingContent() {
                   <div className="space-y-3 text-sm mb-6">
                     <h3 className="font-bold text-gray-900">{isAr ? 'تفاصيل السعر' : 'Price details'}</h3>
                     <div className="flex justify-between text-gray-600">
-                      <span dir="ltr"><SarSymbol /> {formatPriceNumber(pricePerNight)} &times; {nights} {isAr ? (nights === 1 ? '\u0644\u064A\u0644\u0629' : '\u0644\u064A\u0627\u0644\u064A') : (nights !== 1 ? 'nights' : 'night')}</span>
+                      <span dir="ltr"><SarSymbol /> {formatPriceNumber(pricePerNight)} &times; {nights} {getNightLabel(nights, isAr ? 'ar' : 'en')}</span>
                       <span dir="ltr"><SarSymbol /> {formatPriceNumber(subtotal)}</span>
                     </div>
                     {cleaningFee > 0 && (
