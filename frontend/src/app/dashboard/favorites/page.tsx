@@ -37,8 +37,8 @@ export default function FavoritesPage() {
           user.wishlist.map((id) => propertiesApi.getOne(id))
         );
         const props = results
-          .filter((r): r is PromiseFulfilledResult<{ data: { data: Property } }> => r.status === 'fulfilled')
-          .map((r) => r.value.data.data)
+          .filter((r) => r.status === 'fulfilled')
+          .map((r) => (r as PromiseFulfilledResult<{ data: { data: Property } }>).value.data.data)
           .filter(Boolean);
         setProperties(props);
       } catch {

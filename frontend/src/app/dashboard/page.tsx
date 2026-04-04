@@ -134,14 +134,8 @@ export default function GuestDashboardPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
-          const Wrapper = stat.href ? Link : 'div';
-          const wrapperProps = stat.href ? { href: stat.href } : {};
-          return (
-            <Wrapper
-              key={stat.label.en}
-              {...wrapperProps as Record<string, string>}
-              className={`bg-white rounded-xl border border-gray-200 p-5 flex items-center gap-4 ${stat.href ? 'hover:border-primary-300 transition-colors' : ''}`}
-            >
+          const content = (
+            <>
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${stat.color}`}>
                 <Icon className="w-6 h-6" />
               </div>
@@ -149,7 +143,17 @@ export default function GuestDashboardPage() {
                 <p className="text-sm text-gray-500">{stat.label[lang]}</p>
                 <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
               </div>
-            </Wrapper>
+            </>
+          );
+          const cardClass = `bg-white rounded-xl border border-gray-200 p-5 flex items-center gap-4 ${stat.href ? 'hover:border-primary-300 transition-colors' : ''}`;
+          return stat.href ? (
+            <Link key={stat.label.en} href={stat.href} className={cardClass}>
+              {content}
+            </Link>
+          ) : (
+            <div key={stat.label.en} className={cardClass}>
+              {content}
+            </div>
           );
         })}
       </div>

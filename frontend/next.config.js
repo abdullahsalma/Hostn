@@ -23,7 +23,6 @@ const nextConfig = {
     tsconfigPath: './tsconfig.json',
   },
   // Production optimizations for Vercel serverless
-  swcMinify: true,
   compress: true,
   productionBrowserSourceMaps: false,
   // Environment variable validation
