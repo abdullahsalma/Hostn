@@ -78,7 +78,7 @@ export const authApi = {
     api.post('/auth/register', data),
   logout: () => api.post('/auth/logout'),
   getMe: () => api.get('/auth/me'),
-  updateProfile: (data: { name?: string; phone?: string; avatar?: string }) =>
+  updateProfile: (data: Record<string, unknown>) =>
     api.put('/auth/profile', data),
   changePassword: (data: { currentPassword: string; newPassword: string }) =>
     api.put('/auth/change-password', data),
@@ -93,6 +93,7 @@ export const authApi = {
     api.post('/auth/send-otp', data),
   verifyOtp: (data: { phone: string; otp: string; countryCode?: string }) =>
     api.post('/auth/verify-otp', data),
+  deleteAccount: () => api.delete('/auth/account'),
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -194,19 +195,22 @@ export const notificationsApi = {
 // ═══════════════════════════════════════════════════════════════════════════════
 export const messagesApi = {
   getConversations: () => api.get('/messages/conversations'),
+  createConversation: (data: { recipientId: string; propertyId?: string; bookingId?: string }) =>
+    api.post('/messages/conversations', data),
   getMessages: (conversationId: string, params?: Record<string, unknown>) =>
-    api.get(`/messages/${conversationId}`, { params }),
+    api.get(`/messages/conversations/${conversationId}`, { params }),
   sendMessage: (conversationId: string, data: { content: string }) =>
-    api.post(`/messages/${conversationId}`, data),
+    api.post(`/messages/conversations/${conversationId}/messages`, data),
   toggleBlock: (conversationId: string) =>
-    api.put(`/messages/${conversationId}/block`),
+    api.put(`/messages/conversations/${conversationId}/block`),
+  getUnreadCount: () => api.get('/messages/unread-count'),
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SUPPORT
 // ═══════════════════════════════════════════════════════════════════════════════
 export const supportApi = {
-  getMyTickets: () => api.get('/support/my-tickets'),
+  getMyTickets: () => api.get('/support'),
   createTicket: (data: { subject: string; category: string; priority: string; message: string }) =>
     api.post('/support', data),
   getTicket: (id: string) => api.get(`/support/${id}`),
@@ -301,6 +305,30 @@ export const bnplApi = {
     api.post('/bnpl/tamara/create', data),
   verifyTamaraPayment: (data: { paymentId: string; orderId?: string }) =>
     api.post('/bnpl/tamara/verify', data),
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// BLOG
+// ═══════════════════════════════════════════════════════════════════════════════
+export const blogApi = {
+  // Public
+  getPosts: (params?: Record<string, unknown>) =>
+    api.get('/blog/posts', { params }),
+  getPost: (slug: string) =>
+    api.get(`/blog/posts/${slug}`),
+  getCategories: () =>
+    api.get('/blog/categories'),
+  // Admin
+  createPost: (data: Record<string, unknown>) =>
+    api.post('/blog/posts', data),
+  updatePost: (id: string, data: Record<string, unknown>) =>
+    api.put(`/blog/posts/${id}`, data),
+  deletePost: (id: string) =>
+    api.delete(`/blog/posts/${id}`),
+  createCategory: (data: Record<string, unknown>) =>
+    api.post('/blog/categories', data),
+  deleteCategory: (id: string) =>
+    api.delete(`/blog/categories/${id}`),
 };
 
 export default api;

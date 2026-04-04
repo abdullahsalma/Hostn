@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Property } from '@/types';
-import { formatPrice, calculateNights, getDiscountedPrice } from '@/lib/utils';
-import { Calendar, Users, ChevronDown } from 'lucide-react';
+import { formatPrice, formatPriceNumber, calculateNights, getDiscountedPrice, getNightLabel } from '@/lib/utils';
+import { Calendar, Users, Minus, Plus } from 'lucide-react';
 import MiniCalendar from '@/components/ui/MiniCalendar';
 import Button from '@/components/ui/Button';
 import StarRating from '@/components/ui/StarRating';
@@ -12,19 +12,25 @@ import toast from 'react-hot-toast';
 import { useLanguage } from '@/context/LanguageContext';
 import { format } from 'date-fns';
 import BnplWidget from '@/components/payment/BnplWidget';
+import SarSymbol from '@/components/ui/SarSymbol';
 
 interface BookingWidgetProps {
   property: Property;
   initialCheckIn?: string;
   initialCheckOut?: string;
+  initialAdults?: number;
+  initialChildren?: number;
 }
 
-export default function BookingWidget({ property, initialCheckIn = '', initialCheckOut = '' }: BookingWidgetProps) {
+export default function BookingWidget({ property, initialCheckIn = '', initialCheckOut = '', initialAdults = 0, initialChildren = 0 }: BookingWidgetProps) {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const isAr = language === 'ar';
   const [checkIn, setCheckIn] = useState(initialCheckIn);
   const [checkOut, setCheckOut] = useState(initialCheckOut);
-  const [guests, setGuests] = useState(1);
+  const [adults, setAdults] = useState(initialAdults > 0 ? initialAdults : 1);
+  const [children, setChildren] = useState(initialChildren > 0 ? initialChildren : 0);
+  const guests = adults + children;
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectingCheckOut, setSelectingCheckOut] = useState(false);
 
@@ -81,7 +87,7 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
   const displayPrice = property.pricing.discountPercent > 0
     ? getDiscountedPrice(property.pricing.perNight, property.pricing.discountPercent)
     : property.pricing.perNight;
-  const nightLabel = nights !== 1 ? t('booking.nights') : t('booking.nightSingle');
+  const nightLabel = getNightLabel(nights, language as 'en' | 'ar');
 
   return (
     <div className="card p-6 sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto">
@@ -90,18 +96,18 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
         <div>
           {property.pricing.discountPercent > 0 ? (
             <div className="flex items-baseline gap-1.5">
-              <span className="text-2xl font-bold text-primary-600">
-                {formatPrice(displayPrice)}
+              <span className="text-2xl font-bold text-primary-600" dir="ltr">
+                <SarSymbol /> {formatPriceNumber(displayPrice)}
               </span>
-              <span className="text-base text-gray-400 line-through">
-                {formatPrice(property.pricing.perNight)}
+              <span className="text-base text-gray-400 line-through" dir="ltr">
+                <SarSymbol /> {formatPriceNumber(property.pricing.perNight)}
               </span>
               <span className="text-sm text-gray-500">{t('booking.perNight')}</span>
             </div>
           ) : (
             <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-bold text-primary-600">
-                {formatPrice(pricePerNight)}
+              <span className="text-2xl font-bold text-primary-600" dir="ltr">
+                <SarSymbol /> {formatPriceNumber(pricePerNight)}
               </span>
               <span className="text-sm text-gray-500">{t('booking.perNight')}</span>
             </div>
@@ -159,22 +165,43 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
             />
           </div>
         )}
-        <div className="border-t border-gray-200 p-3">
-          <label className="block text-xs font-semibold text-gray-500 mb-1">{t('booking.guests')}</label>
-          <div className="relative">
-            <Users className="absolute left-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-            <select
-              value={guests}
-              onChange={(e) => setGuests(Number(e.target.value))}
-              className="pl-5 w-full text-sm font-medium text-gray-800 focus:outline-none appearance-none"
-            >
-              {[...Array(property.capacity.maxGuests)].map((_, i) => (
-                <option key={i + 1} value={i + 1}>
-                  {i + 1} {i > 0 ? t('booking.guestsCount') : t('booking.guestCount')}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+        <div className="border-t border-gray-200 p-3 space-y-3">
+          <label className="block text-xs font-semibold text-gray-500">{t('booking.guests')}</label>
+          {/* Adults */}
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-medium text-gray-800">{isAr ? '\u0628\u0627\u0644\u063A\u064A\u0646' : 'Adults'}</div>
+              <div className="text-[10px] text-gray-400">{isAr ? '13 \u0633\u0646\u0629 \u0641\u0623\u0643\u062B\u0631' : 'Ages 13+'}</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => setAdults((a) => Math.max(1, a - 1))} disabled={adults <= 1}
+                className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:border-primary-400 hover:text-primary-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                <Minus className="w-3 h-3" />
+              </button>
+              <span className="w-5 text-center text-sm font-medium">{adults}</span>
+              <button type="button" onClick={() => setAdults((a) => Math.min(property.capacity.maxGuests - children, a + 1))} disabled={guests >= property.capacity.maxGuests}
+                className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:border-primary-400 hover:text-primary-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                <Plus className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+          {/* Children */}
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-medium text-gray-800">{isAr ? '\u0623\u0637\u0641\u0627\u0644' : 'Children'}</div>
+              <div className="text-[10px] text-gray-400">{isAr ? '0\u201312 \u0633\u0646\u0629' : 'Ages 0\u201312'}</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => setChildren((c) => Math.max(0, c - 1))} disabled={children <= 0}
+                className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:border-primary-400 hover:text-primary-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                <Minus className="w-3 h-3" />
+              </button>
+              <span className="w-5 text-center text-sm font-medium">{children}</span>
+              <button type="button" onClick={() => setChildren((c) => Math.min(property.capacity.maxGuests - adults, c + 1))} disabled={guests >= property.capacity.maxGuests}
+                className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:border-primary-400 hover:text-primary-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                <Plus className="w-3 h-3" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -189,41 +216,41 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
       {nights > 0 && (
         <div className="space-y-3 text-sm">
           <div className="flex justify-between text-gray-600">
-            <span>{formatPrice(pricePerNight)} × {nights} {nightLabel}</span>
-            <span>{formatPrice(subtotal)}</span>
+            <span dir="ltr"><SarSymbol /> {formatPriceNumber(pricePerNight)} &times; {nights} {nightLabel}</span>
+            <span dir="ltr"><SarSymbol /> {formatPriceNumber(subtotal)}</span>
           </div>
           {cleaningFee > 0 && (
             <div className="flex justify-between text-gray-600">
               <span>{t('booking.cleaningFee')}</span>
-              <span>{formatPrice(cleaningFee)}</span>
+              <span dir="ltr"><SarSymbol /> {formatPriceNumber(cleaningFee)}</span>
             </div>
           )}
           <div className="flex justify-between text-gray-600">
             <span>{t('booking.serviceFee')}</span>
-            <span>{formatPrice(serviceFee)}</span>
+            <span dir="ltr"><SarSymbol /> {formatPriceNumber(serviceFee)}</span>
           </div>
           {discount > 0 && (
             <div className="flex justify-between text-green-600">
               <span>{t('booking.discount')} ({property.pricing.discountPercent}%)</span>
-              <span>-{formatPrice(discount)}</span>
+              <span dir="ltr"><SarSymbol /> -{formatPriceNumber(discount)}</span>
             </div>
           )}
           <div className="flex justify-between text-gray-600">
             <span>{t('booking.vat')}</span>
-            <span>{formatPrice(vat)}</span>
+            <span dir="ltr"><SarSymbol /> {formatPriceNumber(vat)}</span>
           </div>
           <div className="flex justify-between font-bold text-gray-900 pt-3 border-t border-gray-200">
             <span>{t('booking.total')}</span>
-            <span>{formatPrice(total)}</span>
+            <span dir="ltr"><SarSymbol /> {formatPriceNumber(total)}</span>
           </div>
           {/* BNPL installment preview */}
-          <BnplWidget total={total} compact />
+          <BnplWidget total={total} />
         </div>
       )}
 
       {/* BNPL widget when no dates selected — show based on per-night price */}
       {nights === 0 && property.pricing.perNight > 0 && property.pricing.perNight <= 5000 && (
-        <BnplWidget total={property.pricing.perNight} compact />
+        <BnplWidget total={property.pricing.perNight} />
       )}
     </div>
   );

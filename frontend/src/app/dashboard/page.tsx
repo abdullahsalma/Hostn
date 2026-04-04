@@ -8,7 +8,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { bookingsApi } from '@/lib/api';
 import { Booking } from '@/types';
 import {
-  BookOpen, CalendarDays, Heart, ArrowRight, Crown, Loader2,
+  BookOpen, CalendarDays, Heart, ArrowRight, Crown, Loader2, Wallet, ShieldBan, Star,
 } from 'lucide-react';
 
 export default function GuestDashboardPage() {
@@ -83,24 +83,36 @@ export default function GuestDashboardPage() {
     rejected: { en: 'Rejected', ar: '\u0645\u0631\u0641\u0648\u0636' },
   };
 
+  const walletBalance = user.balance ?? 0;
+  const hostsBlocked = user.blockedByHosts ?? 0;
+  const guestRating = user.guestRating ?? 0;
+
   const stats = [
     {
-      label: { en: 'Total Bookings', ar: '\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u062d\u062c\u0648\u0632\u0627\u062a' },
+      label: { en: 'Reservations', ar: '\u0627\u0644\u062d\u062c\u0648\u0632\u0627\u062a' },
       value: totalBookings,
       icon: BookOpen,
       color: 'text-primary-600 bg-primary-50',
+      href: '/dashboard/bookings',
     },
     {
-      label: { en: 'Active Bookings', ar: '\u0627\u0644\u062d\u062c\u0648\u0632\u0627\u062a \u0627\u0644\u0646\u0634\u0637\u0629' },
-      value: activeBookings,
-      icon: CalendarDays,
-      color: 'text-green-600 bg-green-50',
+      label: { en: 'Balance', ar: '\u0627\u0644\u0631\u0635\u064a\u062f' },
+      value: `${walletBalance} SAR`,
+      icon: Wallet,
+      color: 'text-emerald-600 bg-emerald-50',
+      href: '/dashboard/balance',
     },
     {
-      label: { en: 'Wishlist', ar: '\u0627\u0644\u0645\u0641\u0636\u0644\u0629' },
-      value: wishlistCount,
-      icon: Heart,
-      color: 'text-red-500 bg-red-50',
+      label: { en: 'Host Blocks', ar: '\u062d\u0638\u0631 \u0627\u0644\u0645\u0636\u064a\u0641\u064a\u0646' },
+      value: hostsBlocked,
+      icon: ShieldBan,
+      color: 'text-orange-600 bg-orange-50',
+    },
+    {
+      label: { en: 'My Rating', ar: '\u062a\u0642\u064a\u064a\u0645\u064a' },
+      value: guestRating > 0 ? `${guestRating.toFixed(1)}/5` : (lang === 'ar' ? '\u0644\u0627 \u064a\u0648\u062c\u062f' : 'N/A'),
+      icon: Star,
+      color: 'text-yellow-600 bg-yellow-50',
     },
   ];
 
@@ -119,14 +131,11 @@ export default function GuestDashboardPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {stats.map((stat) => {
           const Icon = stat.icon;
-          return (
-            <div
-              key={stat.label.en}
-              className="bg-white rounded-xl border border-gray-200 p-5 flex items-center gap-4"
-            >
+          const content = (
+            <>
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${stat.color}`}>
                 <Icon className="w-6 h-6" />
               </div>
@@ -134,6 +143,16 @@ export default function GuestDashboardPage() {
                 <p className="text-sm text-gray-500">{stat.label[lang]}</p>
                 <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
               </div>
+            </>
+          );
+          const cardClass = `bg-white rounded-xl border border-gray-200 p-5 flex items-center gap-4 ${stat.href ? 'hover:border-primary-300 transition-colors' : ''}`;
+          return stat.href ? (
+            <Link key={stat.label.en} href={stat.href} className={cardClass}>
+              {content}
+            </Link>
+          ) : (
+            <div key={stat.label.en} className={cardClass}>
+              {content}
             </div>
           );
         })}

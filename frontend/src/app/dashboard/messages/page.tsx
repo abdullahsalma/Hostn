@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { messagesApi } from '@/lib/api';
 import { Conversation, Message, User } from '@/types';
 import { MessageSquare, Search, Send, ArrowLeft, Ban, MoreVertical, AlertCircle } from 'lucide-react';
@@ -22,11 +22,12 @@ function timeAgo(dateStr: string, isAr: boolean) {
   return new Date(dateStr).toLocaleDateString(isAr ? 'ar-SA' : undefined);
 }
 
-export default function GuestMessagesPage() {
+function GuestMessagesContent() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { language } = useLanguage();
   const isAr = language === 'ar';
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -37,6 +38,7 @@ export default function GuestMessagesPage() {
   const [sending, setSending] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const autoOpenedRef = useRef(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.push('/auth/login?redirect=/dashboard/messages');
@@ -49,9 +51,35 @@ export default function GuestMessagesPage() {
     } catch { /* silent */ } finally { setLoading(false); }
   }, []);
 
+  // Auto-open conversation when navigated from property page with ?host=&property= params
   useEffect(() => {
-    if (isAuthenticated) {
+    if (!isAuthenticated || autoOpenedRef.current) return;
+    const hostId = searchParams.get('host');
+    if (!hostId) return;
+    autoOpenedRef.current = true;
+    const propertyId = searchParams.get('property') || undefined;
+
+    (async () => {
+      try {
+        const res = await messagesApi.createConversation({ recipientId: hostId, propertyId });
+        const conv = res.data.data;
+        if (conv?._id) {
+          await loadConversations();
+          selectConversation(conv._id);
+        }
+      } catch {
+        toast.error(isAr ? 'فشل فتح المحادثة' : 'Failed to open conversation');
+        await loadConversations();
+      }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, searchParams]);
+
+  useEffect(() => {
+    if (isAuthenticated && !autoOpenedRef.current) {
       loadConversations();
+    }
+    if (isAuthenticated) {
       const t = setInterval(loadConversations, 10000);
       return () => clearInterval(t);
     }
@@ -208,9 +236,9 @@ export default function GuestMessagesPage() {
                     <div className="relative">
                       <button onClick={() => setShowMenu(!showMenu)} className="p-2 hover:bg-gray-100 rounded-lg"><MoreVertical className="w-4 h-4 text-gray-500" /></button>
                       {showMenu && (
-                        <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-10 min-w-[160px]">
-                          <button onClick={handleBlock} className="w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-red-600">
-                            <Ban className="w-4 h-4" />{selectedConv?.isBlocked ? (isAr ? 'إلغاء الحظر' : 'Unblock') : (isAr ? 'حظر المستخدم' : 'Block User')}
+                        <div className="absolute end-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-10 min-w-[160px]">
+                          <button onClick={handleBlock} className="w-full px-4 py-2.5 text-start text-sm hover:bg-gray-50 flex items-center gap-2 text-red-600">
+                            <Ban className="w-4 h-4" />{selectedConv?.isBlocked ? (isAr ? '\u0625\u0644\u063A\u0627\u0621 \u0627\u0644\u062D\u0638\u0631' : 'Unblock') : (isAr ? '\u062D\u0638\u0631 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645' : 'Block User')}
                           </button>
                         </div>
                       )}
@@ -253,7 +281,7 @@ export default function GuestMessagesPage() {
                           className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-400" />
                         <button onClick={handleSend} disabled={!newMessage.trim() || sending}
                           className="p-2.5 bg-primary-500 text-white rounded-xl hover:bg-primary-600 disabled:opacity-50 transition">
-                          <Send className="w-4 h-4" />
+                          <Send className="w-4 h-4 rtl:-scale-x-100" />
                         </button>
                       </div>
                     </div>
@@ -264,5 +292,13 @@ export default function GuestMessagesPage() {
           </div>
         </div>
     </div>
+  );
+}
+
+export default function GuestMessagesPage() {
+  return (
+    <Suspense fallback={null}>
+      <GuestMessagesContent />
+    </Suspense>
   );
 }

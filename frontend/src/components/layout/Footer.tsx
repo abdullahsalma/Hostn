@@ -30,7 +30,8 @@ export default function Footer() {
             </h4>
             <ul className="space-y-2 text-sm">
               <li><Link href="/listings" className="hover:text-white transition-colors">{lang === 'ar' ? 'تصفح العقارات' : 'Browse Properties'}</Link></li>
-              <li><Link href="/auth/host/register" className="hover:text-white transition-colors">{lang === 'ar' ? 'كن مضيفاً' : 'Become a Host'}</Link></li>
+              <li><Link href="/blog" className="hover:text-white transition-colors">{lang === 'ar' ? 'المدونة' : 'Blog'}</Link></li>
+              <li><Link href="/auth" className="hover:text-white transition-colors">{lang === 'ar' ? 'كن مضيفاً' : 'Become a Host'}</Link></li>
               <li>
                 {isAuthenticated ? (
                   <Link href="/dashboard" className="hover:text-white transition-colors">{lang === 'ar' ? 'حسابي' : 'My Account'}</Link>
@@ -58,8 +59,8 @@ export default function Footer() {
               {lang === 'ar' ? 'قانوني' : 'Legal'}
             </h4>
             <ul className="space-y-2 text-sm">
-              <li><Link href="/terms" className="hover:text-white transition-colors">{lang === 'ar' ? 'الشروط والأحكام' : 'Terms & Conditions'}</Link></li>
-              <li><Link href="/privacy" className="hover:text-white transition-colors">{lang === 'ar' ? 'سياسة الخصوصية' : 'Privacy Policy'}</Link></li>
+              <li><Link href="/terms-of-use" className="hover:text-white transition-colors">{lang === 'ar' ? 'الشروط والأحكام' : 'Terms & Conditions'}</Link></li>
+              <li><Link href="/privacy-policy" className="hover:text-white transition-colors">{lang === 'ar' ? 'سياسة الخصوصية' : 'Privacy Policy'}</Link></li>
             </ul>
           </div>
         </div>

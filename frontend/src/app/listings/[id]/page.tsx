@@ -11,7 +11,8 @@ import BookingWidget from '@/components/property/BookingWidget';
 import { Property, User } from '@/types';
 import { propertiesApi } from '@/lib/api';
 import { getPropertyTypeLabel } from '@/lib/utils';
-import { MapPin, Users, BedDouble, Bath, Clock, Cigarette, PawPrint, Music, BadgeCheck } from 'lucide-react';
+import { CITIES, DISTRICTS } from '@/lib/constants';
+import { MapPin, Users, BedDouble, Bath, Clock, Cigarette, PawPrint, Music, BadgeCheck, MessageCircle } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
 const PropertyMap = dynamic(() => import('@/components/maps/PropertyMap'), {
@@ -37,9 +38,11 @@ function PropertyDetailContent() {
   const [showAllAmenities, setShowAllAmenities] = useState(false);
   const { t, language } = useLanguage();
 
-  // Read dates from URL params (passed from listings search)
+  // Read dates and guests from URL params (passed from listings search)
   const initialCheckIn = searchParams.get('checkIn') || '';
   const initialCheckOut = searchParams.get('checkOut') || '';
+  const initialAdults = parseInt(searchParams.get('adults') || '0', 10) || 0;
+  const initialChildren = parseInt(searchParams.get('children') || '0', 10) || 0;
   const isAr = language === 'ar';
 
   useEffect(() => {
@@ -84,7 +87,7 @@ function PropertyDetailContent() {
         <Header />
         <main className="container-custom py-20 text-center">
           <h1 className="text-2xl font-bold text-gray-700 mb-2">{t('property.notFound')}</h1>
-          <p className="text-gray-500">This property may have been removed or is no longer available.</p>
+          <p className="text-gray-500">{isAr ? 'ربما تم حذف هذا العقار أو لم يعد متاحاً.' : 'This property may have been removed or is no longer available.'}</p>
           <a href="/listings" className="btn-primary inline-flex mt-6">{t('property.browseProperties')}</a>
         </main>
         <Footer />
@@ -106,7 +109,7 @@ function PropertyDetailContent() {
             <a href="/listings" className="hover:text-primary-600">{t('breadcrumb.properties')}</a>
             <span className="mx-2">/</span>
             <a href={`/listings?city=${property.location.city}`} className="hover:text-primary-600">
-              {property.location.city}
+              {isAr ? (CITIES.find(c => c.value.toLowerCase() === property.location.city.toLowerCase())?.ar || property.location.city) : property.location.city}
             </a>
             <span className="mx-2">/</span>
             <span className="text-gray-800 line-clamp-1">{property.title}</span>
@@ -123,16 +126,16 @@ function PropertyDetailContent() {
                   )}
                   <span className="flex items-center gap-1 text-gray-600">
                     <MapPin className="w-4 h-4 text-primary-500" />
-                    {property.location.district && `${property.location.district}, `}{property.location.city}
+                    {property.location.district && `${isAr ? (Object.values(DISTRICTS).flat().find(d => d.value === property.location.district)?.ar || property.location.district) : property.location.district}, `}{isAr ? (CITIES.find(c => c.value.toLowerCase() === property.location.city.toLowerCase())?.ar || property.location.city) : property.location.city}
                   </span>
                   <span className="badge bg-primary-50 text-primary-700 text-xs font-semibold">
-                    {getPropertyTypeLabel(property.type)}
+                    {getPropertyTypeLabel(property.type, language as 'en' | 'ar')}
                   </span>
                 </div>
               </div>
               {property.pricing.discountPercent > 0 && (
                 <span className="badge bg-orange-100 text-orange-700 text-sm font-bold px-3 py-1.5">
-                  🎉 {property.pricing.discountPercent}% Discount
+                  🎉 {isAr ? `خصم ${property.pricing.discountPercent}%` : `${property.pricing.discountPercent}% Discount`}
                 </span>
               )}
             </div>
@@ -171,7 +174,7 @@ function PropertyDetailContent() {
                       {host.name?.charAt(0).toUpperCase()}
                     </span>
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <p className="font-semibold text-gray-900 flex items-center gap-1.5">
                       {t('property.hostedBy')} {host.name}
                       {host.isVerified && (
@@ -179,9 +182,16 @@ function PropertyDetailContent() {
                       )}
                     </p>
                     <p className="text-sm text-gray-500">
-                      Host since {new Date(host.createdAt).getFullYear()}
+                      {isAr ? `مضيف منذ ${new Date(host.createdAt).getFullYear()}` : `Host since ${new Date(host.createdAt).getFullYear()}`}
                     </p>
                   </div>
+                  <a
+                    href={`/dashboard/messages?host=${host._id}&property=${property._id}`}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:border-primary-300 hover:text-primary-600 transition-colors"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    {isAr ? '\u062A\u0648\u0627\u0635\u0644' : 'Message'}
+                  </a>
                 </div>
               )}
 
@@ -217,12 +227,12 @@ function PropertyDetailContent() {
                     {
                       Icon: Clock,
                       label: t('property.checkIn'),
-                      value: `After ${property.rules.checkInTime}`,
+                      value: isAr ? `بعد ${property.rules.checkInTime}` : `After ${property.rules.checkInTime}`,
                     },
                     {
                       Icon: Clock,
                       label: t('property.checkOut'),
-                      value: `Before ${property.rules.checkOutTime}`,
+                      value: isAr ? `قبل ${property.rules.checkOutTime}` : `Before ${property.rules.checkOutTime}`,
                     },
                     {
                       Icon: Cigarette,
@@ -264,7 +274,7 @@ function PropertyDetailContent() {
                   {(property.location as { isApproximate?: boolean }).isApproximate && (
                     <p className="mt-2 text-sm text-gray-500 italic flex items-center gap-1.5">
                       <MapPin className="w-4 h-4" />
-                      Exact location shown after booking confirmation
+                      {isAr ? 'سيتم عرض الموقع الدقيق بعد تأكيد الحجز' : 'Exact location shown after booking confirmation'}
                     </p>
                   )}
                 </div>
@@ -283,7 +293,7 @@ function PropertyDetailContent() {
 
             {/* Right column – Booking widget (BNPL is inside it) */}
             <div className="lg:col-span-1">
-              <BookingWidget property={property} initialCheckIn={initialCheckIn} initialCheckOut={initialCheckOut} />
+              <BookingWidget property={property} initialCheckIn={initialCheckIn} initialCheckOut={initialCheckOut} initialAdults={initialAdults} initialChildren={initialChildren} />
             </div>
           </div>
         </div>

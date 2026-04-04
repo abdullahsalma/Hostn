@@ -23,7 +23,6 @@ const nextConfig = {
     tsconfigPath: './tsconfig.json',
   },
   // Production optimizations for Vercel serverless
-  swcMinify: true,
   compress: true,
   productionBrowserSourceMaps: false,
   // Environment variable validation
@@ -36,6 +35,14 @@ const nextConfig = {
   experimental: {
     // Enable turbopack for faster builds (optional, requires Next.js 14+)
     // turbopack: true,
+  },
+
+  // ── Redirects for clean URLs ──
+  async redirects() {
+    return [
+      { source: '/privacy', destination: '/privacy-policy', permanent: true },
+      { source: '/terms', destination: '/terms-of-use', permanent: true },
+    ];
   },
 
   // ── Security Headers ──

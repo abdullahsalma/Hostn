@@ -12,6 +12,7 @@ export interface MiniCalendarProps {
   checkIn: string;
   checkOut: string;
   onSelectDate: (date: string) => void;
+  onConfirm?: () => void;
   unavailableDates?: string[];
   locale?: 'en' | 'ar';
   className?: string;
@@ -20,6 +21,15 @@ export interface MiniCalendarProps {
 
 const DAY_NAMES_EN = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 const DAY_NAMES_AR = ['أح', 'إث', 'ث', 'أر', 'خ', 'ج', 'س'];
+
+const MONTH_NAMES_AR = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+
+function formatMonthYear(date: Date, locale: string) {
+  if (locale === 'ar') {
+    return `${MONTH_NAMES_AR[date.getMonth()]} ${date.getFullYear()}`;
+  }
+  return format(date, 'MMMM yyyy');
+}
 
 function buildWeeks(month: Date) {
   const monthStart = startOfMonth(month);
@@ -65,7 +75,7 @@ function MonthGrid({
   return (
     <div>
       <div className="text-center text-sm font-semibold text-gray-800 mb-2">
-        {format(month, 'MMMM yyyy')}
+        {formatMonthYear(month, locale)}
       </div>
       <div className="grid grid-cols-7 gap-0.5 mb-1">
         {dayNames.map((d) => (
@@ -111,6 +121,7 @@ export default function MiniCalendar({
   checkIn,
   checkOut,
   onSelectDate,
+  onConfirm,
   unavailableDates = [],
   locale = 'en',
   className = '',
@@ -165,7 +176,7 @@ export default function MiniCalendar({
         </button>
         {!dual && (
           <span className="text-sm font-semibold text-gray-800">
-            {format(currentMonth, 'MMMM yyyy')}
+            {formatMonthYear(currentMonth, locale)}
           </span>
         )}
         {dual && <span className="text-sm font-semibold text-gray-800" />}
@@ -186,6 +197,18 @@ export default function MiniCalendar({
         </div>
       ) : (
         <MonthGrid month={currentMonth} {...sharedProps} />
+      )}
+
+      {onConfirm && checkIn && checkOut && (
+        <div className="px-1 pt-2 pb-1 border-t border-gray-100 mt-2 flex justify-end">
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="px-6 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            {locale === 'ar' ? '\u062A\u0623\u0643\u064A\u062F' : 'Confirm'}
+          </button>
+        </div>
       )}
     </div>
   );

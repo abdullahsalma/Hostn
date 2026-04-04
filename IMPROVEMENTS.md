@@ -41,6 +41,49 @@
 | F13 | 2026-04-03 | `/` — Selecting date dismisses calendar prematurely | AMS | Calendar now stays open; only closes on click outside or search | Done |
 | F14 | 2026-04-03 | `/host/listings/[id]/edit` — City dropdown always shows "Select city" | AMS | Added case-insensitive + Arabic matching for city values from API | Done |
 | F15 | 2026-04-03 | `/` — Font Rubik not loading reliably | AMS | Added Google Fonts link tag in layout.tsx head for reliable loading | Done |
+| F16 | 2026-04-04 | `/host/settings` — Delete account does not actually delete; still logged in as host with listings | AMS | Frontend wired to authApi.deleteAccount(); backend DELETE /auth/account endpoint added — revokes tokens, deletes user, clears cookies | Done |
+| F17 | 2026-04-04 | `/host/earnings` — Shows error page | AMS | Added graceful fallback with flexible field mapping | Done |
+| F18 | 2026-04-04 | `/auth` — Text arrow "←" points wrong direction in Arabic (hardcoded character, not icon) | AMS | Replaced "←" with ArrowLeft icon + rtl:rotate-180 | Done |
+| F19 | 2026-04-04 | `/listings/[id]` — "10% Discount" not translated to Arabic (hardcoded English) | AMS | Added isAr conditional: "خصم X%" | Done |
+| F20 | 2026-04-04 | `/listings/[id]` — Property type, name, and location not translated to Arabic | AMS | Pass language to getPropertyTypeLabel; breadcrumb city uses CITIES constant | Done |
+| F21 | 2026-04-04 | `/listings/[id]` — Breadcrumb city and property name not translated | AMS | City uses CITIES ar lookup; "Host since", check-in/out, approximate location all translated | Done |
+| F22 | 2026-04-04 | `/listings` — Calendar pinned to screen, not relative to search bar | AMS | Replaced createPortal/fixed with absolute positioning inside search container | Done |
+| F23 | 2026-04-04 | `/` and `/listings` — Calendar month names not in Arabic when language is Arabic | AMS | Added MONTH_NAMES_AR + formatMonthYear helper in MiniCalendar | Done |
+| F24 | 2026-04-04 | `/` — Arabic subtitle text appears squeezed, needs spacing | AMS | Changed leading-[1.1] to leading-[1.3] for Arabic | Done |
+| F25 | 2026-04-04 | `/privacy` and `/terms` — URL slugs not descriptive; RTL arrow broken | AMS | Created /privacy-policy and /terms-of-use routes; added redirects in next.config.js; fixed RTL arrow with rtl:rotate-180 | Done |
+| F26 | 2026-04-04 | `/dashboard/messages` — Block User menu not displaying properly in Arabic RTL | AMS | Changed right-0 → end-0, text-left → text-start for RTL-aware positioning | Done |
+| F27 | 2026-04-04 | Sitewide — SAR symbol after number instead of before; color doesn't match text | AMS | Rewrote SarSymbol from Image to inline SVG with fill="currentColor"; flipped to symbol-before-number everywhere | Done |
+| F28 | 2026-04-04 | Footer — Links to /terms and /privacy instead of /terms-of-use and /privacy-policy | AMS | Updated Footer.tsx hrefs | Done |
+| F29 | 2026-04-04 | `/booking/[id]` — Link to /terms instead of /terms-of-use | AMS | Updated terms link in booking page | Done |
+| F30 | 2026-04-04 | `/listings` — Type filter shows emoji icons that don't match design | AMS | Removed icon field from PROPERTY_TYPES and icon render from grid buttons | Done |
+| F31 | 2026-04-04 | `/listings` — City dropdown only shows selected city on reopen | AMS | Clear citySearch on focus so filteredCities shows all; restore label on close; translate on language switch | Done |
+| F32 | 2026-04-04 | `/listings` — Confirm button on wrong side in Arabic (RTL) | AMS | Changed `ltr:justify-end rtl:justify-start` to `justify-end` (right in LTR, left in RTL) | Done |
+| F33 | 2026-04-04 | `/listings/[id]` — BNPL widget price text wraps incorrectly in RTL | AMS | Changed from formatPrice to formatPriceNumber + SarSymbol inside `dir="ltr"` spans | Done |
+| F34 | 2026-04-04 | `/dashboard/settings` — "Profile updated" toast misleading (only name changes) | AMS | Changed toast to "Name updated" and button to "Save Name" | Done |
+| F35 | 2026-04-04 | `/dashboard/settings` — Change password UI present but non-functional | AMS | Removed entire change password section (state, handler, UI) | Done |
+| F36 | 2026-04-04 | Sitewide — Price "/night" text forced LTR along with number | AMS | Moved `dir="ltr"` from outer container to individual price spans; "/night" label now flows with document direction | Done |
+| F37 | 2026-04-04 | Sitewide — Auth redirect loses original page after login | AMS | Middleware now passes `redirect` query param with original pathname+search; auth page already reads and uses it | Done |
+| F38 | 2026-04-04 | `/dashboard/support` — Support tickets not loading (API path mismatch) | AMS | Changed `api.get('/support/my-tickets')` to `api.get('/support')` to match backend route | Done |
+| F39 | 2026-04-04 | `/` — City dropdown same reopen bug as /listings | AMS | Same fix: clear citySearch on focus, restore label on close, translate on language switch | Done |
+| F40 | 2026-04-04 | Header — Sign out icon bright red, too prominent | AMS | Changed from `text-red-500` to `text-gray-400 hover:text-gray-600` | Done |
+| F41 | 2026-04-04 | `/dashboard/messages` — Send button arrow doesn't flip in RTL | AMS | Added `rtl:rotate-180` class to send icon | Done |
+| F42 | 2026-04-04 | `/listings/[id]` — SAR symbol missing from strikethrough old price | AMS | Added SarSymbol inside line-through spans for PropertyCard and BookingWidget | Done |
+| F43 | 2026-04-04 | Sitewide — SAR symbol height doesn't match digit height | AMS | Set SarSymbol to `height: 0.72em` (cap-height) with `verticalAlign: -0.05em` for baseline alignment | Done |
+| F44 | 2026-04-04 | `/listings` and `/` — MiniCalendar confirm button on wrong side in Arabic | AMS | Changed to `justify-end` for correct side in both LTR and RTL | Done |
+| F45 | 2026-04-04 | `/dashboard/messages` — Send icon points down-left in Arabic (rotate-180 wrong) | AMS | Changed `rtl:rotate-180` to `rtl:-scale-x-100` (horizontal flip: ↗ becomes ↖) | Done |
+| F46 | 2026-04-04 | `/dashboard/support/[id]` — Send icon not flipped for Arabic | AMS | Added `rtl:-scale-x-100` to Send icon | Done |
+| F47 | 2026-04-04 | `/booking/[id]` — Back to property arrow not flipped in Arabic | AMS | Changed `rotate-180` to `ltr:rotate-180` on ChevronRight | Done |
+| F48 | 2026-04-04 | `/listings` — Area filter bubble missing m² unit in inactive label | AMS | Inactive label now shows `Area (m²)` / `المساحة (m²)` | Done |
+| F49 | 2026-04-04 | `/listings/[id]` — Guest count not carried from listings search | AMS | PropertyCard passes adults/children in URL; property detail reads and passes to BookingWidget | Done |
+| F50 | 2026-04-04 | `/booking/[id]` — Editing dates/guests loses all data when going back | AMS | Edit links and back-to-property link now preserve checkIn, checkOut, adults in URL params | Done |
+| F51 | 2026-04-04 | Sitewide — Arabic night plural incorrect (ليالي used for all plural) | AMS | Created `getNightLabel(count, lang)`: 1–2→ليلة, 3–10→ليالي, 11+→ليلة. Applied in BookingWidget, booking page, HeroSearch, listings, PropertyForm | Done |
+| F52 | 2026-04-04 | Sitewide — Wishlist add/remove toast shows English in Arabic mode | AMS | Translated all 3 toast messages in PropertyCard (saved, removed, sign-in required, error) | Done |
+| F53 | 2026-04-04 | `/dashboard/support/[id]` — All labels hardcoded English (Category, Priority, Status, etc.) | AMS | Added bilingual status/category/priority labels, translated back link, sender name, placeholder, closed message, loading text | Done |
+| F54 | 2026-04-04 | `/listings/[id]` — City and district under title show English in Arabic | AMS | City uses CITIES Arabic lookup; district uses DISTRICTS Arabic lookup | Done |
+| F55 | 2026-04-04 | `/dashboard/support/[id]` — Shows Header and Footer inside dashboard layout | AMS | Removed Header/Footer; page now uses dashboard layout only | Done |
+| F56 | 2026-04-04 | `/` — Search step indicator shows 3 color steps instead of 4 | AMS | Added `'type'` as distinct SearchStep; steps now location→type→dates→ready with unique keys | Done |
+| F57 | 2026-04-04 | `/` — Arabic subtitle text squeezed on desktop | AMS | Subtitle uses `leading-loose md:leading-[2]` for Arabic, `leading-relaxed` for English | Done |
+| F58 | 2026-04-04 | Sitewide — Session expires every ~15 minutes | AMS | Refresh cookie path was `/api/auth` but routes mounted at `/api/v1/auth`; browser never sent cookie. Fixed to `/api/v1/auth` | Done |
 
 ## Improvements
 
@@ -60,3 +103,30 @@
 | I12 | 2026-04-03 | `/contact` — Subject field should be required | AMS | Added `*` label and validation check | Done |
 | I13 | 2026-04-03 | `/` — City select should auto-open property type dropdown | AMS | handleCitySelect now opens type dropdown automatically | Done |
 | I14 | 2026-04-03 | `/` — Property type select should auto-open calendar | AMS | Type selection now opens calendar automatically | Done |
+| I15 | 2026-04-04 | `/host` — No way to change language on host dashboard | AMS | Added language toggle (Globe icon) to Sidebar — works on guest + host + admin dashboards | Done |
+| I16 | 2026-04-04 | `/auth` — Merge guest/host login into one page; system determines user type | AMS | Unified phone+OTP page; old guest/host routes redirect to /auth; role auto-detected from backend response | Done |
+| I17 | 2026-04-04 | `/auth` — Card area outside input fields should be unclickable/unselectable | AMS | Added select-none to form card | Done |
+| I18 | 2026-04-04 | `/auth` — Country code picker with flag icon; fix OTP for international codes | AMS | GCC country picker (SA/UAE/BH/KW/OM/QA) with flags; countryCode sent to API; backend support needed from TAK | Done |
+| I19 | 2026-04-04 | `/dashboard` — Cards: reservations, wallet balance, hosts blocks count, hosts rating | AMS | 4 stat cards: Reservations, Balance (linked), Host Blocks, My Rating; balance/blocks/rating fields added to User type | Done |
+| I20 | 2026-04-04 | `/dashboard` — Add balance page in sidebar | AMS | New `/dashboard/balance` page with balance card + transaction history; Wallet nav item added to sidebar | Done |
+| I21 | 2026-04-04 | `/dashboard` — Add favorites page in sidebar | AMS | New `/dashboard/favorites` page showing wishlisted properties; Heart nav item added to sidebar | Done |
+| I22 | 2026-04-04 | `/dashboard/settings` — Email field should be editable with email verification flow | AMS | Email now has Edit button → enter new email → send code → verify code; backend updateProfile extended with email verification (generates 6-digit code, stores hashed, verifies on confirm) | Done |
+| I23 | 2026-04-04 | `/listings` — Search bar auto-flow: city → dates → guests; OK button to advance fields | AMS | City select auto-opens calendar; calendar OK opens guest picker; guest picker has OK button | Done |
+| I24 | 2026-04-04 | `/listings` — Add filter by area | AMS | Area/district text filter bubble with popover input | Done |
+| I25 | 2026-04-04 | `/listings` — Add filter by discount/offers | AMS | Offers toggle bubble; one-click to filter discounted properties | Done |
+| I26 | 2026-04-04 | `/listings` — Add filter by ratings | AMS | Rating bubble with 3+/4+/4.5+ quick-select options | Done |
+| I27 | 2026-04-04 | `/listings` — Add filter by number of bedrooms | AMS | Bedrooms bubble with 1+ through 5+ quick-select options | Done |
+| I28 | 2026-04-04 | `/listings` — Filter Unit Type: allow multiple selection | AMS | Type bubble opens grid of property types; multi-select with Apply button | Done |
+| I29 | 2026-04-04 | `/listings` — Filter as icon bubbles; clicking opens pop card with filter settings | AMS | All filters as pill bubbles with icons; click opens popover card; active state + clear button | Done |
+| I30 | 2026-04-04 | `/listings/[id]` — BNPL widget: show full payment info; click to expand options | AMS | Compact header with expand/collapse; shows timeline + providers on click | Done |
+| I31 | 2026-04-04 | `/listings/[id]` — Add ability to chat with host | AMS | Added "Message" button on property page linking to dashboard messages; replaced host messages placeholder with full chat UI (conversations, real-time polling, block/unblock) | Done |
+| I32 | 2026-04-04 | `/` and `/listings` — Add OK/submit button inside calendar to dismiss and advance to next field | AMS | Added onConfirm prop to MiniCalendar; OK button shown when both dates selected; added on both homepage and listings | Done |
+| I33 | 2026-04-04 | `/blog` — Add blog page with categories, posts, and admin CMS (similar to blog.gathern.co) | AMS | Full stack: BlogPost + BlogCategory models, blog controller + routes, frontend listing + detail pages (bilingual), admin CMS, nav links in Header/Footer/Sidebar | Done |
+| I34 | 2026-04-04 | `/listings` — Add Pool filter, Direction filter, Area slider (0-1500+ m²), Rating from 10, Price slider (0-4000+), District dropdown by city | AMS | New filter bubbles: Pool toggle, Direction dropdown, Area range slider, Price range slider, District city-dependent dropdown; backend extended with area/direction/pool/district query support | Done |
+| I35 | 2026-04-04 | `/dashboard/settings` — Phone number change should require OTP verification | AMS | Phone section now read-only with Edit button; sends OTP to new number; verify code to apply change; backend updateProfile requires phoneVerificationCode for phone changes | Done |
+| I36 | 2026-04-04 | `/listings` — Add dropdown arrows to expandable filter bubbles | AMS | Added `hasDropdown` prop to FilterBubble; ChevronDown icon on Type, Bedrooms, Rating, Price, Area, Direction, District filters | Done |
+| I37 | 2026-04-04 | `/listings/[id]` — Guest picker with adults/children split | AMS | Booking widget now has separate Adults (13+, min 1) and Children (0–12, min 0) counters with +/- buttons; total respects maxGuests | Done |
+| I38 | 2026-04-04 | `/` — Search step indicator showing progress through fields | AMS | Added Property step label to step indicator in HeroSearch | Done |
+| I39 | 2026-04-04 | `/host/listings/new` — District should be dropdown, not free text | AMS | District is now city-dependent `<select>` using DISTRICTS constant with Arabic labels; falls back to text input if city has no predefined districts; clears on city change | Done |
+| I40 | 2026-04-04 | `/host/listings/new` — Dropdown styling should match homepage | AMS | Updated inputClass to rounded-xl, bg-gray-50/50, primary ring focus matching HeroSearch style | Done |
+| I41 | 2026-04-04 | `/host/listings/new` — Error messages need clear field-specific explanation | AMS | Lists missing required fields by name; requires at least 1 photo; surfaces Mongoose validation errors and backend error messages; image upload shows file type/size hints. All bilingual | Done |

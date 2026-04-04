@@ -7,8 +7,9 @@ import { format, addDays } from 'date-fns';
 import { useLanguage } from '@/context/LanguageContext';
 import { CITIES } from '@/lib/constants';
 import MiniCalendar from '@/components/ui/MiniCalendar';
+import { calculateNights, getNightLabel } from '@/lib/utils';
 
-type SearchStep = 'idle' | 'location' | 'dates' | 'ready';
+type SearchStep = 'idle' | 'location' | 'type' | 'dates' | 'ready';
 
 export default function HeroSearch() {
   const router = useRouter();
@@ -71,7 +72,7 @@ export default function HeroSearch() {
     setCitySearch(cityLabel);
     setShowCityDropdown(false);
     setShowTypeDropdown(true);
-    setStep('dates');
+    setStep('type');
   }, []);
 
   // Calendar date selection handler — calendar stays open, only closes via outside click or search
@@ -101,6 +102,22 @@ export default function HeroSearch() {
     setSelectingCheckOut(false);
     setStep('ready');
   }, [checkIn, today]);
+
+  // Restore city label when dropdown closes without selection
+  useEffect(() => {
+    if (!showCityDropdown && city) {
+      const found = CITIES.find((c) => c.value === city);
+      if (found) setCitySearch(isAr ? found.ar : found.en);
+    }
+  }, [showCityDropdown, city, isAr]);
+
+  // Update city label on language switch
+  useEffect(() => {
+    if (city) {
+      const found = CITIES.find((c) => c.value === city);
+      if (found) setCitySearch(isAr ? found.ar : found.en);
+    }
+  }, [isAr]);
 
   // Click outside handler
   useEffect(() => {
@@ -142,6 +159,7 @@ export default function HeroSearch() {
   // Step indicator dots
   const steps: { key: SearchStep; label: string }[] = [
     { key: 'location', label: t('hero.destination') },
+    { key: 'type', label: t('hero.propertyType') },
     { key: 'dates', label: t('hero.dates') },
     { key: 'ready', label: t('hero.search') },
   ];
@@ -184,14 +202,14 @@ export default function HeroSearch() {
 
         {/* Headline */}
         <div className="animate-fade-in-up mt-6" style={{ animationDelay: '0.2s' }}>
-          <h1 className="text-3xl sm:text-5xl md:text-7xl font-extrabold text-white mb-3 sm:mb-5 leading-[1.1] tracking-tight">
+          <h1 className={`text-3xl sm:text-5xl md:text-7xl font-extrabold text-white mb-3 sm:mb-5 tracking-tight ${isAr ? 'leading-[1.3]' : 'leading-[1.1]'}`}>
             {t('hero.title1')}
             <br />
             <span className={`${isAr ? 'font-display-ar' : 'font-display italic'} text-gradient-gold inline-block mt-1`}>
               {t('hero.title2')}
             </span>
           </h1>
-          <p className="text-sm sm:text-base md:text-lg text-white/70 mb-6 sm:mb-10 max-w-xl mx-auto leading-relaxed font-light px-2 sm:px-0">
+          <p className={`text-sm sm:text-base md:text-lg text-white/70 mb-6 sm:mb-10 max-w-xl mx-auto font-light px-2 sm:px-0 ${isAr ? 'leading-loose md:leading-[2]' : 'leading-relaxed'}`}>
             {t('hero.subtitle')}
           </p>
         </div>
@@ -238,6 +256,7 @@ export default function HeroSearch() {
                       setCityHighlight(-1);
                     }}
                     onFocus={() => {
+                      setCitySearch('');
                       setShowCityDropdown(true);
                       setStep('location');
                     }}
@@ -314,9 +333,9 @@ export default function HeroSearch() {
                 <div className="relative">
                   <button
                     type="button"
-                    onClick={() => setShowTypeDropdown(!showTypeDropdown)}
+                    onClick={() => { setShowTypeDropdown(!showTypeDropdown); if (!showTypeDropdown) setStep('type'); }}
                     className={`w-full px-4 py-3 border rounded-xl text-sm text-start bg-gray-50/50 cursor-pointer transition-all duration-200 ${
-                      showTypeDropdown ? 'border-primary-300 ring-2 ring-primary-400/40' : 'border-gray-100'
+                      showTypeDropdown || step === 'type' ? 'border-primary-300 ring-2 ring-primary-400/40' : 'border-gray-100'
                     } ${propertyType ? 'text-gray-800' : 'text-gray-800'}`}
                   >
                     {PROPERTY_TYPES.find(t => t.value === propertyType)?.label || PROPERTY_TYPES[0].label}
@@ -372,6 +391,11 @@ export default function HeroSearch() {
                         : t('hero.checkIn') + ' — ' + t('hero.checkOut')
                     }
                   </span>
+                  {checkIn && checkOut && (
+                    <span className="text-xs text-primary-500 font-medium ms-1">
+                      {(() => { const n = calculateNights(checkIn, checkOut); return `${n} ${getNightLabel(n, isAr ? 'ar' : 'en')}`; })()}
+                    </span>
+                  )}
                 </button>
               </div>
 
@@ -397,7 +421,7 @@ export default function HeroSearch() {
           {showCalendar && (
             <div
               ref={calendarPopupRef}
-              className="absolute left-0 right-0 top-full mt-2 z-[60] bg-white shadow-2xl border border-gray-100 rounded-2xl max-h-[80vh] overflow-y-auto animate-fade-in-up"
+              className="absolute ltr:left-0 rtl:right-0 top-full mt-2 z-[60] bg-white shadow-2xl border border-gray-100 rounded-2xl max-h-[80vh] overflow-y-auto animate-fade-in-up w-full max-w-[620px]"
             >
               <div className="px-4 pt-3 pb-1">
                 <p className="text-xs font-semibold text-primary-600" aria-live="polite">
@@ -410,6 +434,7 @@ export default function HeroSearch() {
                   checkIn={checkIn}
                   checkOut={checkOut}
                   onSelectDate={handleDateSelect}
+                  onConfirm={() => setShowCalendar(false)}
                   locale={isAr ? 'ar' : 'en'}
                   dual
                 />
@@ -419,6 +444,7 @@ export default function HeroSearch() {
                   checkIn={checkIn}
                   checkOut={checkOut}
                   onSelectDate={handleDateSelect}
+                  onConfirm={() => setShowCalendar(false)}
                   locale={isAr ? 'ar' : 'en'}
                 />
               </div>
@@ -454,7 +480,17 @@ export default function HeroSearch() {
             <button
               key={c.value}
               onClick={() => {
-                handleCitySelect(c.value, isAr ? c.ar : c.en);
+                if (checkIn && checkOut) {
+                  // If dates already picked, go with those
+                  const params = new URLSearchParams({ city: c.value, checkIn, checkOut });
+                  router.push(`/listings?${params.toString()}`);
+                } else {
+                  // Default: 1 night from today
+                  const todayStr = format(new Date(), 'yyyy-MM-dd');
+                  const tomorrowStr = format(addDays(new Date(), 1), 'yyyy-MM-dd');
+                  const params = new URLSearchParams({ city: c.value, checkIn: todayStr, checkOut: tomorrowStr });
+                  router.push(`/listings?${params.toString()}`);
+                }
               }}
               className="bg-white/10 hover:bg-white/20 text-white/80 hover:text-white text-xs sm:text-sm px-3 sm:px-4 py-1 sm:py-1.5 rounded-full backdrop-blur-sm transition-all duration-300 border border-white/5 hover:border-white/15"
             >

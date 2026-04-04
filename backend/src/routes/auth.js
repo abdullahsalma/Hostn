@@ -15,6 +15,7 @@ const {
   resetPassword,
   linkPhone,
   linkEmail,
+  deleteAccount,
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 const {
@@ -39,5 +40,6 @@ router.put('/upgrade-to-host', protect, upgradeToHost);
 router.put('/link-phone', protect, linkPhone);
 router.put('/link-email', protect, linkEmail);
 router.post('/wishlist/:propertyId', protect, mongoIdParam('propertyId'), toggleWishlist);
+router.delete('/account', protect, deleteAccount);
 
 module.exports = router;

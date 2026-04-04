@@ -4,10 +4,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Heart, MapPin, Users, BedDouble, ChevronLeft, ChevronRight, BadgeCheck } from 'lucide-react';
 import { Property, User } from '@/types';
-import { formatPrice, getPropertyTypeLabel, getDiscountedPrice } from '@/lib/utils';
+import { formatPriceNumber, getPropertyTypeLabel, getDiscountedPrice } from '@/lib/utils';
 import StarRating from '@/components/ui/StarRating';
+import SarSymbol from '@/components/ui/SarSymbol';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { CITIES } from '@/lib/constants';
 import { useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 
@@ -15,11 +17,21 @@ interface PropertyCardProps {
   property: Property;
   checkIn?: string;
   checkOut?: string;
+  adults?: number;
+  children?: number;
 }
 
-export default function PropertyCard({ property, checkIn, checkOut }: PropertyCardProps) {
+export default function PropertyCard({ property, checkIn, checkOut, adults: propAdults, children: propChildren }: PropertyCardProps) {
   const { user, isAuthenticated, toggleWishlist } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const isAr = language === 'ar';
+
+  const translateCity = (city: string) => {
+    if (!isAr) return city;
+    const found = CITIES.find(c => c.value.toLowerCase() === city.toLowerCase() || c.en.toLowerCase() === city.toLowerCase());
+    return found?.ar || city;
+  };
+
   const [isWishlisted, setIsWishlisted] = useState(
     user?.wishlist?.includes(property._id) ?? false
   );
@@ -50,26 +62,28 @@ export default function PropertyCard({ property, checkIn, checkOut }: PropertyCa
   const handleWishlist = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (!isAuthenticated) {
-      toast.error('Please sign in to save properties');
+      toast.error(isAr ? 'سجّل دخولك لحفظ العقارات' : 'Please sign in to save properties');
       return;
     }
     setWishlistLoading(true);
     try {
       await toggleWishlist(property._id);
       setIsWishlisted(!isWishlisted);
-      toast.success(isWishlisted ? 'Removed from wishlist' : 'Saved to wishlist');
+      toast.success(isWishlisted
+        ? (isAr ? 'تمت الإزالة من المفضلة' : 'Removed from wishlist')
+        : (isAr ? 'تمت الإضافة للمفضلة' : 'Saved to wishlist'));
     } catch {
-      toast.error('Something went wrong');
+      toast.error(isAr ? 'حدث خطأ' : 'Something went wrong');
     } finally {
       setWishlistLoading(false);
     }
   };
 
   return (
-    <Link href={`/listings/${property._id}${checkIn || checkOut ? `?${new URLSearchParams({ ...(checkIn ? { checkIn } : {}), ...(checkOut ? { checkOut } : {}) }).toString()}` : ''}`} className="group block">
+    <Link href={`/listings/${property._id}${checkIn || checkOut || propAdults ? `?${new URLSearchParams({ ...(checkIn ? { checkIn } : {}), ...(checkOut ? { checkOut } : {}), ...(propAdults ? { adults: String(propAdults) } : {}), ...(propChildren ? { children: String(propChildren) } : {}) }).toString()}` : ''}`} className="group block">
       <div className="card overflow-hidden group-hover:scale-[1.01] transition-all duration-300">
         {/* Image Carousel */}
-        <div className="relative aspect-[4/3] overflow-hidden bg-gray-100 group/carousel">
+        <div className="relative aspect-[4/3] overflow-hidden rounded-t-xl bg-gray-100 group/carousel">
           <Image
             src={images[currentImageIndex]?.url || images[0].url}
             alt={property.title}
@@ -115,7 +129,7 @@ export default function PropertyCard({ property, checkIn, checkOut }: PropertyCa
           {property.pricing.discountPercent > 0 && (
             <div className="absolute top-3 ltr:right-3 rtl:left-3">
               <span className="badge bg-orange-500 text-white text-xs font-bold px-2.5 py-1">
-                {property.pricing.discountPercent}% OFF
+                {isAr ? `خصم ${property.pricing.discountPercent}%` : `${property.pricing.discountPercent}% OFF`}
               </span>
             </div>
           )}
@@ -124,7 +138,7 @@ export default function PropertyCard({ property, checkIn, checkOut }: PropertyCa
           {property.isFeatured && (
             <div className="absolute top-3 ltr:left-3 rtl:right-3">
               <span className="badge bg-primary-600 text-white text-xs font-semibold px-2.5 py-1">
-                ⭐ Featured
+                {isAr ? '⭐ مميز' : '⭐ Featured'}
               </span>
             </div>
           )}
@@ -145,7 +159,7 @@ export default function PropertyCard({ property, checkIn, checkOut }: PropertyCa
           {/* Type badge */}
           <div className="absolute bottom-3 ltr:left-3 rtl:right-3">
             <span className="badge bg-black/60 text-white text-xs backdrop-blur-sm">
-              {getPropertyTypeLabel(property.type)}
+              {getPropertyTypeLabel(property.type, language as 'en' | 'ar')}
             </span>
           </div>
         </div>
@@ -169,7 +183,7 @@ export default function PropertyCard({ property, checkIn, checkOut }: PropertyCa
           {/* Location + Verified badge */}
           <div className="flex items-center gap-1 text-gray-500 text-xs mb-3">
             <MapPin className="w-3 h-3 flex-shrink-0" />
-            <span className="flex-1">{property.location.district ? `${property.location.district}, ` : ''}{property.location.city}</span>
+            <span className="flex-1">{property.location.district ? `${property.location.district}, ` : ''}{translateCity(property.location.city)}</span>
             {host?.isVerified && (
               <span className="flex items-center gap-0.5 text-primary-600" title="Verified Host">
                 <BadgeCheck className="w-3.5 h-3.5" />
@@ -194,18 +208,18 @@ export default function PropertyCard({ property, checkIn, checkOut }: PropertyCa
             <div>
               {discountedPrice ? (
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-base font-bold text-primary-600">
-                    {formatPrice(discountedPrice)}
+                  <span className="text-base font-bold text-primary-600" dir="ltr">
+                    <SarSymbol /> {formatPriceNumber(discountedPrice)}
                   </span>
-                  <span className="text-xs text-gray-400 line-through">
-                    {formatPrice(property.pricing.perNight)}
+                  <span className="text-xs text-gray-400 line-through" dir="ltr">
+                    <SarSymbol /> {formatPriceNumber(property.pricing.perNight)}
                   </span>
                   <span className="text-xs text-gray-500">{t('property.perNight')}</span>
                 </div>
               ) : (
                 <div className="flex items-baseline gap-1">
-                  <span className="text-base font-bold text-primary-600">
-                    {formatPrice(property.pricing.perNight)}
+                  <span className="text-base font-bold text-primary-600" dir="ltr">
+                    <SarSymbol /> {formatPriceNumber(property.pricing.perNight)}
                   </span>
                   <span className="text-xs text-gray-500">{t('property.perNight')}</span>
                 </div>

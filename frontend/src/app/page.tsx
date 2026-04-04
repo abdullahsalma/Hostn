@@ -120,7 +120,7 @@ export default function HomePage() {
           <h2 className="text-2xl font-bold mb-3">{t('cta.title')}</h2>
           <p className="text-primary-200 mb-8">{t('cta.subtitle')}</p>
           <Link
-            href="/auth/host/register"
+            href="/auth"
             className="inline-block bg-gold-500 hover:bg-gold-400 text-primary-950 px-8 py-3.5 rounded-xl font-bold transition-colors"
           >
             {t('nav.becomeHost')}
