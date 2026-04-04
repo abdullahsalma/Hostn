@@ -17,9 +17,11 @@ interface PropertyCardProps {
   property: Property;
   checkIn?: string;
   checkOut?: string;
+  adults?: number;
+  children?: number;
 }
 
-export default function PropertyCard({ property, checkIn, checkOut }: PropertyCardProps) {
+export default function PropertyCard({ property, checkIn, checkOut, adults: propAdults, children: propChildren }: PropertyCardProps) {
   const { user, isAuthenticated, toggleWishlist } = useAuth();
   const { t, language } = useLanguage();
   const isAr = language === 'ar';
@@ -60,23 +62,25 @@ export default function PropertyCard({ property, checkIn, checkOut }: PropertyCa
   const handleWishlist = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (!isAuthenticated) {
-      toast.error('Please sign in to save properties');
+      toast.error(isAr ? 'سجّل دخولك لحفظ العقارات' : 'Please sign in to save properties');
       return;
     }
     setWishlistLoading(true);
     try {
       await toggleWishlist(property._id);
       setIsWishlisted(!isWishlisted);
-      toast.success(isWishlisted ? 'Removed from wishlist' : 'Saved to wishlist');
+      toast.success(isWishlisted
+        ? (isAr ? 'تمت الإزالة من المفضلة' : 'Removed from wishlist')
+        : (isAr ? 'تمت الإضافة للمفضلة' : 'Saved to wishlist'));
     } catch {
-      toast.error('Something went wrong');
+      toast.error(isAr ? 'حدث خطأ' : 'Something went wrong');
     } finally {
       setWishlistLoading(false);
     }
   };
 
   return (
-    <Link href={`/listings/${property._id}${checkIn || checkOut ? `?${new URLSearchParams({ ...(checkIn ? { checkIn } : {}), ...(checkOut ? { checkOut } : {}) }).toString()}` : ''}`} className="group block">
+    <Link href={`/listings/${property._id}${checkIn || checkOut || propAdults ? `?${new URLSearchParams({ ...(checkIn ? { checkIn } : {}), ...(checkOut ? { checkOut } : {}), ...(propAdults ? { adults: String(propAdults) } : {}), ...(propChildren ? { children: String(propChildren) } : {}) }).toString()}` : ''}`} className="group block">
       <div className="card overflow-hidden group-hover:scale-[1.01] transition-all duration-300">
         {/* Image Carousel */}
         <div className="relative aspect-[4/3] overflow-hidden rounded-t-xl bg-gray-100 group/carousel">

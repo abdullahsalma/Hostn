@@ -38,6 +38,22 @@ export function calculateNights(checkIn: string | Date, checkOut: string | Date)
   return differenceInDays(d2, d1);
 }
 
+/**
+ * Arabic night plural rules:
+ *   1–2  → ليلة
+ *   3–10 → ليالي
+ *   11+  → ليلة
+ * English: 1 → night, else → nights
+ */
+export function getNightLabel(count: number, lang: 'en' | 'ar' = 'en') {
+  if (lang === 'ar') {
+    if (count <= 2) return 'ليلة';
+    if (count <= 10) return 'ليالي';
+    return 'ليلة';
+  }
+  return count === 1 ? 'night' : 'nights';
+}
+
 export function getPropertyTypeLabel(type: string, lang: 'en' | 'ar' = 'en') {
   const labels: Record<string, { en: string; ar: string }> = {
     chalet: { en: 'Chalet', ar: 'شاليه' },

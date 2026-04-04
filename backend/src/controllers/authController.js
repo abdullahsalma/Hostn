@@ -27,7 +27,7 @@ const REFRESH_COOKIE_OPTIONS = {
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'lax',
   maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-  path: '/api/auth', // Only sent to auth endpoints
+  path: '/api/v1/auth', // Only sent to auth endpoints
 };
 
 /**
@@ -542,7 +542,7 @@ exports.deleteAccount = async (req, res, next) => {
 
     // Clear auth cookies
     res.cookie('hostn_token', '', { httpOnly: true, expires: new Date(0), path: '/' });
-    res.cookie('hostn_refresh', '', { httpOnly: true, expires: new Date(0), path: '/api/auth' });
+    res.cookie('hostn_refresh', '', { httpOnly: true, expires: new Date(0), path: '/api/v1/auth' });
 
     res.json({ success: true, message: 'Account deleted successfully' });
   } catch (error) {

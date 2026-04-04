@@ -11,7 +11,7 @@ import BookingWidget from '@/components/property/BookingWidget';
 import { Property, User } from '@/types';
 import { propertiesApi } from '@/lib/api';
 import { getPropertyTypeLabel } from '@/lib/utils';
-import { CITIES } from '@/lib/constants';
+import { CITIES, DISTRICTS } from '@/lib/constants';
 import { MapPin, Users, BedDouble, Bath, Clock, Cigarette, PawPrint, Music, BadgeCheck, MessageCircle } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
@@ -38,9 +38,11 @@ function PropertyDetailContent() {
   const [showAllAmenities, setShowAllAmenities] = useState(false);
   const { t, language } = useLanguage();
 
-  // Read dates from URL params (passed from listings search)
+  // Read dates and guests from URL params (passed from listings search)
   const initialCheckIn = searchParams.get('checkIn') || '';
   const initialCheckOut = searchParams.get('checkOut') || '';
+  const initialAdults = parseInt(searchParams.get('adults') || '0', 10) || 0;
+  const initialChildren = parseInt(searchParams.get('children') || '0', 10) || 0;
   const isAr = language === 'ar';
 
   useEffect(() => {
@@ -124,7 +126,7 @@ function PropertyDetailContent() {
                   )}
                   <span className="flex items-center gap-1 text-gray-600">
                     <MapPin className="w-4 h-4 text-primary-500" />
-                    {property.location.district && `${property.location.district}, `}{property.location.city}
+                    {property.location.district && `${isAr ? (Object.values(DISTRICTS).flat().find(d => d.value === property.location.district)?.ar || property.location.district) : property.location.district}, `}{isAr ? (CITIES.find(c => c.value.toLowerCase() === property.location.city.toLowerCase())?.ar || property.location.city) : property.location.city}
                   </span>
                   <span className="badge bg-primary-50 text-primary-700 text-xs font-semibold">
                     {getPropertyTypeLabel(property.type, language as 'en' | 'ar')}
@@ -291,7 +293,7 @@ function PropertyDetailContent() {
 
             {/* Right column – Booking widget (BNPL is inside it) */}
             <div className="lg:col-span-1">
-              <BookingWidget property={property} initialCheckIn={initialCheckIn} initialCheckOut={initialCheckOut} />
+              <BookingWidget property={property} initialCheckIn={initialCheckIn} initialCheckOut={initialCheckOut} initialAdults={initialAdults} initialChildren={initialChildren} />
             </div>
           </div>
         </div>

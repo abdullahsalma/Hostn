@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Property } from '@/types';
-import { formatPrice, formatPriceNumber, calculateNights, getDiscountedPrice } from '@/lib/utils';
+import { formatPrice, formatPriceNumber, calculateNights, getDiscountedPrice, getNightLabel } from '@/lib/utils';
 import { Calendar, Users, Minus, Plus } from 'lucide-react';
 import MiniCalendar from '@/components/ui/MiniCalendar';
 import Button from '@/components/ui/Button';
@@ -18,16 +18,18 @@ interface BookingWidgetProps {
   property: Property;
   initialCheckIn?: string;
   initialCheckOut?: string;
+  initialAdults?: number;
+  initialChildren?: number;
 }
 
-export default function BookingWidget({ property, initialCheckIn = '', initialCheckOut = '' }: BookingWidgetProps) {
+export default function BookingWidget({ property, initialCheckIn = '', initialCheckOut = '', initialAdults = 0, initialChildren = 0 }: BookingWidgetProps) {
   const router = useRouter();
   const { t, language } = useLanguage();
   const isAr = language === 'ar';
   const [checkIn, setCheckIn] = useState(initialCheckIn);
   const [checkOut, setCheckOut] = useState(initialCheckOut);
-  const [adults, setAdults] = useState(1);
-  const [children, setChildren] = useState(0);
+  const [adults, setAdults] = useState(initialAdults > 0 ? initialAdults : 1);
+  const [children, setChildren] = useState(initialChildren > 0 ? initialChildren : 0);
   const guests = adults + children;
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectingCheckOut, setSelectingCheckOut] = useState(false);
@@ -85,7 +87,7 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
   const displayPrice = property.pricing.discountPercent > 0
     ? getDiscountedPrice(property.pricing.perNight, property.pricing.discountPercent)
     : property.pricing.perNight;
-  const nightLabel = nights !== 1 ? t('booking.nights') : t('booking.nightSingle');
+  const nightLabel = getNightLabel(nights, language as 'en' | 'ar');
 
   return (
     <div className="card p-6 sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto">

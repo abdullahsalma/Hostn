@@ -7,9 +7,9 @@ import { format, addDays } from 'date-fns';
 import { useLanguage } from '@/context/LanguageContext';
 import { CITIES } from '@/lib/constants';
 import MiniCalendar from '@/components/ui/MiniCalendar';
-import { calculateNights } from '@/lib/utils';
+import { calculateNights, getNightLabel } from '@/lib/utils';
 
-type SearchStep = 'idle' | 'location' | 'dates' | 'ready';
+type SearchStep = 'idle' | 'location' | 'type' | 'dates' | 'ready';
 
 export default function HeroSearch() {
   const router = useRouter();
@@ -72,7 +72,7 @@ export default function HeroSearch() {
     setCitySearch(cityLabel);
     setShowCityDropdown(false);
     setShowTypeDropdown(true);
-    setStep('dates');
+    setStep('type');
   }, []);
 
   // Calendar date selection handler — calendar stays open, only closes via outside click or search
@@ -159,7 +159,7 @@ export default function HeroSearch() {
   // Step indicator dots
   const steps: { key: SearchStep; label: string }[] = [
     { key: 'location', label: t('hero.destination') },
-    { key: 'location', label: t('hero.propertyType') },
+    { key: 'type', label: t('hero.propertyType') },
     { key: 'dates', label: t('hero.dates') },
     { key: 'ready', label: t('hero.search') },
   ];
@@ -209,7 +209,7 @@ export default function HeroSearch() {
               {t('hero.title2')}
             </span>
           </h1>
-          <p className="text-sm sm:text-base md:text-lg text-white/70 mb-6 sm:mb-10 max-w-xl mx-auto leading-relaxed font-light px-2 sm:px-0">
+          <p className={`text-sm sm:text-base md:text-lg text-white/70 mb-6 sm:mb-10 max-w-xl mx-auto font-light px-2 sm:px-0 ${isAr ? 'leading-loose md:leading-[2]' : 'leading-relaxed'}`}>
             {t('hero.subtitle')}
           </p>
         </div>
@@ -333,9 +333,9 @@ export default function HeroSearch() {
                 <div className="relative">
                   <button
                     type="button"
-                    onClick={() => setShowTypeDropdown(!showTypeDropdown)}
+                    onClick={() => { setShowTypeDropdown(!showTypeDropdown); if (!showTypeDropdown) setStep('type'); }}
                     className={`w-full px-4 py-3 border rounded-xl text-sm text-start bg-gray-50/50 cursor-pointer transition-all duration-200 ${
-                      showTypeDropdown ? 'border-primary-300 ring-2 ring-primary-400/40' : 'border-gray-100'
+                      showTypeDropdown || step === 'type' ? 'border-primary-300 ring-2 ring-primary-400/40' : 'border-gray-100'
                     } ${propertyType ? 'text-gray-800' : 'text-gray-800'}`}
                   >
                     {PROPERTY_TYPES.find(t => t.value === propertyType)?.label || PROPERTY_TYPES[0].label}
@@ -393,7 +393,7 @@ export default function HeroSearch() {
                   </span>
                   {checkIn && checkOut && (
                     <span className="text-xs text-primary-500 font-medium ms-1">
-                      {(() => { const n = calculateNights(checkIn, checkOut); return isAr ? `${n} ليلة` : `${n} night${n > 1 ? 's' : ''}`; })()}
+                      {(() => { const n = calculateNights(checkIn, checkOut); return `${n} ${getNightLabel(n, isAr ? 'ar' : 'en')}`; })()}
                     </span>
                   )}
                 </button>
