@@ -47,7 +47,7 @@ function BookingContent() {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      router.push(`/auth/guest/login?redirect=/booking/${id}?${searchParams.toString()}`);
+      router.push(`/auth?redirect=/booking/${id}?${searchParams.toString()}`);
       return;
     }
     fetchProperty();

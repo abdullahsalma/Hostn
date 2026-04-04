@@ -30,7 +30,8 @@ export default function Footer() {
             </h4>
             <ul className="space-y-2 text-sm">
               <li><Link href="/listings" className="hover:text-white transition-colors">{lang === 'ar' ? 'تصفح العقارات' : 'Browse Properties'}</Link></li>
-              <li><Link href="/auth/host/register" className="hover:text-white transition-colors">{lang === 'ar' ? 'كن مضيفاً' : 'Become a Host'}</Link></li>
+              <li><Link href="/blog" className="hover:text-white transition-colors">{lang === 'ar' ? 'المدونة' : 'Blog'}</Link></li>
+              <li><Link href="/auth" className="hover:text-white transition-colors">{lang === 'ar' ? 'كن مضيفاً' : 'Become a Host'}</Link></li>
               <li>
                 {isAuthenticated ? (
                   <Link href="/dashboard" className="hover:text-white transition-colors">{lang === 'ar' ? 'حسابي' : 'My Account'}</Link>

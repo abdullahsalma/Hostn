@@ -1,5 +1,5 @@
-import AuthForm from '@/components/auth/AuthForm';
+import { redirect } from 'next/navigation';
 
 export default function HostRegisterPage() {
-  return <AuthForm mode="register" role="host" />;
+  redirect('/auth');
 }

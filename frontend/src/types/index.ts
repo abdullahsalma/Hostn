@@ -8,6 +8,9 @@ export interface User {
   adminRole?: 'super' | 'support' | 'finance' | null;
   isVerified: boolean;
   wishlist: string[];
+  balance?: number;
+  blockedByHosts?: number;
+  guestRating?: number;
   createdAt: string;
 }
 
@@ -452,4 +455,27 @@ export interface PaymentRecord {
   bookingStatus: string;
   createdAt: string;
   paidAt?: string;
+}
+
+// ═══ Blog ═══
+export interface BlogCategory {
+  _id: string;
+  name: { en: string; ar: string };
+  slug: string;
+}
+
+export interface BlogPost {
+  _id: string;
+  title: { en: string; ar: string };
+  slug: string;
+  excerpt: { en: string; ar: string };
+  content: { en: string; ar: string };
+  coverImage?: string;
+  category: BlogCategory | string;
+  author: User | string;
+  tags?: string[];
+  isPublished: boolean;
+  publishedAt?: string;
+  createdAt: string;
+  updatedAt: string;
 }

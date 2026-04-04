@@ -45,8 +45,7 @@ export default function HostSettingsPage() {
     setDeleting(true);
     setError('');
     try {
-      // Call backend delete endpoint — if it doesn't exist yet, the catch block handles gracefully
-      await authApi.logout();
+      await authApi.deleteAccount();
       localStorage.removeItem('hostn_user');
       window.location.href = '/';
     } catch {

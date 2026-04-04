@@ -30,17 +30,17 @@ export function calculateNights(checkIn: string | Date, checkOut: string | Date)
   return differenceInDays(d2, d1);
 }
 
-export function getPropertyTypeLabel(type: string) {
-  const labels: Record<string, string> = {
-    chalet: 'Chalet',
-    apartment: 'Apartment',
-    villa: 'Villa',
-    studio: 'Studio',
-    farm: 'Farm',
-    camp: 'Camp',
-    hotel: 'Hotel Room',
+export function getPropertyTypeLabel(type: string, lang: 'en' | 'ar' = 'en') {
+  const labels: Record<string, { en: string; ar: string }> = {
+    chalet: { en: 'Chalet', ar: 'شاليه' },
+    apartment: { en: 'Apartment', ar: 'شقة' },
+    villa: { en: 'Villa', ar: 'فيلا' },
+    studio: { en: 'Studio', ar: 'استوديو' },
+    farm: { en: 'Farm', ar: 'مزرعة' },
+    camp: { en: 'Camp', ar: 'مخيم' },
+    hotel: { en: 'Hotel Room', ar: 'غرفة فندقية' },
   };
-  return labels[type] || type;
+  return labels[type]?.[lang] || type;
 }
 
 export function getAmenityLabel(amenity: string, lang: 'en' | 'ar' = 'en') {
