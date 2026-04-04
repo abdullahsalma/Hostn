@@ -93,6 +93,7 @@ export const authApi = {
     api.post('/auth/send-otp', data),
   verifyOtp: (data: { phone: string; otp: string; countryCode?: string }) =>
     api.post('/auth/verify-otp', data),
+  deleteAccount: () => api.delete('/auth/account'),
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -301,6 +302,30 @@ export const bnplApi = {
     api.post('/bnpl/tamara/create', data),
   verifyTamaraPayment: (data: { paymentId: string; orderId?: string }) =>
     api.post('/bnpl/tamara/verify', data),
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// BLOG
+// ═══════════════════════════════════════════════════════════════════════════════
+export const blogApi = {
+  // Public
+  getPosts: (params?: Record<string, unknown>) =>
+    api.get('/blog/posts', { params }),
+  getPost: (slug: string) =>
+    api.get(`/blog/posts/${slug}`),
+  getCategories: () =>
+    api.get('/blog/categories'),
+  // Admin
+  createPost: (data: Record<string, unknown>) =>
+    api.post('/blog/posts', data),
+  updatePost: (id: string, data: Record<string, unknown>) =>
+    api.put(`/blog/posts/${id}`, data),
+  deletePost: (id: string) =>
+    api.delete(`/blog/posts/${id}`),
+  createCategory: (data: Record<string, unknown>) =>
+    api.post('/blog/categories', data),
+  deleteCategory: (id: string) =>
+    api.delete(`/blog/categories/${id}`),
 };
 
 export default api;

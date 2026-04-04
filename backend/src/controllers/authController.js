@@ -233,15 +233,90 @@ exports.getMe = async (req, res, next) => {
   }
 };
 
-// @desc    Update profile
+// @desc    Update profile (also handles email change with verification)
 // @route   PUT /api/auth/profile
 // @access  Private
 exports.updateProfile = async (req, res, next) => {
   try {
-    const { name, phone, avatar } = req.body;
+    const { name, phone, avatar, email, emailVerificationCode } = req.body;
+
+    // ── Email change flow ────────────────────────────────────────────────
+    if (email) {
+      const normalizedEmail = email.toLowerCase().trim();
+
+      // Check if email is already taken by another user
+      const existingEmailUser = await User.findOne({ email: normalizedEmail, _id: { $ne: req.user._id } });
+      if (existingEmailUser) {
+        return res.status(400).json({ success: false, message: 'Email already registered to another account' });
+      }
+
+      // Step 2: verify code and apply email change
+      if (emailVerificationCode) {
+        const tokenHash = crypto.createHash('sha256').update(emailVerificationCode).digest('hex');
+        const raw = await User.collection.findOne({ _id: req.user._id });
+
+        if (
+          !raw.emailVerificationCode ||
+          raw.emailVerificationCode !== tokenHash ||
+          !raw.pendingEmail ||
+          raw.pendingEmail !== normalizedEmail ||
+          !raw.emailVerificationExpires ||
+          new Date(raw.emailVerificationExpires) < new Date()
+        ) {
+          return res.status(400).json({ success: false, message: 'Invalid or expired verification code' });
+        }
+
+        // Apply the email change
+        await User.collection.updateOne(
+          { _id: req.user._id },
+          {
+            $set: { email: normalizedEmail },
+            $unset: { pendingEmail: '', emailVerificationCode: '', emailVerificationExpires: '' },
+          }
+        );
+
+        const updatedUser = await User.findById(req.user._id);
+        return res.json({ success: true, user: updatedUser });
+      }
+
+      // Step 1: generate code and store pending email
+      const code = crypto.randomInt(100000, 999999).toString();
+      const codeHash = crypto.createHash('sha256').update(code).digest('hex');
+
+      await User.collection.updateOne(
+        { _id: req.user._id },
+        {
+          $set: {
+            pendingEmail: normalizedEmail,
+            emailVerificationCode: codeHash,
+            emailVerificationExpires: new Date(Date.now() + 15 * 60 * 1000), // 15 min
+          },
+        }
+      );
+
+      // In production this would send an email. For now return success.
+      // The code is logged in dev for testing.
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[DEV] Email verification code for ${normalizedEmail}: ${code}`);
+      }
+
+      return res.json({
+        success: true,
+        message: 'Verification code sent to new email',
+        // Include code in dev for testing (remove in production)
+        ...(process.env.NODE_ENV !== 'production' && { devCode: code }),
+      });
+    }
+
+    // ── Normal profile update (name, phone, avatar) ──────────────────────
+    const updates = {};
+    if (name !== undefined) updates.name = name;
+    if (phone !== undefined) updates.phone = phone;
+    if (avatar !== undefined) updates.avatar = avatar;
+
     const user = await User.findByIdAndUpdate(
       req.user._id,
-      { name, phone, avatar },
+      updates,
       { new: true, runValidators: true }
     );
     res.json({ success: true, user });
@@ -400,6 +475,29 @@ exports.linkEmail = async (req, res, next) => {
     if (error.code === 11000) {
       return res.status(400).json({ success: false, message: 'Email already in use' });
     }
+    next(error);
+  }
+};
+
+// @desc    Delete own account
+// @route   DELETE /api/auth/account
+// @access  Private
+exports.deleteAccount = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+
+    // Revoke all refresh tokens
+    await RefreshToken.revokeAllForUser(userId);
+
+    // Remove the user document
+    await User.findByIdAndDelete(userId);
+
+    // Clear auth cookies
+    res.cookie('hostn_token', '', { httpOnly: true, expires: new Date(0), path: '/' });
+    res.cookie('hostn_refresh', '', { httpOnly: true, expires: new Date(0), path: '/api/auth' });
+
+    res.json({ success: true, message: 'Account deleted successfully' });
+  } catch (error) {
     next(error);
   }
 };

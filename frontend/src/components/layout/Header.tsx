@@ -28,9 +28,12 @@ export default function Header() {
             <Link href="/listings" className="text-sm font-medium text-gray-600 hover:text-primary-700 transition-colors">
               {lang === 'ar' ? 'تصفح العقارات' : 'Browse Properties'}
             </Link>
+            <Link href="/blog" className="text-sm font-medium text-gray-600 hover:text-primary-700 transition-colors">
+              {lang === 'ar' ? 'المدونة' : 'Blog'}
+            </Link>
 
             {!isAuthenticated && (
-              <Link href="/auth/host/register" className="text-sm font-medium text-emerald-600 hover:text-emerald-700 transition-colors">
+              <Link href="/auth" className="text-sm font-medium text-emerald-600 hover:text-emerald-700 transition-colors">
                 {t('nav.becomeHost')}
               </Link>
             )}
@@ -81,6 +84,9 @@ export default function Header() {
           <div className="md:hidden pb-4 space-y-3 border-t border-gray-100 pt-3">
             <Link href="/listings" onClick={() => setMenuOpen(false)} className="block text-sm font-medium text-gray-600 py-2">
               {lang === 'ar' ? 'تصفح العقارات' : 'Browse Properties'}
+            </Link>
+            <Link href="/blog" onClick={() => setMenuOpen(false)} className="block text-sm font-medium text-gray-600 py-2">
+              {lang === 'ar' ? 'المدونة' : 'Blog'}
             </Link>
             <button onClick={toggleLanguage} className="block text-sm font-medium text-gray-500 py-2">
               <Globe className="w-4 h-4 inline me-1.5" />

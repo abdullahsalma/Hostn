@@ -7,7 +7,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { authApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 import {
-  User, Lock, Crown, Loader2, Save, Eye, EyeOff,
+  User, Lock, Crown, Loader2, Save, Eye, EyeOff, Mail, Check,
 } from 'lucide-react';
 
 export default function SettingsPage() {
@@ -28,6 +28,13 @@ export default function SettingsPage() {
   const [showNew, setShowNew] = useState(false);
 
   const [upgrading, setUpgrading] = useState(false);
+
+  // Email editing
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [emailCode, setEmailCode] = useState('');
+  const [emailCodeSent, setEmailCodeSent] = useState(false);
+  const [emailSaving, setEmailSaving] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -100,6 +107,50 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSendEmailCode = async () => {
+    if (!newEmail || !/\S+@\S+\.\S+/.test(newEmail)) {
+      toast.error(lang === 'ar' ? '\u0628\u0631\u064A\u062F \u0625\u0644\u0643\u062A\u0631\u0648\u0646\u064A \u063A\u064A\u0631 \u0635\u0627\u0644\u062D' : 'Invalid email address');
+      return;
+    }
+    if (newEmail === user?.email) {
+      toast.error(lang === 'ar' ? '\u0647\u0630\u0627 \u0628\u0631\u064A\u062F\u0643 \u0627\u0644\u062D\u0627\u0644\u064A' : 'This is your current email');
+      return;
+    }
+    setEmailSaving(true);
+    try {
+      await authApi.updateProfile({ email: newEmail } as Parameters<typeof authApi.updateProfile>[0]);
+      setEmailCodeSent(true);
+      toast.success(lang === 'ar' ? '\u062A\u0645 \u0625\u0631\u0633\u0627\u0644 \u0631\u0645\u0632 \u0627\u0644\u062A\u062D\u0642\u0642' : 'Verification code sent to new email');
+    } catch {
+      toast.error(lang === 'ar' ? '\u0641\u0634\u0644 \u0641\u064A \u062A\u062D\u062F\u064A\u062B \u0627\u0644\u0628\u0631\u064A\u062F' : 'Failed to update email');
+    } finally {
+      setEmailSaving(false);
+    }
+  };
+
+  const handleVerifyEmail = async () => {
+    if (!emailCode || emailCode.length < 4) {
+      toast.error(lang === 'ar' ? '\u0623\u062F\u062E\u0644 \u0631\u0645\u0632 \u0627\u0644\u062A\u062D\u0642\u0642' : 'Enter the verification code');
+      return;
+    }
+    setEmailSaving(true);
+    try {
+      // This would verify the code and update the email
+      // For now, update profile directly — backend should handle verification
+      const res = await authApi.updateProfile({ email: newEmail, emailVerificationCode: emailCode } as Parameters<typeof authApi.updateProfile>[0]);
+      updateUser(res.data.user || res.data.data || { ...user!, email: newEmail });
+      toast.success(lang === 'ar' ? '\u062A\u0645 \u062A\u062D\u062F\u064A\u062B \u0627\u0644\u0628\u0631\u064A\u062F \u0628\u0646\u062C\u0627\u062D' : 'Email updated successfully');
+      setEditingEmail(false);
+      setEmailCodeSent(false);
+      setNewEmail('');
+      setEmailCode('');
+    } catch {
+      toast.error(lang === 'ar' ? '\u0631\u0645\u0632 \u0627\u0644\u062A\u062D\u0642\u0642 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D' : 'Invalid verification code');
+    } finally {
+      setEmailSaving(false);
+    }
+  };
+
   if (authLoading || !user) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -152,12 +203,87 @@ export default function SettingsPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
               {lang === 'ar' ? '\u0627\u0644\u0628\u0631\u064a\u062f \u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a' : 'Email'}
             </label>
-            <input
-              type="email"
-              value={user.email}
-              disabled
-              className={`${inputClass} bg-gray-50 text-gray-500 cursor-not-allowed`}
-            />
+            {!editingEmail ? (
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  value={user.email || (lang === 'ar' ? '\u0644\u0645 \u064A\u062A\u0645 \u0627\u0644\u062A\u062D\u062F\u064A\u062F' : 'Not set')}
+                  disabled
+                  className={`${inputClass} bg-gray-50 text-gray-500 cursor-not-allowed flex-1`}
+                />
+                <button
+                  type="button"
+                  onClick={() => { setEditingEmail(true); setNewEmail(user.email || ''); }}
+                  className="px-3 py-2 text-sm font-medium text-primary-600 border border-primary-200 rounded-lg hover:bg-primary-50 transition-colors flex items-center gap-1.5"
+                >
+                  <Mail className="w-3.5 h-3.5" />
+                  {lang === 'ar' ? '\u062A\u0639\u062F\u064A\u0644' : 'Edit'}
+                </button>
+              </div>
+            ) : !emailCodeSent ? (
+              <div className="space-y-2">
+                <input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  className={inputClass}
+                  placeholder={lang === 'ar' ? '\u0623\u062F\u062E\u0644 \u0628\u0631\u064A\u062F\u0643 \u0627\u0644\u062C\u062F\u064A\u062F' : 'Enter new email'}
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSendEmailCode}
+                    disabled={emailSaving}
+                    className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
+                  >
+                    {emailSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Mail className="w-3.5 h-3.5" />}
+                    {lang === 'ar' ? '\u0625\u0631\u0633\u0627\u0644 \u0631\u0645\u0632 \u0627\u0644\u062A\u062D\u0642\u0642' : 'Send Code'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setEditingEmail(false); setNewEmail(''); }}
+                    className="px-3 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    {lang === 'ar' ? '\u0625\u0644\u063A\u0627\u0621' : 'Cancel'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-sm text-gray-500">
+                  {lang === 'ar' ? `\u062A\u0645 \u0625\u0631\u0633\u0627\u0644 \u0631\u0645\u0632 \u0627\u0644\u062A\u062D\u0642\u0642 \u0625\u0644\u0649 ${newEmail}` : `Verification code sent to ${newEmail}`}
+                </p>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={emailCode}
+                  onChange={(e) => setEmailCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className={`${inputClass} text-center tracking-widest font-mono`}
+                  placeholder="000000"
+                  autoFocus
+                  dir="ltr"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleVerifyEmail}
+                    disabled={emailSaving}
+                    className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
+                  >
+                    {emailSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                    {lang === 'ar' ? '\u062A\u0623\u0643\u064A\u062F' : 'Verify'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setEmailCodeSent(false); setEmailCode(''); }}
+                    className="px-3 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    {lang === 'ar' ? '\u0631\u062C\u0648\u0639' : 'Back'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div>

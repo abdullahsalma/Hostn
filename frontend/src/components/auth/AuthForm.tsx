@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { authApi } from '@/lib/api';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import { Mail, Lock, Eye, EyeOff, User, Phone, Smartphone } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, Phone, Smartphone, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useLanguage } from '@/context/LanguageContext';
 
@@ -461,7 +461,7 @@ export default function AuthForm({ mode, role }: AuthFormProps) {
         {/* Back to role selection */}
         <p className="text-center mt-6 text-sm text-gray-400">
           <Link href="/auth" className="hover:text-gray-600 hover:underline">
-            {lang === 'ar' ? '← العودة لاختيار نوع الحساب' : '← Back to role selection'}
+            <ArrowLeft className="w-3.5 h-3.5 inline rtl:rotate-180" /> {lang === 'ar' ? 'العودة لاختيار نوع الحساب' : 'Back to role selection'}
           </Link>
         </p>
       </div>

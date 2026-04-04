@@ -19,7 +19,7 @@ interface PropertyCardProps {
 
 export default function PropertyCard({ property, checkIn, checkOut }: PropertyCardProps) {
   const { user, isAuthenticated, toggleWishlist } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [isWishlisted, setIsWishlisted] = useState(
     user?.wishlist?.includes(property._id) ?? false
   );
@@ -145,7 +145,7 @@ export default function PropertyCard({ property, checkIn, checkOut }: PropertyCa
           {/* Type badge */}
           <div className="absolute bottom-3 ltr:left-3 rtl:right-3">
             <span className="badge bg-black/60 text-white text-xs backdrop-blur-sm">
-              {getPropertyTypeLabel(property.type)}
+              {getPropertyTypeLabel(property.type, language as 'en' | 'ar')}
             </span>
           </div>
         </div>

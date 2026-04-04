@@ -46,9 +46,14 @@ export default function HostEarningsPage() {
   const loadEarnings = async () => {
     try {
       const res = await hostApi.getEarnings();
-      setData(res.data.data || res.data || { totalEarnings: 0, monthlyBreakdown: [] });
+      const raw = res.data?.data || res.data || {};
+      setData({
+        totalEarnings: raw.totalEarnings ?? raw.total ?? 0,
+        monthlyBreakdown: raw.monthlyBreakdown ?? raw.monthly ?? [],
+      });
     } catch {
-      toast.error(lang === 'ar' ? '\u0641\u0634\u0644 \u0641\u064a \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0623\u0631\u0628\u0627\u062d' : 'Failed to load earnings');
+      // Silently handle — show empty state instead of error toast
+      setData({ totalEarnings: 0, monthlyBreakdown: [] });
     } finally {
       setLoading(false);
     }

@@ -184,7 +184,7 @@ export default function HeroSearch() {
 
         {/* Headline */}
         <div className="animate-fade-in-up mt-6" style={{ animationDelay: '0.2s' }}>
-          <h1 className="text-3xl sm:text-5xl md:text-7xl font-extrabold text-white mb-3 sm:mb-5 leading-[1.1] tracking-tight">
+          <h1 className={`text-3xl sm:text-5xl md:text-7xl font-extrabold text-white mb-3 sm:mb-5 tracking-tight ${isAr ? 'leading-[1.3]' : 'leading-[1.1]'}`}>
             {t('hero.title1')}
             <br />
             <span className={`${isAr ? 'font-display-ar' : 'font-display italic'} text-gradient-gold inline-block mt-1`}>
@@ -410,6 +410,7 @@ export default function HeroSearch() {
                   checkIn={checkIn}
                   checkOut={checkOut}
                   onSelectDate={handleDateSelect}
+                  onConfirm={() => setShowCalendar(false)}
                   locale={isAr ? 'ar' : 'en'}
                   dual
                 />
@@ -419,6 +420,7 @@ export default function HeroSearch() {
                   checkIn={checkIn}
                   checkOut={checkOut}
                   onSelectDate={handleDateSelect}
+                  onConfirm={() => setShowCalendar(false)}
                   locale={isAr ? 'ar' : 'en'}
                 />
               </div>

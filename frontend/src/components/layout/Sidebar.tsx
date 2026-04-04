@@ -6,7 +6,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import {
   LayoutDashboard, Calendar, Home, MessageSquare, Settings,
   CreditCard, Star, BarChart3, Users, Building, BookOpen,
-  FileText, Shield, LogOut, ChevronRight,
+  FileText, Shield, LogOut, ChevronRight, Heart, Wallet, Globe, Newspaper,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -20,6 +20,8 @@ type NavItem = {
 const guestNav: NavItem[] = [
   { href: '/dashboard', icon: LayoutDashboard, label: { en: 'Dashboard', ar: 'لوحة التحكم' } },
   { href: '/dashboard/bookings', icon: BookOpen, label: { en: 'My Bookings', ar: 'حجوزاتي' } },
+  { href: '/dashboard/favorites', icon: Heart, label: { en: 'Favorites', ar: 'المفضلة' } },
+  { href: '/dashboard/balance', icon: Wallet, label: { en: 'Balance', ar: 'الرصيد' } },
   { href: '/dashboard/messages', icon: MessageSquare, label: { en: 'Messages', ar: 'الرسائل' } },
   { href: '/dashboard/support', icon: FileText, label: { en: 'Support', ar: 'الدعم' } },
   { href: '/dashboard/settings', icon: Settings, label: { en: 'Settings', ar: 'الإعدادات' } },
@@ -44,6 +46,7 @@ const adminNav: NavItem[] = [
   { href: '/admin/payments', icon: CreditCard, label: { en: 'Payments', ar: 'المدفوعات' }, adminRoles: ['super', 'finance'] },
   { href: '/admin/reports', icon: Shield, label: { en: 'Reports', ar: 'البلاغات' }, adminRoles: ['super', 'support'] },
   { href: '/admin/support', icon: FileText, label: { en: 'Support', ar: 'الدعم' }, adminRoles: ['super', 'support'] },
+  { href: '/admin/blog', icon: Newspaper, label: { en: 'Blog', ar: 'المدونة' }, adminRoles: ['super'] },
   { href: '/admin/logs', icon: BarChart3, label: { en: 'Activity Logs', ar: 'سجل النشاط' }, adminRoles: ['super', 'support', 'finance'] },
 ];
 
@@ -71,7 +74,7 @@ interface SidebarProps {
 
 export default function Sidebar({ role }: SidebarProps) {
   const pathname = usePathname();
-  const { language } = useLanguage();
+  const { language, toggleLanguage } = useLanguage();
   const { logout, user } = useAuth();
   const lang = language as 'en' | 'ar';
   const rawNav = NAV_MAP[role] || guestNav;
@@ -120,9 +123,16 @@ export default function Sidebar({ role }: SidebarProps) {
         ))}
       </nav>
 
-      {/* User + Logout */}
+      {/* Language + User + Logout */}
       <div className="p-4 border-t border-gray-100">
         <div className="text-sm text-gray-600 mb-3 truncate px-3">{user?.name || user?.email}</div>
+        <button
+          onClick={toggleLanguage}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 w-full transition-colors mb-1"
+        >
+          <Globe className="w-5 h-5" />
+          {lang === 'ar' ? 'English' : 'العربية'}
+        </button>
         <button
           onClick={logout}
           className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 w-full transition-colors"
