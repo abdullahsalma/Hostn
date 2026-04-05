@@ -236,6 +236,10 @@ exports.verifyOTP = async (req, res, next) => {
         console.log(`[OTP] Normalizing phone from "${user.phone}" to "${phone}"`);
         user.phone = phone;
       }
+      // Ensure test accounts always have the correct role
+      if (TEST_ACCOUNTS[phone] && user.role !== TEST_ACCOUNTS[phone]) {
+        user.role = TEST_ACCOUNTS[phone];
+      }
       user.phoneVerified = true;
       await user.save();
     }
