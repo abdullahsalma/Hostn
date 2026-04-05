@@ -935,8 +935,8 @@ export default function PropertyForm({ initialData, isEditing = false }: Propert
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-gray-600">
                   <span className="bg-gray-50 px-3 py-2 rounded-lg">{isAr ? 'الدخول:' : 'Check-in:'} {form.checkInTime}</span>
                   <span className="bg-gray-50 px-3 py-2 rounded-lg">{isAr ? 'الخروج:' : 'Check-out:'} {form.checkOutTime}</span>
-                  <span className="bg-gray-50 px-3 py-2 rounded-lg">{isAr ? `أدنى ${form.minNights} ${getNightLabel(form.minNights, 'ar')}` : `Min ${form.minNights} ${getNightLabel(form.minNights, 'en')}`}</span>
-                  <span className="bg-gray-50 px-3 py-2 rounded-lg">{isAr ? `أقصى ${form.maxNights} ${getNightLabel(form.maxNights, 'ar')}` : `Max ${form.maxNights} ${getNightLabel(form.maxNights, 'en')}`}</span>
+                  <span className="bg-gray-50 px-3 py-2 rounded-lg">{isAr ? `أدنى ${getNightLabel(form.minNights, 'ar')}` : `Min ${getNightLabel(form.minNights, 'en')}`}</span>
+                  <span className="bg-gray-50 px-3 py-2 rounded-lg">{isAr ? `أقصى ${getNightLabel(form.maxNights, 'ar')}` : `Max ${getNightLabel(form.maxNights, 'en')}`}</span>
                 </div>
                 <div className="flex gap-2 mt-2 text-xs">
                   {form.smokingAllowed && <span className="bg-green-50 text-green-700 px-2.5 py-1 rounded-lg">{isAr ? 'التدخين مسموح' : 'Smoking OK'}</span>}

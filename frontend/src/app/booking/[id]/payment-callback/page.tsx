@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { paymentsApi } from '@/lib/api';
+import { clearSearchCookies } from '@/lib/searchCookies';
 import { useAuth } from '@/context/AuthContext';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
@@ -50,6 +51,7 @@ function PaymentCallbackContent() {
         setStatus('success');
         setMessage('Your booking has been confirmed!');
         localStorage.removeItem(`hostn_payment_${bookingId}`);
+        clearSearchCookies();
       } else {
         setStatus('failed');
         setMessage(res.data.message || 'Payment could not be verified. Please try again.');

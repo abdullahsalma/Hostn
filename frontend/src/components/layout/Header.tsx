@@ -91,7 +91,7 @@ export default function Header() {
                 <Link href={dashboardLink} onClick={() => setMenuOpen(false)} className="block text-sm font-medium text-primary-700 py-2">
                   {lang === 'ar' ? 'لوحة التحكم' : 'Dashboard'}
                 </Link>
-                <button onClick={() => { logout(); setMenuOpen(false); }} className="block text-sm font-medium text-red-500 py-2">
+                <button onClick={() => { logout(); setMenuOpen(false); }} className="block text-sm font-medium text-gray-500 py-2">
                   {lang === 'ar' ? 'تسجيل الخروج' : 'Sign Out'}
                 </button>
               </>

@@ -12,6 +12,12 @@ const generateAccessToken = (user) => {
   );
 };
 
+// Test accounts — bypass OTP; role assigned on first login
+const TEST_ACCOUNTS = {
+  '500000001': 'admin',
+  '500000002': 'host',
+};
+
 // In-memory cooldown tracker (phone → last send timestamp)
 const cooldownMap = new Map();
 const RESEND_COOLDOWN_MS = 30 * 1000; // 30 seconds
@@ -85,6 +91,24 @@ exports.sendOTP = async (req, res, next) => {
       }
     }
 
+    // Test accounts: always bypass OTP
+    if (TEST_ACCOUNTS[phone]) {
+      await OTP.deleteMany({ phone, countryCode });
+      await OTP.create({
+        phone,
+        countryCode,
+        code: '0000',
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      });
+      cooldownMap.set(cooldownKey, Date.now());
+      return res.status(200).json({
+        success: true,
+        message: 'OTP sent successfully',
+        expiresIn: 300,
+        resendCooldown: 30,
+      });
+    }
+
     // Dev bypass: skip Authentica in development if DEV_OTP_BYPASS is enabled
     if (process.env.DEV_OTP_BYPASS === 'true' && process.env.NODE_ENV !== 'production') {
       await OTP.deleteMany({ phone, countryCode });
@@ -151,12 +175,15 @@ exports.verifyOTP = async (req, res, next) => {
       });
     }
 
+    // Test accounts: accept 0000
+    const isTestAccount = TEST_ACCOUNTS[phone] && otp === '0000';
+
     // Dev bypass: accept 0000 as valid OTP for testing
     const isDevBypass = process.env.DEV_OTP_BYPASS === 'true'
       && process.env.NODE_ENV !== 'production'
       && otp === '0000';
 
-    if (!isDevBypass) {
+    if (!isTestAccount && !isDevBypass) {
       // Verify OTP via Authentica
       const result = await authentica.verifyOTP(phone, countryCode, otp);
       if (!result.valid) {
@@ -200,7 +227,7 @@ exports.verifyOTP = async (req, res, next) => {
       user = await User.create({
         phone,
         phoneVerified: true,
-        role: 'guest',
+        role: TEST_ACCOUNTS[phone] || 'guest',
         name: `User ${phone.slice(-4)}`,
       });
     } else {
@@ -240,7 +267,7 @@ exports.verifyOTP = async (req, res, next) => {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 30 * 24 * 60 * 60 * 1000,
-      path: '/api/auth',
+      path: '/api/v1/auth',
     });
 
     res.status(200).json({

@@ -116,6 +116,8 @@ export default function NewListingPage() {
     );
   };
 
+  const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png'];
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -127,6 +129,15 @@ export default function NewListingPage() {
     }
 
     const toUpload = Array.from(files).slice(0, remaining);
+
+    // Client-side type validation
+    const invalid = toUpload.filter(f => !ALLOWED_IMAGE_TYPES.includes(f.type));
+    if (invalid.length > 0) {
+      toast.error(lang === 'ar' ? '\u064A\u064F\u0642\u0628\u0644 \u0641\u0642\u0637 \u0635\u0648\u0631 JPG \u0648 PNG' : 'Only JPG and PNG images are accepted');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
     setUploading(true);
 
     try {
@@ -144,7 +155,7 @@ export default function NewListingPage() {
       if (errMsg) {
         toast.error(errMsg);
       } else {
-        toast.error(lang === 'ar' ? 'فشل رفع الصورة. تأكد أن الملف صورة (JPEG, PNG, WebP) وأقل من 5MB' : 'Failed to upload image. Ensure file is an image (JPEG, PNG, WebP) under 5MB');
+        toast.error(lang === 'ar' ? '\u0641\u0634\u0644 \u0631\u0641\u0639 \u0627\u0644\u0635\u0648\u0631\u0629. \u062A\u0623\u0643\u062F \u0623\u0646 \u0627\u0644\u0645\u0644\u0641 \u0635\u0648\u0631\u0629 (JPG, PNG) \u0648\u0623\u0642\u0644 \u0645\u0646 5MB' : 'Failed to upload image. Ensure file is an image (JPG, PNG) under 5MB');
       }
     } finally {
       setUploading(false);
@@ -345,7 +356,7 @@ export default function NewListingPage() {
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept=".jpg,.jpeg,.png"
             multiple
             onChange={handleImageUpload}
             className="hidden"

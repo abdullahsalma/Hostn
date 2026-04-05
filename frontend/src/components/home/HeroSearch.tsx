@@ -8,6 +8,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { CITIES } from '@/lib/constants';
 import MiniCalendar from '@/components/ui/MiniCalendar';
 import { calculateNights, getNightLabel } from '@/lib/utils';
+import { saveSearchCookies } from '@/lib/searchCookies';
 
 type SearchStep = 'idle' | 'location' | 'type' | 'dates' | 'ready';
 
@@ -61,6 +62,7 @@ export default function HeroSearch() {
     if (propertyType) params.set('type', propertyType);
     if (checkIn) params.set('checkIn', checkIn);
     if (checkOut) params.set('checkOut', checkOut);
+    saveSearchCookies({ city, type: propertyType, checkIn, checkOut });
     router.push(`/listings?${params.toString()}`);
   };
 
@@ -209,7 +211,7 @@ export default function HeroSearch() {
               {t('hero.title2')}
             </span>
           </h1>
-          <p className={`text-sm sm:text-base md:text-lg text-white/70 mb-6 sm:mb-10 max-w-xl mx-auto font-light px-2 sm:px-0 ${isAr ? 'leading-loose md:leading-[2]' : 'leading-relaxed'}`}>
+          <p className={`text-sm sm:text-base md:text-lg text-white/70 mb-6 sm:mb-10 mx-auto px-2 sm:px-0 ${isAr ? 'leading-[2.2] max-w-2xl font-normal' : 'leading-relaxed max-w-xl font-light'}`}>
             {t('hero.subtitle')}
           </p>
         </div>
@@ -393,7 +395,7 @@ export default function HeroSearch() {
                   </span>
                   {checkIn && checkOut && (
                     <span className="text-xs text-primary-500 font-medium ms-1">
-                      {(() => { const n = calculateNights(checkIn, checkOut); return `${n} ${getNightLabel(n, isAr ? 'ar' : 'en')}`; })()}
+                      {(() => { const n = calculateNights(checkIn, checkOut); return getNightLabel(n, isAr ? 'ar' : 'en'); })()}
                     </span>
                   )}
                 </button>
@@ -421,7 +423,7 @@ export default function HeroSearch() {
           {showCalendar && (
             <div
               ref={calendarPopupRef}
-              className="absolute ltr:left-0 rtl:right-0 top-full mt-2 z-[60] bg-white shadow-2xl border border-gray-100 rounded-2xl max-h-[80vh] overflow-y-auto animate-fade-in-up w-full max-w-[620px]"
+              className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-[60] bg-white shadow-2xl border border-gray-100 rounded-2xl max-h-[80vh] overflow-y-auto animate-fade-in-up w-full max-w-[620px]"
             >
               <div className="px-4 pt-3 pb-1">
                 <p className="text-xs font-semibold text-primary-600" aria-live="polite">

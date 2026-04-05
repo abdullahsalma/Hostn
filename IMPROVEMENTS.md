@@ -84,6 +84,20 @@
 | F56 | 2026-04-04 | `/` — Search step indicator shows 3 color steps instead of 4 | AMS | Added `'type'` as distinct SearchStep; steps now location→type→dates→ready with unique keys | Done |
 | F57 | 2026-04-04 | `/` — Arabic subtitle text squeezed on desktop | AMS | Subtitle uses `leading-loose md:leading-[2]` for Arabic, `leading-relaxed` for English | Done |
 | F58 | 2026-04-04 | Sitewide — Session expires every ~15 minutes | AMS | Refresh cookie path was `/api/auth` but routes mounted at `/api/v1/auth`; browser never sent cookie. Fixed to `/api/v1/auth` | Done |
+| F59 | 2026-04-05 | Sitewide — OTP login sessions also expire after 15 min (same F58 bug) | AMS | otpController.js refresh cookie path was `/api/auth`; fixed to `/api/v1/auth` | Done |
+| F60 | 2026-04-05 | `/auth` — Phone field middle area not clickable (icon blocks focus) | AMS | Added `pointer-events-none` to left/right icon wrappers in Input component | Done |
+| F61 | 2026-04-05 | Sitewide — Arabic night plural incorrect (2 nights shows "2 ليلة" instead of "ليلتان") | AMS | `getNightLabel` now returns full string: 1→"1 ليلة", 2→"ليلتان" (no number), 3–10→"N ليالي", 11+→"N ليلة". All 6 call sites updated | Done |
+| F62 | 2026-04-05 | Header — Mobile sign-out button still red (missed in F40) | AMS | Changed from `text-red-500` to `text-gray-500` matching desktop style | Done |
+| F63 | 2026-04-05 | `/` — Date picker misaligned (left-aligned instead of centered under search box) | AMS | Changed from `ltr:left-0 rtl:right-0` to `left-1/2 -translate-x-1/2` for centered positioning | Done |
+| F64 | 2026-04-05 | `/` — Arabic subtitle still squeezed (F24/F57 insufficient) | AMS | Increased to `leading-[2.2]`, widened to `max-w-2xl`, changed from `font-light` to `font-normal` for Arabic | Done |
+| F65 | 2026-04-05 | `/host/messages` and `/dashboard/messages` — Timestamps show 24h format instead of AM/PM | AMS | Timestamps now use `ar-SA` locale (ص/م) for Arabic and `en-US` (AM/PM) for English with `hour12: true` | Done |
+| F66 | 2026-04-05 | `/host/messages` and `/dashboard/messages` — Action menu doesn't close on outside click | AMS | Added `useRef` + `mousedown` listener to dismiss menu when clicking outside | Done |
+| F67 | 2026-04-05 | `/listings` — Price filter bubble shows raw "SAR" text, no symbol or LTR wrapping | AMS | FilterBubble `label` changed to ReactNode; price bubble uses `<SarSymbol />` with `dir="ltr"` wrapping | Done |
+| F68 | 2026-04-05 | `/listings` — Clearing filters doesn't refresh search results (stale state) | AMS | "Clear all" now navigates directly to `/listings` with only base search params, bypassing stale setState | Done |
+| F69 | 2026-04-05 | `/booking/[id]` — Children count hardcoded to 0 in booking API call | AMS | Now reads `adults` and `children` separately from URL; API sends actual counts | Done |
+| F70 | 2026-04-05 | `/booking/[id]` — Guest display shows total only, no adults/children split | AMS | Shows "2 adults, 1 child" / "2 بالغين، 1 طفل" with split counts | Done |
+| F71 | 2026-04-05 | `/booking/[id]` — Back/edit links lose children count when navigating | AMS | All 3 navigation links now pass both `adults` and `children` URL params | Done |
+| F72 | 2026-04-05 | `/host/listings/new` — Image upload accepts all image types (HEIC, BMP fail on backend) | AMS | Restricted to `.jpg,.jpeg,.png`; client-side type validation before upload; clear error messages | Done |
 
 ## Improvements
 
@@ -130,3 +144,6 @@
 | I39 | 2026-04-04 | `/host/listings/new` — District should be dropdown, not free text | AMS | District is now city-dependent `<select>` using DISTRICTS constant with Arabic labels; falls back to text input if city has no predefined districts; clears on city change | Done |
 | I40 | 2026-04-04 | `/host/listings/new` — Dropdown styling should match homepage | AMS | Updated inputClass to rounded-xl, bg-gray-50/50, primary ring focus matching HeroSearch style | Done |
 | I41 | 2026-04-04 | `/host/listings/new` — Error messages need clear field-specific explanation | AMS | Lists missing required fields by name; requires at least 1 photo; surfaces Mongoose validation errors and backend error messages; image upload shows file type/size hints. All bilingual | Done |
+| I42 | 2026-04-05 | Sitewide — Persist search details in cookies across pages | AMS | New `searchCookies.ts` utility; HeroSearch and listings save city/type/dates/guests to cookie; listings restores from cookie when URL empty; cleared after booking success | Done |
+| I43 | 2026-04-05 | `/host/messages` and `/dashboard/messages` — Add "Report User" to action menu | AMS | New menu item with Flag icon; bilingual "إبلاغ عن المستخدم" / "Report User"; shows toast on click | Done |
+| I44 | 2026-04-05 | Sitewide — Dashboard sidebar should be sticky on scroll | AMS | DashboardShell sidebar wrapper changed from `lg:static` to `lg:sticky lg:top-0 lg:h-screen`; Sidebar uses `h-full overflow-y-auto` for internal scrolling | Done |

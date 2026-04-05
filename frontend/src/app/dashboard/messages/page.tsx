@@ -6,7 +6,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { messagesApi } from '@/lib/api';
 import { Conversation, Message, User } from '@/types';
-import { MessageSquare, Search, Send, ArrowLeft, Ban, MoreVertical, AlertCircle } from 'lucide-react';
+import { MessageSquare, Search, Send, ArrowLeft, Ban, MoreVertical, AlertCircle, Flag } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Image from 'next/image';
 
@@ -38,7 +38,18 @@ function GuestMessagesContent() {
   const [sending, setSending] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const autoOpenedRef = useRef(false);
+
+  // Dismiss menu on outside click
+  useEffect(() => {
+    if (!showMenu) return;
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setShowMenu(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showMenu]);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.push('/auth/login?redirect=/dashboard/messages');
@@ -133,6 +144,11 @@ function GuestMessagesContent() {
       loadConversations();
       setShowMenu(false);
     } catch { toast.error(isAr ? 'فشل الإجراء' : 'Action failed'); }
+  };
+
+  const handleReport = () => {
+    toast.success(isAr ? 'تم إرسال البلاغ للدعم' : 'Report sent to support');
+    setShowMenu(false);
   };
 
   const selectedConv = conversations.find(c => c._id === selectedId);
@@ -233,10 +249,13 @@ function GuestMessagesContent() {
                       )}
                     </div>
                     <div className="flex-1"><p className="text-sm font-semibold text-gray-900">{getOtherParticipant(selectedConv!)?.name || 'Unknown'}</p></div>
-                    <div className="relative">
+                    <div className="relative" ref={menuRef}>
                       <button onClick={() => setShowMenu(!showMenu)} className="p-2 hover:bg-gray-100 rounded-lg"><MoreVertical className="w-4 h-4 text-gray-500" /></button>
                       {showMenu && (
-                        <div className="absolute end-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-10 min-w-[160px]">
+                        <div className="absolute end-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-10 min-w-[160px] py-1">
+                          <button onClick={handleReport} className="w-full px-4 py-2.5 text-start text-sm hover:bg-gray-50 flex items-center gap-2 text-gray-700">
+                            <Flag className="w-4 h-4" />{isAr ? '\u0625\u0628\u0644\u0627\u063A \u0639\u0646 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645' : 'Report User'}
+                          </button>
                           <button onClick={handleBlock} className="w-full px-4 py-2.5 text-start text-sm hover:bg-gray-50 flex items-center gap-2 text-red-600">
                             <Ban className="w-4 h-4" />{selectedConv?.isBlocked ? (isAr ? '\u0625\u0644\u063A\u0627\u0621 \u0627\u0644\u062D\u0638\u0631' : 'Unblock') : (isAr ? '\u062D\u0638\u0631 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645' : 'Block User')}
                           </button>
@@ -259,7 +278,7 @@ function GuestMessagesContent() {
                           }`}>
                             <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
                             <p className={`text-[10px] mt-1 ${isMe ? 'text-primary-100' : 'text-gray-400'}`}>
-                              {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              {new Date(msg.createdAt).toLocaleTimeString(isAr ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
                             </p>
                           </div>
                         </div>

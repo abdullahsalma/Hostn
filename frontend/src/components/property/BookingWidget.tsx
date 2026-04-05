@@ -207,7 +207,7 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
       </div>
 
       <Button onClick={handleBookNow} size="lg" className="w-full mb-4">
-        {checkIn && checkOut ? `${t('booking.bookFor')} ${nights} ${nightLabel}` : t('booking.checkAvailability')}
+        {checkIn && checkOut ? `${t('booking.bookFor')} ${nightLabel}` : t('booking.checkAvailability')}
       </Button>
 
       <p className="text-xs text-center text-gray-500 mb-5">{t('booking.notChargedYet')}</p>
@@ -216,7 +216,7 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
       {nights > 0 && (
         <div className="space-y-3 text-sm">
           <div className="flex justify-between text-gray-600">
-            <span dir="ltr"><SarSymbol /> {formatPriceNumber(pricePerNight)} &times; {nights} {nightLabel}</span>
+            <span dir="ltr"><SarSymbol /> {formatPriceNumber(pricePerNight)} &times; {nightLabel}</span>
             <span dir="ltr"><SarSymbol /> {formatPriceNumber(subtotal)}</span>
           </div>
           {cleaningFee > 0 && (
