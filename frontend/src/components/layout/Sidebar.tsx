@@ -93,7 +93,7 @@ export default function Sidebar({ role }: SidebarProps) {
   };
 
   return (
-    <aside className="w-64 bg-white border-e border-gray-200 min-h-screen flex flex-col">
+    <aside className="w-64 bg-white border-e border-gray-200 h-full min-h-screen lg:min-h-0 flex flex-col overflow-y-auto">
       {/* Logo + Role badge */}
       <div className="p-6 border-b border-gray-100">
         <Link href="/" className="text-xl font-bold text-gray-900">Hostn</Link>

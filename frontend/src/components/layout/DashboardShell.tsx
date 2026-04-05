@@ -33,11 +33,11 @@ export default function DashboardShell({ role, children }: DashboardShellProps) 
 
       {/* Sidebar */}
       <div className={`
-        fixed lg:static inset-y-0 start-0 z-50
+        fixed lg:sticky lg:top-0 lg:h-screen inset-y-0 start-0 z-50
         transform transition-transform duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full'} lg:translate-x-0 lg:rtl:translate-x-0
       `}>
-        <div className="relative">
+        <div className="relative h-full">
           {/* Mobile close button */}
           <button
             onClick={() => setSidebarOpen(false)}

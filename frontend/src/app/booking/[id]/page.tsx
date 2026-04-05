@@ -44,7 +44,9 @@ function BookingContent() {
 
   const checkIn = searchParams.get('checkIn') || '';
   const checkOut = searchParams.get('checkOut') || '';
-  const guestsCount = parseInt(searchParams.get('guests') || '1', 10);
+  const adultsCount = parseInt(searchParams.get('adults') || searchParams.get('guests') || '1', 10);
+  const childrenCount = parseInt(searchParams.get('children') || '0', 10);
+  const guestsCount = adultsCount + childrenCount;
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -115,7 +117,7 @@ function BookingContent() {
         propertyId: id,
         checkIn,
         checkOut,
-        guests: { adults: guestsCount, children: 0, infants: 0 },
+        guests: { adults: adultsCount, children: childrenCount, infants: 0 },
         specialRequests,
       });
 
@@ -223,7 +225,7 @@ function BookingContent() {
           <div className="max-w-4xl mx-auto">
             {/* Back to property link */}
             {step === 1 && (
-              <Link href={`/listings/${id}?${new URLSearchParams({ ...(checkIn ? { checkIn } : {}), ...(checkOut ? { checkOut } : {}), ...(guestsCount > 0 ? { adults: String(guestsCount) } : {}) }).toString()}`} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-primary-600 mb-4 transition-colors">
+              <Link href={`/listings/${id}?${new URLSearchParams({ ...(checkIn ? { checkIn } : {}), ...(checkOut ? { checkOut } : {}), ...(adultsCount > 0 ? { adults: String(adultsCount) } : {}), ...(childrenCount > 0 ? { children: String(childrenCount) } : {}) }).toString()}`} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-primary-600 mb-4 transition-colors">
                 <ChevronRight className="w-4 h-4 ltr:rotate-180" />
                 {isAr ? 'العودة للعقار' : 'Back to property'}
               </Link>
@@ -279,10 +281,10 @@ function BookingContent() {
                           </div>
                           <div className="flex items-center gap-3">
                             <span className="text-sm font-semibold text-gray-700">
-                              {nights} {getNightLabel(nights, isAr ? 'ar' : 'en')}
+                              {getNightLabel(nights, isAr ? 'ar' : 'en')}
                             </span>
                             <Link
-                              href={`/listings/${id}?${new URLSearchParams({ ...(checkIn ? { checkIn } : {}), ...(checkOut ? { checkOut } : {}), ...(guestsCount > 1 ? { adults: String(guestsCount) } : {}) }).toString()}`}
+                              href={`/listings/${id}?${new URLSearchParams({ ...(checkIn ? { checkIn } : {}), ...(checkOut ? { checkOut } : {}), ...(adultsCount > 0 ? { adults: String(adultsCount) } : {}), ...(childrenCount > 0 ? { children: String(childrenCount) } : {}) }).toString()}`}
                               className="text-xs font-medium text-primary-600 hover:text-primary-700 underline"
                             >
                               {isAr ? 'تعديل' : 'Edit'}
@@ -302,10 +304,12 @@ function BookingContent() {
                           </div>
                           <div className="flex items-center gap-3">
                             <span className="text-sm font-semibold text-gray-700">
-                              {guestsCount} {isAr ? (guestsCount === 1 ? 'ضيف' : 'ضيوف') : (guestsCount !== 1 ? 'guests' : 'guest')}
+                              {isAr
+                                ? `${adultsCount} ${adultsCount === 1 ? 'بالغ' : 'بالغين'}${childrenCount > 0 ? `، ${childrenCount} ${childrenCount === 1 ? 'طفل' : 'أطفال'}` : ''}`
+                                : `${adultsCount} ${adultsCount === 1 ? 'adult' : 'adults'}${childrenCount > 0 ? `, ${childrenCount} ${childrenCount === 1 ? 'child' : 'children'}` : ''}`}
                             </span>
                             <Link
-                              href={`/listings/${id}?${new URLSearchParams({ ...(checkIn ? { checkIn } : {}), ...(checkOut ? { checkOut } : {}), ...(guestsCount > 0 ? { adults: String(guestsCount) } : {}) }).toString()}`}
+                              href={`/listings/${id}?${new URLSearchParams({ ...(checkIn ? { checkIn } : {}), ...(checkOut ? { checkOut } : {}), ...(adultsCount > 0 ? { adults: String(adultsCount) } : {}), ...(childrenCount > 0 ? { children: String(childrenCount) } : {}) }).toString()}`}
                               className="text-xs font-medium text-primary-600 hover:text-primary-700 underline"
                             >
                               {isAr ? 'تعديل' : 'Edit'}
@@ -540,7 +544,7 @@ function BookingContent() {
                   <div className="space-y-3 text-sm mb-6">
                     <h3 className="font-bold text-gray-900">{isAr ? 'تفاصيل السعر' : 'Price details'}</h3>
                     <div className="flex justify-between text-gray-600">
-                      <span dir="ltr"><SarSymbol /> {formatPriceNumber(pricePerNight)} &times; {nights} {getNightLabel(nights, isAr ? 'ar' : 'en')}</span>
+                      <span dir="ltr"><SarSymbol /> {formatPriceNumber(pricePerNight)} &times; {getNightLabel(nights, isAr ? 'ar' : 'en')}</span>
                       <span dir="ltr"><SarSymbol /> {formatPriceNumber(subtotal)}</span>
                     </div>
                     {cleaningFee > 0 && (

@@ -18,6 +18,8 @@ import MiniCalendar from '@/components/ui/MiniCalendar';
 import { format, addDays } from 'date-fns';
 import { calculateNights, getNightLabel } from '@/lib/utils';
 import { DISTRICTS, DIRECTIONS } from '@/lib/constants';
+import { saveSearchCookies, getSearchCookies } from '@/lib/searchCookies';
+import SarSymbol from '@/components/ui/SarSymbol';
 
 export default function ListingsPage() {
   return (
@@ -65,7 +67,7 @@ function FilterBubble({
   hasDropdown,
 }: {
   icon: React.ElementType;
-  label: string;
+  label: React.ReactNode;
   active: boolean;
   onClick: () => void;
   onClear?: () => void;
@@ -109,27 +111,30 @@ function ListingsContent() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // ── Restore from cookies when URL has no params ──
+  const savedSearch = (!searchParams.get('city') && !searchParams.get('checkIn')) ? getSearchCookies() : null;
+
   // ── Search state ──
-  const [searchCity, setSearchCity] = useState(searchParams.get('city') || '');
+  const [searchCity, setSearchCity] = useState(searchParams.get('city') || savedSearch?.city || '');
   const [citySearch, setCitySearch] = useState('');
   const [showCityDropdown, setShowCityDropdown] = useState(false);
-  const [checkIn, setCheckIn] = useState(searchParams.get('checkIn') || '');
-  const [checkOut, setCheckOut] = useState(searchParams.get('checkOut') || '');
-  const [guests, setGuests] = useState(searchParams.get('guests') || '');
+  const [checkIn, setCheckIn] = useState(searchParams.get('checkIn') || savedSearch?.checkIn || '');
+  const [checkOut, setCheckOut] = useState(searchParams.get('checkOut') || savedSearch?.checkOut || '');
+  const [guests, setGuests] = useState(searchParams.get('guests') || savedSearch?.guests || '');
 
   // Calendar
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectingCheckOut, setSelectingCheckOut] = useState(false);
 
   // Guest picker
-  const initGuests = Number(searchParams.get('guests') || 0);
-  const [adults, setAdults] = useState(initGuests > 0 ? Math.max(1, initGuests) : 1);
-  const [children, setChildren] = useState(0);
+  const initGuests = Number(searchParams.get('guests') || savedSearch?.adults || 0);
+  const [adults, setAdults] = useState(initGuests > 0 ? Math.max(1, initGuests) : (savedSearch?.adults || 1));
+  const [children, setChildren] = useState(savedSearch?.children || 0);
   const [showGuestPicker, setShowGuestPicker] = useState(false);
 
   // ── Filter state ──
   const [selectedTypes, setSelectedTypes] = useState<string[]>(() => {
-    const t = searchParams.get('type');
+    const t = searchParams.get('type') || savedSearch?.type;
     return t ? t.split(',') : [];
   });
   // price and area use slider state below
@@ -291,6 +296,7 @@ function ListingsContent() {
     if (hasPool) params.set('pool', '1');
     if (direction) params.set('direction', direction);
     if (areaRange < 1500) params.set('maxArea', String(areaRange));
+    saveSearchCookies({ city: searchCity, type: selectedTypes.join(','), checkIn, checkOut, adults, children });
     router.push(`/listings?${params.toString()}`);
     setOpenFilter(null);
     fetchProperties();
@@ -389,7 +395,7 @@ function ListingsContent() {
                   </span>
                   {checkIn && checkOut && (
                     <span className="text-xs text-primary-500 font-medium ms-1">
-                      {(() => { const n = calculateNights(checkIn, checkOut); return `${n} ${getNightLabel(n, isAr ? 'ar' : 'en')}`; })()}
+                      {(() => { const n = calculateNights(checkIn, checkOut); return getNightLabel(n, isAr ? 'ar' : 'en'); })()}
                     </span>
                   )}
                 </button>
@@ -597,7 +603,7 @@ function ListingsContent() {
               <FilterBubble
                 icon={DollarSign}
                 label={priceRange < 4000
-                  ? `${isAr ? '\u062D\u062A\u0649' : 'Up to'} ${priceRange} SAR`
+                  ? <>{isAr ? '\u062D\u062A\u0649' : 'Up to'} <span dir="ltr"><SarSymbol /> {priceRange}</span></>
                   : (isAr ? '\u0627\u0644\u0633\u0639\u0631' : 'Price')}
                 active={priceRange < 4000}
                 onClick={() => setOpenFilter(openFilter === 'price' ? null : 'price')}
@@ -718,7 +724,17 @@ function ListingsContent() {
 
             {/* Clear all */}
             {(hasActiveFilters || selectedTypes.length > 0) && (
-              <button type="button" onClick={() => { clearAllFilters(); setTimeout(handleSearch, 0); }}
+              <button type="button" onClick={() => {
+                clearAllFilters();
+                // Navigate with only base search params — avoids stale state
+                const p = new URLSearchParams();
+                if (searchCity) p.set('city', searchCity);
+                if (checkIn) p.set('checkIn', checkIn);
+                if (checkOut) p.set('checkOut', checkOut);
+                if (guests) p.set('guests', guests);
+                saveSearchCookies({ city: searchCity, checkIn, checkOut, adults, children });
+                router.push(`/listings?${p.toString()}`);
+              }}
                 className="text-xs text-gray-400 hover:text-red-500 flex items-center gap-1 transition-colors">
                 <X className="w-3 h-3" />
                 {isAr ? '\u0645\u0633\u062D \u0627\u0644\u0643\u0644' : 'Clear all'}
