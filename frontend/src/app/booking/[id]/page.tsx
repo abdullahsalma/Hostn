@@ -319,7 +319,7 @@ function BookingContent() {
                           <div className="flex items-center gap-3">
                             <span className="text-sm font-semibold text-gray-700">
                               {isAr
-                                ? `${getAdultLabel(adultsCount, 'ar')}${childrenCount > 0 ? `، ${getChildLabel(childrenCount, 'ar')}` : ''}`
+                                ? `${getAdultLabel(adultsCount, 'ar')}${childrenCount > 0 ? ` و${getChildLabel(childrenCount, 'ar')}` : ''}`
                                 : `${getAdultLabel(adultsCount, 'en')}${childrenCount > 0 ? `, ${getChildLabel(childrenCount, 'en')}` : ''}`}
                             </span>
                             <Link
