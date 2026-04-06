@@ -123,6 +123,8 @@
 | F94 | 2026-04-06 | `/listings` — Area filter slider should treat number+unit like F90 (only number+unit in dir=ltr, not whole slider) | AMS | Removed `dir="ltr"` from slider input and labels container; added `dir="ltr"` only on individual number+unit `<span>` elements so slider follows page direction | Done |
 | F95 | 2026-04-06 | `/listings` — Type filter should auto-update on click without Apply button | AMS | Each type click triggers `toggleType` + `setAutoSearch` for instant re-fetch; removed Apply button from type filter popover | Done |
 | F96 | 2026-04-06 | `/listings` — Selecting multiple types in filter returns no results (backend exact-matches comma string instead of `$in`) | AMS | Frontend sends `type` as array (`type[]=chalet&type[]=villa`) instead of comma-joined string; backend receives array which MongoDB matches via implicit `$in`. Backend also has `$in` fallback for comma strings | Done |
+| F97 | 2026-04-06 | `/listings` — Price filter: dismissing by clicking away should auto-apply (same as Apply button) | AMS | useEffect on `openFilter` detects transition from `'price'` to `null` and triggers autoSearch; removed Apply button | Done |
+| F98 | 2026-04-06 | `/listings` — Area filter: dismissing by clicking away should auto-apply (same as Apply button) | AMS | Same useEffect handles `'area'` to `null` transition; removed Apply button | Done |
 
 ## Improvements
 

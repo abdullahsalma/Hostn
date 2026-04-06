@@ -287,6 +287,15 @@ function ListingsContent() {
   // Auto-fetch on first load and when auto-search is triggered (clear all / filter cancel)
   useEffect(() => { fetchProperties(); }, [autoSearch]);
 
+  // Auto-apply when price or area filter is dismissed (click-away or bubble toggle)
+  const prevOpenFilterRef = useRef<string | null>(null);
+  useEffect(() => {
+    if ((prevOpenFilterRef.current === 'price' || prevOpenFilterRef.current === 'area') && openFilter === null) {
+      setAutoSearch((n) => n + 1);
+    }
+    prevOpenFilterRef.current = openFilter;
+  }, [openFilter]);
+
   const toggleType = (key: string) => {
     setSelectedTypes((prev) =>
       prev.includes(key) ? prev.filter((t) => t !== key) : [...prev, key]
@@ -602,10 +611,6 @@ function ListingsContent() {
                     <span className="text-[10px] font-medium text-gray-500" dir="ltr"><SarSymbol /> 2000</span>
                     <span className="text-[10px] font-medium text-gray-500" dir="ltr"><SarSymbol /> 4000+</span>
                   </div>
-                  <button type="button" onClick={() => { setOpenFilter(null); handleSearch(); }}
-                    className="w-full mt-3 py-1.5 bg-primary-600 text-white text-xs font-medium rounded-lg hover:bg-primary-700 transition-colors">
-                    {isAr ? '\u062A\u0637\u0628\u064A\u0642' : 'Apply'}
-                  </button>
                 </div>
               )}
             </div>
@@ -635,10 +640,6 @@ function ListingsContent() {
                     <span className="text-[10px] font-medium text-gray-500" dir="ltr">650 m²</span>
                     <span className="text-[10px] font-medium text-gray-500" dir="ltr">1500+ m²</span>
                   </div>
-                  <button type="button" onClick={() => { setOpenFilter(null); handleSearch(); }}
-                    className="w-full mt-3 py-1.5 bg-primary-600 text-white text-xs font-medium rounded-lg hover:bg-primary-700 transition-colors">
-                    {isAr ? '\u062A\u0637\u0628\u064A\u0642' : 'Apply'}
-                  </button>
                 </div>
               )}
             </div>
