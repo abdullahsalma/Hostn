@@ -16,8 +16,6 @@ const generateAccessToken = (user) => {
 const TEST_ACCOUNTS = {
   '500000001': 'admin',
   '500000002': 'host',
-  '500407888': 'admin',
-  '542660600': 'admin',
 };
 
 // In-memory cooldown tracker (phone → last send timestamp)
