@@ -252,6 +252,7 @@ export const adminApi = {
   // Bookings
   getBookings: (params?: Record<string, unknown>) => api.get('/admin/bookings', { params }),
   updateBooking: (id: string, data: Record<string, unknown>) => api.patch(`/admin/bookings/${id}`, data),
+  deleteBooking: (id: string) => api.delete(`/admin/bookings/${id}`),
   // Payments
   getPayments: (params?: Record<string, unknown>) => api.get('/admin/payments', { params }),
   refundPayment: (id: string, data: { reason: string }) => api.post(`/admin/payments/${id}/refund`, data),
