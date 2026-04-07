@@ -14,6 +14,23 @@ interface Stats {
   totalRevenue: number;
 }
 
+// Map the nested backend response to flat Stats
+function mapStats(raw: Record<string, unknown>): Stats {
+  // If already flat (totalUsers exists), use as-is
+  if (typeof raw.totalUsers === 'number') return raw as unknown as Stats;
+  // Otherwise map from nested structure
+  const users = raw.users as { total?: number } | undefined;
+  const properties = raw.properties as { total?: number } | undefined;
+  const bookings = raw.bookings as { total?: number } | undefined;
+  const payments = raw.payments as { revenue?: number } | undefined;
+  return {
+    totalUsers: users?.total ?? 0,
+    totalProperties: properties?.total ?? 0,
+    totalBookings: bookings?.total ?? 0,
+    totalRevenue: payments?.revenue ?? 0,
+  };
+}
+
 export default function AdminDashboardPage() {
   const { language } = useLanguage();
   const isAr = language === 'ar';
@@ -28,7 +45,8 @@ export default function AdminDashboardPage() {
   const loadStats = async () => {
     try {
       const res = await adminApi.getStats();
-      setStats(res.data.data || res.data);
+      const raw = res.data.data || res.data;
+      setStats(mapStats(raw));
     } catch {
       toast.error(isAr ? '\u0641\u0634\u0644 \u0641\u064a \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0625\u062d\u0635\u0627\u0626\u064a\u0627\u062a' : 'Failed to load stats');
     } finally {

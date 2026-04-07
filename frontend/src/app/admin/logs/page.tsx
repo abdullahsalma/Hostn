@@ -25,6 +25,30 @@ export default function AdminLogsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
+  const actionTranslations: Record<string, string> = isAr ? {
+    payment_initiated: 'بدء الدفع',
+    payment_completed: 'اكتمال الدفع',
+    payment_failed: 'فشل الدفع',
+    booking_created: 'إنشاء حجز',
+    booking_confirmed: 'تأكيد حجز',
+    booking_cancelled: 'إلغاء حجز',
+    booking_completed: 'اكتمال حجز',
+    property_approved: 'موافقة على عقار',
+    property_rejected: 'رفض عقار',
+    property_removed: 'إزالة عقار',
+    user_suspended: 'تعليق مستخدم',
+    user_activated: 'تفعيل مستخدم',
+    user_verified: 'توثيق مستخدم',
+    role_changed: 'تغيير الدور',
+    refund_processed: 'معالجة استرداد',
+    admin_login: 'تسجيل دخول مشرف',
+  } : {};
+
+  const translateAction = (action: string) => {
+    if (!isAr) return action;
+    return actionTranslations[action] || action.replace(/_/g, ' ');
+  };
+
   const loadLogs = useCallback(async () => {
     setLoading(true);
     try {
@@ -89,7 +113,7 @@ export default function AdminLogsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <span className="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-primary-50 text-primary-700">
-                        {log.action}
+                        {translateAction(log.action)}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-600 max-w-xs truncate">
