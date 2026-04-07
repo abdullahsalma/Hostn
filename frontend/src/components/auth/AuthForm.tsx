@@ -269,7 +269,7 @@ export default function AuthForm({ mode, role }: AuthFormProps) {
         )}
 
         {/* Phone + OTP (used for all guest/host auth — both login and register) */}
-        {loginMethod === 'phone' && role !== 'admin' ? (
+        {loginMethod === 'phone' ? (
           <form onSubmit={handleOtpLogin} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 space-y-5">
             {!otpSent ? (
               <>
