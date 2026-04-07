@@ -125,7 +125,7 @@ export default function MyBookingsPage() {
             return (
               <Link
                 key={booking._id}
-                href={`/booking/${booking._id}`}
+                href={`/dashboard/bookings/${booking._id}`}
                 className="flex flex-col sm:flex-row sm:items-center justify-between p-5 hover:bg-gray-50 transition-colors gap-3"
               >
                 <div className="min-w-0 flex-1">

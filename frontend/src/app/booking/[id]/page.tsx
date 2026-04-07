@@ -607,7 +607,7 @@ function BookingContent() {
                         onClick={() => setStep(1)}
                         className="w-full text-sm text-primary-600 hover:text-primary-700 font-medium py-2"
                       >
-                        {isAr ? '← العودة للمراجعة' : '← Back to review'}
+                        {isAr ? 'العودة للمراجعة →' : '← Back to review'}
                       </button>
                       <div className="text-xs text-gray-500 text-center">
                         <p>{isAr ? 'سيتم تحويلك بعد إتمام الدفع' : 'You will be redirected after payment'}</p>
