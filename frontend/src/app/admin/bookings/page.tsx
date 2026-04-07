@@ -3,9 +3,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { adminApi } from '@/lib/api';
 import { useLanguage } from '@/context/LanguageContext';
-import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import SarSymbol from '@/components/ui/SarSymbol';
 import toast from 'react-hot-toast';
+
+interface PricingData {
+  total?: number;
+}
 
 interface BookingItem {
   _id: string;
@@ -17,6 +21,7 @@ interface BookingItem {
   checkOut: string;
   status: string;
   totalPrice: number;
+  pricing?: PricingData;
 }
 
 const statusColors: Record<string, string> = {
@@ -24,6 +29,7 @@ const statusColors: Record<string, string> = {
   pending: 'bg-yellow-50 text-yellow-700',
   cancelled: 'bg-red-50 text-red-700',
   completed: 'bg-blue-50 text-blue-700',
+  held: 'bg-orange-50 text-orange-700',
 };
 
 export default function AdminBookingsPage() {
@@ -53,9 +59,25 @@ export default function AdminBookingsPage() {
     loadBookings();
   }, [loadBookings]);
 
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm(isAr ? 'هل أنت متأكد من حذف هذا الحجز نهائياً؟' : 'Are you sure you want to permanently delete this booking?')) return;
+    setDeleting(id);
+    try {
+      await adminApi.deleteBooking(id);
+      toast.success(isAr ? 'تم حذف الحجز' : 'Booking deleted');
+      loadBookings();
+    } catch {
+      toast.error(isAr ? 'فشل في حذف الحجز' : 'Failed to delete booking');
+    } finally {
+      setDeleting(null);
+    }
+  };
+
   const statusLabels: Record<string, string> = isAr
-    ? { confirmed: '\u0645\u0624\u0643\u062f', pending: '\u0642\u064a\u062f \u0627\u0644\u0627\u0646\u062a\u0638\u0627\u0631', cancelled: '\u0645\u0644\u063a\u064a', completed: '\u0645\u0643\u062a\u0645\u0644' }
-    : { confirmed: 'Confirmed', pending: 'Pending', cancelled: 'Cancelled', completed: 'Completed' };
+    ? { confirmed: '\u0645\u0624\u0643\u062f', pending: '\u0642\u064a\u062f \u0627\u0644\u0627\u0646\u062a\u0638\u0627\u0631', cancelled: '\u0645\u0644\u063a\u064a', completed: '\u0645\u0643\u062a\u0645\u0644', held: '\u0645\u062d\u062c\u0648\u0632 \u0645\u0624\u0642\u062a\u0627\u064b' }
+    : { confirmed: 'Confirmed', pending: 'Pending', cancelled: 'Cancelled', completed: 'Completed', held: 'Held' };
 
   return (
     <div>
@@ -89,6 +111,7 @@ export default function AdminBookingsPage() {
                   <th className="text-start px-4 py-3 font-medium text-gray-600">{isAr ? '\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062e\u0631\u0648\u062c' : 'Check-out'}</th>
                   <th className="text-start px-4 py-3 font-medium text-gray-600">{isAr ? '\u0627\u0644\u062d\u0627\u0644\u0629' : 'Status'}</th>
                   <th className="text-start px-4 py-3 font-medium text-gray-600">{isAr ? '\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a' : 'Total'}</th>
+                  <th className="text-start px-4 py-3 font-medium text-gray-600">{isAr ? '\u0625\u062c\u0631\u0627\u0621\u0627\u062a' : 'Actions'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -115,7 +138,17 @@ export default function AdminBookingsPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 font-medium text-gray-900">
-                      <span dir="ltr"><SarSymbol /> {b.totalPrice?.toLocaleString()}</span>
+                      <span dir="ltr"><SarSymbol /> {(b.pricing?.total || b.totalPrice)?.toLocaleString()}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => handleDelete(b._id)}
+                        disabled={deleting === b._id}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40"
+                        title={isAr ? 'حذف' : 'Delete'}
+                      >
+                        {deleting === b._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                      </button>
                     </td>
                   </tr>
                 ))}

@@ -13,6 +13,7 @@ const {
   moderateProperty,
   getBookings,
   updateBooking,
+  deleteBooking,
   getPayments,
   refundPayment,
   getLogs,
@@ -41,6 +42,7 @@ router.post('/properties/:id/moderate', authorizePermission(PERMISSIONS.MODERATE
 // Bookings — super + support + finance (view), super + support (manage)
 router.get('/bookings', authorizePermission(PERMISSIONS.VIEW_BOOKINGS), getBookings);
 router.patch('/bookings/:id', authorizePermission(PERMISSIONS.MANAGE_BOOKINGS), updateBooking);
+router.delete('/bookings/:id', authorizePermission(PERMISSIONS.MANAGE_BOOKINGS), deleteBooking);
 
 // Payments — super + finance
 router.get('/payments', authorizePermission(PERMISSIONS.VIEW_PAYMENTS), getPayments);

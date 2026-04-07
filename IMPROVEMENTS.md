@@ -157,6 +157,7 @@
 | F128 | 2026-04-07 | `/` — City bubbles clear guests/type/dates when navigating to `/listings` | AMS | Removed `clearSearchCookies()`; `saveSearchCookies` merges city into existing cookies, preserving dates/guests/type | Done |
 | F129 | 2026-04-07 | `/` — "Browse by Type" clears city/dates/guests when navigating to `/listings` | AMS | Removed `clearSearchCookies()`; `saveSearchCookies` merges type into existing cookies, preserving city/dates/guests | Done |
 | F130 | 2026-04-07 | `/listings` — Navigating from homepage doesn't auto-search (must click search manually) | AMS | Added `ready` flag; `fetchProperties` only runs after cookies are restored to state; ensures first fetch uses correct cookie values | Done |
+| I56 | 2026-04-07 | `/admin/bookings` — Add ability to delete bookings | AMS | Backend `DELETE /admin/bookings/:id` with ActivityLog; frontend delete button per row with confirmation dialog; `held` status badge added | Done |
 
 ## Improvements
 
