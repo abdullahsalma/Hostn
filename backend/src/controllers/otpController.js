@@ -12,11 +12,8 @@ const generateAccessToken = (user) => {
   );
 };
 
-// Test accounts — bypass OTP; role assigned on first login
-const TEST_ACCOUNTS = {
-  '500000001': 'admin',
-  '500000002': 'host',
-};
+// No test account bypasses — all accounts use real SMS OTP
+const TEST_ACCOUNTS = {};
 
 // In-memory cooldown tracker (phone → last send timestamp)
 const cooldownMap = new Map();
