@@ -146,21 +146,26 @@ function ListingsContent() {
   const guestPickerRef = useRef<HTMLDivElement>(null);
   const filterRowRef = useRef<HTMLDivElement>(null);
 
+  // Track whether cookies have been restored (prevents empty initial fetch)
+  const [ready, setReady] = useState(false);
+
   // Restore all state from cookies on client mount
   useEffect(() => {
     const saved = getSearchCookies();
-    if (!saved) return;
-    if (saved.city) {
-      setSearchCity(saved.city);
-      const found = CITIES.find((c) => c.value === saved.city);
-      if (found) setCitySearch(isAr ? found.ar : found.en);
-      else setCitySearch(saved.city);
+    if (saved) {
+      if (saved.city) {
+        setSearchCity(saved.city);
+        const found = CITIES.find((c) => c.value === saved.city);
+        if (found) setCitySearch(isAr ? found.ar : found.en);
+        else setCitySearch(saved.city);
+      }
+      if (saved.checkIn) setCheckIn(saved.checkIn);
+      if (saved.checkOut) setCheckOut(saved.checkOut);
+      if (saved.adults) setAdults(saved.adults);
+      if (saved.children) setChildren(saved.children);
+      if (saved.type) setSelectedTypes(saved.type.split(','));
     }
-    if (saved.checkIn) setCheckIn(saved.checkIn);
-    if (saved.checkOut) setCheckOut(saved.checkOut);
-    if (saved.adults) setAdults(saved.adults);
-    if (saved.children) setChildren(saved.children);
-    if (saved.type) setSelectedTypes(saved.type.split(','));
+    setReady(true);
   }, []);
 
   const filteredCities = CITIES.filter((c) => {
@@ -244,7 +249,7 @@ function ListingsContent() {
     if (!dateStr) return null;
     const date = new Date(dateStr);
     return isAr
-      ? date.toLocaleDateString('ar-SA', { month: 'short', day: 'numeric' })
+      ? date.toLocaleDateString('ar-u-nu-latn', { month: 'short', day: 'numeric' })
       : format(date, 'MMM d');
   };
 
@@ -267,7 +272,15 @@ function ListingsContent() {
       if (direction) params.direction = direction;
       if (areaRange < 1500) params.maxArea = areaRange;
       const res = await propertiesApi.getAll(params);
-      setProperties(res.data.properties || res.data.data || []);
+      let results = res.data.properties || res.data.data || [];
+      // Filter out properties whose minNights exceeds the selected stay duration
+      if (checkIn && checkOut) {
+        const selectedNights = Math.ceil((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24));
+        if (selectedNights > 0) {
+          results = results.filter((p: Property) => !p.rules?.minNights || p.rules.minNights <= selectedNights);
+        }
+      }
+      setProperties(results);
     } catch {
       setProperties([]);
     } finally {
@@ -284,8 +297,36 @@ function ListingsContent() {
 
   const [autoSearch, setAutoSearch] = useState(0);
 
-  // Auto-fetch on first load and when auto-search is triggered (clear all / filter cancel)
-  useEffect(() => { fetchProperties(); }, [autoSearch]);
+  // Fetch only after cookies are restored, and on every autoSearch trigger
+  useEffect(() => { if (ready) fetchProperties(); }, [ready, autoSearch]);
+
+  // Auto-search when search bar dropdowns are dismissed
+  const prevShowCityRef = useRef(false);
+  useEffect(() => {
+    if (prevShowCityRef.current && !showCityDropdown && searchCity) {
+      saveSearchCookies({ city: searchCity, type: selectedTypes.join(','), checkIn, checkOut, adults, children });
+      setAutoSearch((n) => n + 1);
+    }
+    prevShowCityRef.current = showCityDropdown;
+  }, [showCityDropdown]);
+
+  const prevShowCalendarRef = useRef(false);
+  useEffect(() => {
+    if (prevShowCalendarRef.current && !showCalendar && checkIn) {
+      saveSearchCookies({ city: searchCity, type: selectedTypes.join(','), checkIn, checkOut, adults, children });
+      setAutoSearch((n) => n + 1);
+    }
+    prevShowCalendarRef.current = showCalendar;
+  }, [showCalendar]);
+
+  const prevShowGuestRef = useRef(false);
+  useEffect(() => {
+    if (prevShowGuestRef.current && !showGuestPicker) {
+      saveSearchCookies({ city: searchCity, type: selectedTypes.join(','), checkIn, checkOut, adults, children });
+      setAutoSearch((n) => n + 1);
+    }
+    prevShowGuestRef.current = showGuestPicker;
+  }, [showGuestPicker]);
 
   // Auto-apply when price or area filter is dismissed (click-away or bubble toggle)
   const prevOpenFilterRef = useRef<string | null>(null);

@@ -60,13 +60,8 @@ export default function HeroSearch() {
 
   const handleSearch = () => {
     setShowCalendar(false);
-    const params = new URLSearchParams();
-    if (city) params.set('city', city);
-    if (propertyType) params.set('type', propertyType);
-    if (checkIn) params.set('checkIn', checkIn);
-    if (checkOut) params.set('checkOut', checkOut);
     saveSearchCookies({ city, type: propertyType, checkIn, checkOut });
-    router.push(`/listings?${params.toString()}`);
+    router.push('/listings');
   };
 
   const today = format(new Date(), 'yyyy-MM-dd');
@@ -150,7 +145,7 @@ export default function HeroSearch() {
     if (!dateStr) return null;
     const date = new Date(dateStr);
     return isAr
-      ? date.toLocaleDateString('ar-SA', { month: 'short', day: 'numeric' })
+      ? date.toLocaleDateString('ar-u-nu-latn', { month: 'short', day: 'numeric' })
       : format(date, 'MMM d');
   };
 
@@ -486,16 +481,13 @@ export default function HeroSearch() {
               key={c.value}
               onClick={() => {
                 if (checkIn && checkOut) {
-                  // If dates already picked, go with those
-                  const params = new URLSearchParams({ city: c.value, checkIn, checkOut });
-                  router.push(`/listings?${params.toString()}`);
+                  saveSearchCookies({ city: c.value });
                 } else {
-                  // Default: 1 night from today
                   const todayStr = format(new Date(), 'yyyy-MM-dd');
                   const tomorrowStr = format(addDays(new Date(), 1), 'yyyy-MM-dd');
-                  const params = new URLSearchParams({ city: c.value, checkIn: todayStr, checkOut: tomorrowStr });
-                  router.push(`/listings?${params.toString()}`);
+                  saveSearchCookies({ city: c.value, checkIn: todayStr, checkOut: tomorrowStr });
                 }
+                router.push('/listings');
               }}
               className="bg-white/10 hover:bg-white/20 text-white/80 hover:text-white text-xs sm:text-sm px-3 sm:px-4 py-1 sm:py-1.5 rounded-full backdrop-blur-sm transition-all duration-300 border border-white/5 hover:border-white/15"
             >

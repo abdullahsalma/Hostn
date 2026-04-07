@@ -10,7 +10,7 @@ import SarSymbol from '@/components/ui/SarSymbol';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { CITIES } from '@/lib/constants';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import toast from 'react-hot-toast';
 
 interface PropertyCardProps {
@@ -31,6 +31,10 @@ export default function PropertyCard({ property }: PropertyCardProps) {
   const [isWishlisted, setIsWishlisted] = useState(
     user?.wishlist?.includes(property._id) ?? false
   );
+  // Sync with auth context changes (e.g., after page refresh + getMe)
+  useEffect(() => {
+    setIsWishlisted(user?.wishlist?.includes(property._id) ?? false);
+  }, [user?.wishlist, property._id]);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
@@ -57,22 +61,16 @@ export default function PropertyCard({ property }: PropertyCardProps) {
 
   const handleWishlist = async (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (!isAuthenticated) {
       toast.error(isAr ? 'سجّل دخولك لحفظ العقارات' : 'Please sign in to save properties');
       return;
     }
-    setWishlistLoading(true);
-    try {
-      await toggleWishlist(property._id);
-      setIsWishlisted(!isWishlisted);
-      toast.success(isWishlisted
-        ? (isAr ? 'تمت الإزالة من المفضلة' : 'Removed from wishlist')
-        : (isAr ? 'تمت الإضافة للمفضلة' : 'Saved to wishlist'));
-    } catch {
-      toast.error(isAr ? 'حدث خطأ' : 'Something went wrong');
-    } finally {
-      setWishlistLoading(false);
-    }
+    toast.success(isWishlisted
+      ? (isAr ? 'تمت الإزالة من المفضلة' : 'Removed from wishlist')
+      : (isAr ? 'تمت الإضافة للمفضلة' : 'Saved to wishlist'));
+    // toggleWishlist does optimistic update in AuthContext → useEffect syncs local state
+    await toggleWishlist(property._id);
   };
 
   return (

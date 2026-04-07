@@ -10,10 +10,12 @@ import Button from '@/components/ui/Button';
 import StarRating from '@/components/ui/StarRating';
 import toast from 'react-hot-toast';
 import { useLanguage } from '@/context/LanguageContext';
+import { useAuth } from '@/context/AuthContext';
 import { format } from 'date-fns';
 import BnplWidget from '@/components/payment/BnplWidget';
 import SarSymbol from '@/components/ui/SarSymbol';
 import { saveSearchCookies } from '@/lib/searchCookies';
+import { bookingsApi } from '@/lib/api';
 
 interface BookingWidgetProps {
   property: Property;
@@ -26,7 +28,9 @@ interface BookingWidgetProps {
 export default function BookingWidget({ property, initialCheckIn = '', initialCheckOut = '', initialAdults = 0, initialChildren = 0 }: BookingWidgetProps) {
   const router = useRouter();
   const { t, language } = useLanguage();
+  const { isAuthenticated } = useAuth();
   const isAr = language === 'ar';
+  const [holdLoading, setHoldLoading] = useState(false);
   const [checkIn, setCheckIn] = useState(initialCheckIn);
   const [checkOut, setCheckOut] = useState(initialCheckOut);
   const [adults, setAdults] = useState(initialAdults > 0 ? initialAdults : 1);
@@ -74,7 +78,7 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
   const vat = Math.round(taxableAmount * 0.15);
   const total = taxableAmount + vat;
 
-  const handleBookNow = () => {
+  const handleBookNow = async () => {
     if (!checkIn || !checkOut) {
       toast.error(t('booking.selectDates'));
       return;
@@ -83,12 +87,47 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
       toast.error(t('booking.checkOutAfter'));
       return;
     }
+    if (property.rules?.minNights && nights < property.rules.minNights) {
+      toast.error(isAr
+        ? `الحد الأدنى للإقامة ${getNightLabel(property.rules.minNights, 'ar')}`
+        : `Minimum stay is ${getNightLabel(property.rules.minNights, 'en')}`);
+      return;
+    }
     if (guests > property.capacity.maxGuests) {
       toast.error(isAr ? `الحد الأقصى ${getGuestLabel(property.capacity.maxGuests, 'ar')}` : `Maximum ${property.capacity.maxGuests} guests allowed`);
       return;
     }
 
     saveSearchCookies({ checkIn, checkOut, adults, children });
+
+    // Create a 2-min reservation hold — blocks others from booking these dates
+    if (isAuthenticated) {
+      setHoldLoading(true);
+      try {
+        const holdRes = await bookingsApi.createHold({
+          propertyId: property._id,
+          checkIn,
+          checkOut,
+          guests: { adults, children, infants: 0 },
+        });
+        if (holdRes.data?.data?.holdId) {
+          localStorage.setItem(`hostn_hold_${property._id}`, holdRes.data.data.holdId);
+        }
+      } catch (err: unknown) {
+        const code = (err as { response?: { data?: { code?: string } } })?.response?.data?.code;
+        if (code === 'DATES_UNAVAILABLE') {
+          toast.error(isAr
+            ? 'هذه التواريخ محجوزة حالياً. يرجى اختيار تواريخ أخرى.'
+            : 'These dates are currently taken. Please choose different dates.');
+          setHoldLoading(false);
+          return; // Don't navigate — dates are held/booked by someone else
+        }
+        // Other failures (not logged in, network, etc.) — proceed without hold
+      } finally {
+        setHoldLoading(false);
+      }
+    }
+
     router.push(`/booking/${property._id}`);
   };
 
@@ -142,7 +181,7 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
             <div className="flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5 text-gray-400" />
               <span className={`text-sm font-medium ${checkIn ? 'text-gray-800' : 'text-gray-400'}`}>
-                {checkIn ? (isAr ? new Date(checkIn).toLocaleDateString('ar-SA', { month: 'short', day: 'numeric', year: 'numeric' }) : format(new Date(checkIn), 'MMM d, yyyy')) : t('booking.checkIn')}
+                {checkIn ? (isAr ? new Date(checkIn).toLocaleDateString('ar-u-nu-latn', { month: 'short', day: 'numeric', year: 'numeric' }) : format(new Date(checkIn), 'MMM d, yyyy')) : t('booking.checkIn')}
               </span>
             </div>
           </button>
@@ -155,7 +194,7 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
             <div className="flex items-center gap-1.5">
               <Calendar className="w-3.5 h-3.5 text-gray-400" />
               <span className={`text-sm font-medium ${checkOut ? 'text-gray-800' : 'text-gray-400'}`}>
-                {checkOut ? (isAr ? new Date(checkOut).toLocaleDateString('ar-SA', { month: 'short', day: 'numeric', year: 'numeric' }) : format(new Date(checkOut), 'MMM d, yyyy')) : t('booking.checkOut')}
+                {checkOut ? (isAr ? new Date(checkOut).toLocaleDateString('ar-u-nu-latn', { month: 'short', day: 'numeric', year: 'numeric' }) : format(new Date(checkOut), 'MMM d, yyyy')) : t('booking.checkOut')}
               </span>
             </div>
           </button>
@@ -170,7 +209,18 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
               checkOut={checkOut}
               onSelectDate={handleDateSelect}
               locale={language as 'en' | 'ar'}
-              unavailableDates={((property as Property & { unavailableDates?: (string | Date)[] }).unavailableDates || []).map((d) => typeof d === 'string' ? d : format(new Date(d), 'yyyy-MM-dd'))}
+              unavailableDates={[
+                ...((property as Property & { unavailableDates?: (string | Date)[] }).unavailableDates || []).map((d) => typeof d === 'string' ? d : format(new Date(d), 'yyyy-MM-dd')),
+                ...(property.bookedDates || []).flatMap((range) => {
+                  const dates: string[] = [];
+                  const start = new Date(range.start);
+                  const end = new Date(range.end);
+                  for (let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
+                    dates.push(format(new Date(d), 'yyyy-MM-dd'));
+                  }
+                  return dates;
+                }),
+              ]}
             />
           </div>
         )}
@@ -215,8 +265,19 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
         </div>
       </div>
 
-      <Button onClick={handleBookNow} size="lg" className="w-full mb-4">
-        {checkIn && checkOut ? `${t('booking.bookFor')} ${nightLabel}` : t('booking.checkAvailability')}
+      {/* Min nights warning */}
+      {property.rules?.minNights > 1 && nights > 0 && nights < property.rules.minNights && (
+        <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 mb-3 text-center font-medium">
+          {isAr
+            ? `الحد الأدنى للإقامة ${getNightLabel(property.rules.minNights, 'ar')}`
+            : `Minimum stay is ${getNightLabel(property.rules.minNights, 'en')}`}
+        </p>
+      )}
+
+      <Button onClick={handleBookNow} size="lg" className="w-full mb-4" disabled={holdLoading}>
+        {holdLoading
+          ? (isAr ? 'جاري التحقق...' : 'Checking...')
+          : checkIn && checkOut ? `${t('booking.bookFor')} ${nightLabel}` : t('booking.checkAvailability')}
       </Button>
 
       <p className="text-xs text-center text-gray-500 mb-5">{t('booking.notChargedYet')}</p>

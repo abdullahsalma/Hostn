@@ -122,6 +122,7 @@ export const propertiesApi = {
 // BOOKINGS
 // ═══════════════════════════════════════════════════════════════════════════════
 export const bookingsApi = {
+  createHold: (data: Record<string, unknown>) => api.post('/bookings/hold', data),
   create: (data: Record<string, unknown>) => api.post('/bookings', data),
   getMyBookings: () => api.get('/bookings/my-bookings'),
   getHostBookings: () => api.get('/bookings/host-bookings'),
@@ -251,6 +252,7 @@ export const adminApi = {
   // Bookings
   getBookings: (params?: Record<string, unknown>) => api.get('/admin/bookings', { params }),
   updateBooking: (id: string, data: Record<string, unknown>) => api.patch(`/admin/bookings/${id}`, data),
+  deleteBooking: (id: string) => api.delete(`/admin/bookings/${id}`),
   // Payments
   getPayments: (params?: Record<string, unknown>) => api.get('/admin/payments', { params }),
   refundPayment: (id: string, data: { reason: string }) => api.post(`/admin/payments/${id}/refund`, data),

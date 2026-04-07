@@ -99,6 +99,22 @@ exports.getProperties = async (req, res, next) => {
           },
         },
       };
+
+      // Hide properties with confirmed bookings (hard lock) for these dates
+      // Holds (soft lock, 2 min) do NOT hide — only actual bookings do
+      const Booking = require('../models/Booking');
+      const bookedPropertyIds = await Booking.distinct('property', {
+        status: { $in: ['pending', 'confirmed'] },
+        $or: [
+          { checkIn: { $lt: checkOutDate, $gte: checkInDate } },
+          { checkOut: { $gt: checkInDate, $lte: checkOutDate } },
+          { checkIn: { $lte: checkInDate }, checkOut: { $gte: checkOutDate } },
+        ],
+      });
+
+      if (bookedPropertyIds.length > 0) {
+        query._id = { ...(query._id || {}), $nin: bookedPropertyIds };
+      }
     }
 
     const MAX_LIMIT = 50;
@@ -247,6 +263,23 @@ exports.getProperty = async (req, res, next) => {
       }
     }
 
+    // Attach booked/held date ranges so the calendar can gray them out
+    const BookingModel = require('../models/Booking');
+    const now = new Date();
+    const bookedRanges = await BookingModel.find({
+      property: property._id,
+      $or: [
+        { status: { $in: ['pending', 'confirmed'] } },
+        { status: 'held', holdExpiresAt: { $gt: now } },
+      ],
+      checkOut: { $gt: now },
+    }).select('checkIn checkOut');
+
+    propertyObj.bookedDates = bookedRanges.map((b) => ({
+      start: b.checkIn,
+      end: b.checkOut,
+    }));
+
     res.json({ success: true, data: propertyObj });
   } catch (error) {
     next(error);
@@ -377,15 +410,25 @@ exports.checkAvailability = async (req, res, next) => {
     }
 
     const Booking = require('../models/Booking');
+    const now = new Date();
     const conflictingBooking = await Booking.findOne({
       property: req.params.id,
-      status: { $in: ['pending', 'confirmed'] },
-      $or: [
-        { checkIn: { $lt: new Date(checkOut), $gte: new Date(checkIn) } },
-        { checkOut: { $gt: new Date(checkIn), $lte: new Date(checkOut) } },
+      $and: [
         {
-          checkIn: { $lte: new Date(checkIn) },
-          checkOut: { $gte: new Date(checkOut) },
+          $or: [
+            { status: { $in: ['pending', 'confirmed'] } },
+            { status: 'held', holdExpiresAt: { $gt: now } },
+          ],
+        },
+        {
+          $or: [
+            { checkIn: { $lt: new Date(checkOut), $gte: new Date(checkIn) } },
+            { checkOut: { $gt: new Date(checkIn), $lte: new Date(checkOut) } },
+            {
+              checkIn: { $lte: new Date(checkIn) },
+              checkOut: { $gte: new Date(checkOut) },
+            },
+          ],
         },
       ],
     });

@@ -124,14 +124,21 @@ function BookingContent() {
 
     setProcessing(true);
     try {
-      // Step 1: Create booking
+      // Use holdId if available (silent reservation hold from BookingWidget)
+      const holdId = typeof window !== 'undefined' ? localStorage.getItem(`hostn_hold_${id}`) : null;
+
+      // Step 1: Create booking (converts hold if valid, otherwise creates fresh)
       const bookingRes = await bookingsApi.create({
         propertyId: id,
         checkIn,
         checkOut,
         guests: { adults: adultsCount, children: childrenCount, infants: 0 },
         specialRequests,
+        ...(holdId ? { holdId } : {}),
       });
+
+      // Clean up holdId from localStorage
+      if (holdId) localStorage.removeItem(`hostn_hold_${id}`);
 
       const newBookingId = bookingRes.data.data._id;
       setBookingId(newBookingId);
@@ -180,8 +187,8 @@ function BookingContent() {
         NO_ADULTS: { en: 'At least one adult guest required', ar: 'مطلوب ضيف بالغ واحد على الأقل' },
         MAX_CAPACITY: { en: `Exceeds max capacity of ${errData?.params?.max || ''} guests`, ar: `يتجاوز الحد الأقصى ${getGuestLabel(errData?.params?.max || 0, 'ar')}` },
         DATES_BLOCKED: { en: 'Property is blocked for selected dates', ar: 'العقار محجوب للتواريخ المحددة' },
-        MIN_STAY: { en: `Minimum stay is ${errData?.params?.min || ''} nights`, ar: `الحد الأدنى للإقامة ${errData?.params?.min || ''} ليالي` },
-        MAX_STAY: { en: `Maximum stay is ${errData?.params?.max || ''} nights`, ar: `الحد الأقصى للإقامة ${errData?.params?.max || ''} ليالي` },
+        MIN_STAY: { en: `Minimum stay is ${getNightLabel(errData?.params?.min || 0, 'en')}`, ar: `الحد الأدنى للإقامة${getNightLabel(errData?.params?.min || 0, 'ar')}` },
+        MAX_STAY: { en: `Maximum stay is ${getNightLabel(errData?.params?.max || 0, 'en')}`, ar: `الحد الأقصى للإقامة${getNightLabel(errData?.params?.max || 0, 'ar')}` },
         DATES_UNAVAILABLE: { en: 'This property is already booked for one or more of your selected dates. Please choose different dates.', ar: 'هذا العقار محجوز بالفعل في أحد التواريخ التي اخترتها. يرجى اختيار تواريخ أخرى.' },
       };
       const mapped = errData?.code ? errorMessages[errData.code] : null;
@@ -288,7 +295,7 @@ function BookingContent() {
                               <p className="text-sm font-medium text-gray-800">{isAr ? 'التواريخ' : 'Dates'}</p>
                               <p className="text-xs text-gray-500">
                                 {isAr
-                                  ? `${new Date(checkIn).toLocaleDateString('ar-SA', { month: 'short', day: 'numeric', year: 'numeric' })} – ${new Date(checkOut).toLocaleDateString('ar-SA', { month: 'short', day: 'numeric', year: 'numeric' })}`
+                                  ? `${new Date(checkIn).toLocaleDateString('ar-u-nu-latn', { month: 'short', day: 'numeric', year: 'numeric' })} – ${new Date(checkOut).toLocaleDateString('ar-u-nu-latn', { month: 'short', day: 'numeric', year: 'numeric' })}`
                                   : `${formatDate(checkIn)} – ${formatDate(checkOut)}`}
                               </p>
                             </div>
@@ -440,10 +447,7 @@ function BookingContent() {
                                 {isAr ? 'تابي — قسّمها على 4' : 'Tabby — Split in 4'}
                               </p>
                               <p className="text-xs text-gray-500">
-                                {isAr
-                                  ? `4 دفعات × ${formatPrice(Math.ceil((total / 4) * 100) / 100)} بدون فوائد`
-                                  : `4 × ${formatPrice(Math.ceil((total / 4) * 100) / 100)} interest-free`
-                                }
+                                {isAr ? '4 دفعات × ' : '4 × '}<span dir="ltr"><SarSymbol /> {formatPriceNumber(Math.ceil((total / 4) * 100) / 100)}</span>{isAr ? ' بدون فوائد' : ' interest-free'}
                               </p>
                             </div>
                             <span className="px-2.5 py-1 bg-purple-100 text-purple-700 text-[10px] font-bold rounded-lg">tabby</span>
@@ -474,10 +478,7 @@ function BookingContent() {
                                 {isAr ? 'تمارا — قسّمها على 4' : 'Tamara — Split in 4'}
                               </p>
                               <p className="text-xs text-gray-500">
-                                {isAr
-                                  ? `4 دفعات × ${formatPrice(Math.ceil((total / 4) * 100) / 100)} بدون رسوم تأخير`
-                                  : `4 × ${formatPrice(Math.ceil((total / 4) * 100) / 100)} no late fees`
-                                }
+                                {isAr ? '4 دفعات × ' : '4 × '}<span dir="ltr"><SarSymbol /> {formatPriceNumber(Math.ceil((total / 4) * 100) / 100)}</span>{isAr ? ' بدون رسوم تأخير' : ' no late fees'}
                               </p>
                             </div>
                             <span className="px-2.5 py-1 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-lg">tamara</span>
@@ -606,7 +607,7 @@ function BookingContent() {
                         onClick={() => setStep(1)}
                         className="w-full text-sm text-primary-600 hover:text-primary-700 font-medium py-2"
                       >
-                        {isAr ? '← العودة للمراجعة' : '← Back to review'}
+                        {isAr ? 'العودة للمراجعة →' : '← Back to review'}
                       </button>
                       <div className="text-xs text-gray-500 text-center">
                         <p>{isAr ? 'سيتم تحويلك بعد إتمام الدفع' : 'You will be redirected after payment'}</p>

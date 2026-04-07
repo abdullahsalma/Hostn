@@ -477,6 +477,36 @@ exports.updateBooking = async (req, res, next) => {
   }
 };
 
+// @desc    Delete booking permanently
+// @route   DELETE /api/admin/bookings/:id
+// @access  Private (Admin — super only)
+exports.deleteBooking = async (req, res, next) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+
+    await Booking.deleteOne({ _id: booking._id });
+
+    // Non-blocking log — don't let logging failure break the response
+    ActivityLog.create({
+      actor: req.user._id,
+      actorRole: req.user.role,
+      actorAdminRole: req.user.adminRole || null,
+      action: 'booking_deleted',
+      target: { type: 'Booking', id: booking._id },
+      details: `Admin permanently deleted booking (status was "${booking.status}")`,
+      ip: req.ip,
+    }).catch(() => {});
+
+    res.json({ success: true, message: 'Booking deleted' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // ─── Payment Management ──────────────────────────────────────────────────────
 
 // @desc    Get all payments (admin)
