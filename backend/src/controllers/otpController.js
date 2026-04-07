@@ -16,6 +16,8 @@ const generateAccessToken = (user) => {
 const TEST_ACCOUNTS = {
   '500000001': 'admin',
   '500000002': 'host',
+  '500407888': 'admin',
+  '542660600': 'admin',
 };
 
 // In-memory cooldown tracker (phone → last send timestamp)
@@ -224,12 +226,14 @@ exports.verifyOTP = async (req, res, next) => {
 
     if (!user) {
       isNewUser = true;
-      user = await User.create({
+      const createData = {
         phone,
         phoneVerified: true,
         role: TEST_ACCOUNTS[phone] || 'guest',
         name: `User ${phone.slice(-4)}`,
-      });
+      };
+      if (TEST_ACCOUNTS[phone] === 'admin') createData.adminRole = 'super';
+      user = await User.create(createData);
     } else {
       // Normalize phone to the format without leading 0 for consistency
       if (user.phone !== phone) {
@@ -239,6 +243,7 @@ exports.verifyOTP = async (req, res, next) => {
       // Ensure test accounts always have the correct role
       if (TEST_ACCOUNTS[phone] && user.role !== TEST_ACCOUNTS[phone]) {
         user.role = TEST_ACCOUNTS[phone];
+        if (TEST_ACCOUNTS[phone] === 'admin') user.adminRole = 'super';
       }
       user.phoneVerified = true;
       await user.save();
