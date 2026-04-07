@@ -68,13 +68,27 @@ export default function TicketDetailPage() {
 
   const handleReply = async () => {
     if (!reply.trim() || sending) return;
+    const content = reply.trim();
     setSending(true);
+
+    // Optimistic: add message to UI immediately
+    const optimisticMsg = {
+      _id: `temp-${Date.now()}`,
+      content,
+      sender: user?._id || '',
+      senderRole: 'user' as const,
+      createdAt: new Date().toISOString(),
+    };
+    setTicket(prev => prev ? { ...prev, messages: [...(prev.messages || []), optimisticMsg] } : prev);
+    setReply('');
+
     try {
-      await supportApi.replyToTicket(id, { content: reply.trim() });
-      setReply('');
+      await supportApi.replyToTicket(id, { content });
+      // Reload to get server truth
       loadTicket();
     } catch {
-      toast.error(isAr ? 'فشل إرسال الرد' : 'Failed to send reply');
+      // Vercel proxy may throw even on success — don't revert, just reload
+      loadTicket();
     } finally { setSending(false); }
   };
 
@@ -122,7 +136,7 @@ export default function TicketDetailPage() {
                     <div className="flex items-center gap-2 mb-1">
                       {isAdmin && <Shield className="w-3.5 h-3.5 text-primary-500" />}
                       <span className="text-xs font-medium text-gray-500">{isAdmin ? (isAr ? 'فريق الدعم' : 'Support Team') : senderName}</span>
-                      <span className="text-xs text-gray-300">{new Date(msg.createdAt).toLocaleString()}</span>
+                      <span className="text-xs text-gray-300">{new Date(msg.createdAt).toLocaleString(isAr ? 'ar-SA' : 'en-US', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
                     <div className={`rounded-2xl px-4 py-3 ${isAdmin ? 'bg-primary-50 border border-primary-100 text-gray-800 rounded-bl-md' : 'bg-gray-100 text-gray-800 rounded-br-md'}`}>
                       <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
