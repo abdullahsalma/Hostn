@@ -44,6 +44,29 @@ exports.getList = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
+    // Attach bookedDates for each property (same pattern as getProperty)
+    if (list.properties && list.properties.length > 0) {
+      const Booking = require('../models/Booking');
+      const now = new Date();
+      const propertyIds = list.properties.map((p) => p._id);
+      const bookings = await Booking.find({
+        property: { $in: propertyIds },
+        $or: [
+          { status: { $in: ['pending', 'confirmed'] } },
+          { status: 'held', holdExpiresAt: { $gt: now } },
+        ],
+        checkOut: { $gt: now },
+      }).select('property checkIn checkOut');
+
+      const listObj = list.toObject();
+      listObj.properties = listObj.properties.map((p) => {
+        const propBookings = bookings.filter((b) => b.property.toString() === p._id.toString());
+        p.bookedDates = propBookings.map((b) => ({ start: b.checkIn, end: b.checkOut }));
+        return p;
+      });
+      return res.json({ success: true, data: listObj });
+    }
+
     res.json({ success: true, data: list });
   } catch (error) {
     next(error);
