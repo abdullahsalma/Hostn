@@ -199,6 +199,13 @@ export default function PropertyCard({ property, checkIn, checkOut }: PropertyCa
         ? memberListIds.size > 1 // removing from one, but still in others
         : true; // just added
       setIsWishlisted(stillInAny);
+      // Show feedback toast
+      const listName = getListDisplayName(lists.find(l => l._id === listId));
+      if (wasIn) {
+        toast.success(isAr ? `تمت الإزالة من "${listName}"` : `Removed from "${listName}"`);
+      } else {
+        toast.success(isAr ? `تم الحفظ في "${listName}"` : `Saved to "${listName}"`);
+      }
     } catch {
       toast.error(isAr ? 'فشل في تحديث القائمة' : 'Failed to update list');
     } finally {

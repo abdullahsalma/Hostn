@@ -71,9 +71,9 @@ function FilterBubble({ icon: Icon, label, active, onClick, onClear, hasDropdown
 }
 
 // ─── Date display helper ────────────────────────────────────────────────────
-function formatDateDisplay(dateStr: string): string {
+function formatDateDisplay(dateStr: string, locale: string = 'en'): string {
   const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('en', { month: 'short', day: 'numeric' });
+  return d.toLocaleDateString(locale === 'ar' ? 'ar-SA' : 'en', { month: 'short', day: 'numeric' });
 }
 
 // ─── Mismatch reasons ───────────────────────────────────────────────────────
@@ -111,6 +111,20 @@ function getMismatchReasons(
       reasons.push(isAr
         ? `الحد الأدنى ${property.rules.minNights} ليالي`
         : `Min stay ${property.rules.minNights} nights`);
+    }
+  }
+
+  // Booked / reserved dates overlap
+  if (filters.checkIn && filters.checkOut && property.bookedDates?.length) {
+    const ci = new Date(filters.checkIn);
+    const co = new Date(filters.checkOut);
+    const hasOverlap = property.bookedDates.some(bd => {
+      const s = new Date(bd.start);
+      const e = new Date(bd.end);
+      return ci < e && co > s;
+    });
+    if (hasOverlap) {
+      reasons.push(isAr ? 'محجوز في هذه التواريخ' : 'Booked for these dates');
     }
   }
 
@@ -456,8 +470,8 @@ export default function WishlistDetailPage() {
                 onClick={() => { setShowCalendar(!showCalendar); if (!showCalendar && !checkIn) setSelectingCheckOut(false); }}
                 className={`w-full ltr:pl-9 ltr:pr-3 rtl:pr-9 rtl:pl-3 py-2.5 border rounded-xl text-sm text-start transition-all bg-white ${showCalendar ? 'border-primary-400 ring-2 ring-primary-400/40' : 'border-gray-200'}`}>
                 <span className={checkIn ? 'text-gray-800' : 'text-gray-400'}>
-                  {checkIn && checkOut ? `${formatDateDisplay(checkIn)} — ${formatDateDisplay(checkOut)}`
-                    : checkIn ? `${formatDateDisplay(checkIn)} — ...`
+                  {checkIn && checkOut ? `${formatDateDisplay(checkIn, lang)} — ${formatDateDisplay(checkOut, lang)}`
+                    : checkIn ? `${formatDateDisplay(checkIn, lang)} — ...`
                     : isAr ? 'الوصول — المغادرة' : 'Check-in — Check-out'}
                 </span>
                 {checkIn && checkOut && (
@@ -738,10 +752,10 @@ export default function WishlistDetailPage() {
                     <div className="opacity-40">
                       <PropertyListCard property={property} isAr={isAr} lang={lang} removingId={removingId} onRemove={handleRemoveProperty} translateCity={translateCity} translateDistrict={translateDistrict} checkIn={checkIn} checkOut={checkOut} />
                     </div>
-                    <div className="absolute bottom-0 inset-x-0 bg-amber-100 border border-amber-300 rounded-b-xl px-3 py-2.5 shadow-sm">
+                    <div className="absolute bottom-0 inset-x-0 bg-amber-500 rounded-b-xl px-3 py-2.5 shadow-md">
                       <div className="flex items-start gap-2">
-                        <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                        <p className="text-xs text-amber-800 font-medium leading-snug">{reasons.join(' · ')}</p>
+                        <AlertCircle className="w-4 h-4 text-white flex-shrink-0 mt-0.5" />
+                        <p className="text-xs text-white font-semibold leading-snug">{reasons.join(' · ')}</p>
                       </div>
                     </div>
                   </div>
