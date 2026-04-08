@@ -4,12 +4,12 @@ const User = require('../models/User');
 const RefreshToken = require('../models/RefreshToken');
 const { sendVerificationCode } = require('../services/email');
 
-// Short-lived access token (15 min)
+// Long-lived access token (30 days — matches refresh token lifetime)
 const generateAccessToken = (user) => {
   return jwt.sign(
     { id: user._id, email: user.email, role: user.role, tokenVersion: user.tokenVersion },
     process.env.JWT_SECRET,
-    { expiresIn: '15m' }
+    { expiresIn: '30d' }
   );
 };
 
@@ -18,7 +18,7 @@ const ACCESS_COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'lax',
-  maxAge: 15 * 60 * 1000, // 15 min
+  maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
   path: '/',
 };
 
