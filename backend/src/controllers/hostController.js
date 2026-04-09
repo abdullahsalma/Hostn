@@ -780,9 +780,12 @@ exports.addPropertyImage = async (req, res, next) => {
       });
     }
 
-    const imageUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    // Upload to S3 (or Cloudinary fallback) via the shared upload service
+    const uploadRoutes = require('../routes/upload');
+    const result = await uploadRoutes.uploadImage(req.file.buffer, { folder: 'properties' });
+
     const newImage = {
-      url: imageUrl,
+      url: result.url,
       caption,
       isPrimary: isPrimary || (!property.images || property.images.length === 0),
     };

@@ -1,7 +1,7 @@
 const multer = require('multer');
 const path = require('path');
 
-// ── Storage config: memory storage for Cloudinary uploads ───────────────────
+// ── Storage config: memory storage for cloud uploads ─────────────────────────
 const storage = multer.memoryStorage();
 
 // ── File validation ──────────────────────────────────────────────────────────
@@ -18,32 +18,24 @@ const MAGIC_BYTES = {
 };
 
 const fileFilter = (req, file, cb) => {
-  // Check MIME type (client-reported, not trusted alone)
   if (!ALLOWED_TYPES.includes(file.mimetype)) {
     return cb(new Error(`Invalid file type: ${file.mimetype}. Allowed: JPEG, PNG, WebP, AVIF`), false);
   }
-
-  // Check extension
   const ext = path.extname(file.originalname).toLowerCase();
   if (!ALLOWED_EXTENSIONS.includes(ext)) {
     return cb(new Error(`Invalid file extension: ${ext}. Allowed: ${ALLOWED_EXTENSIONS.join(', ')}`), false);
   }
-
   cb(null, true);
 };
 
 /**
- * Validate magic bytes from a Buffer (in-memory).
- * Returns true if valid, throws if invalid.
- * @param {Buffer} buffer - File buffer from multer memory storage
- * @param {string} mimetype - Declared MIME type
+ * Validate magic bytes from a Buffer.
  */
 function validateMagicBytes(buffer, mimetype) {
   const signatures = MAGIC_BYTES[mimetype];
-  if (!signatures || signatures.length === 0) return true; // No signature to check
+  if (!signatures || signatures.length === 0) return true;
 
   const header = buffer.subarray(0, 12);
-
   const isValid = signatures.some((sig) => {
     for (let i = 0; i < sig.length; i++) {
       if (header[i] !== sig[i]) return false;
@@ -54,62 +46,62 @@ function validateMagicBytes(buffer, mimetype) {
   if (!isValid) {
     throw new Error('File content does not match declared type. Upload rejected.');
   }
-
   return true;
 }
 
-// ── Export configured multer instances ─────────────────────────────────────────
+// ── Multer instances ─────────────────────────────────────────────────────────
+const multerOpts = { storage, fileFilter, limits: { fileSize: MAX_FILE_SIZE } };
 
-// Single image (e.g., avatar)
-const uploadSingle = multer({
-  storage,
-  fileFilter,
-  limits: { fileSize: MAX_FILE_SIZE },
-}).single('image');
+const multerSingleImage = multer(multerOpts).single('image');
+const multerSingleFile  = multer(multerOpts).single('file');
+const multerMultiple    = multer({ ...multerOpts, limits: { fileSize: MAX_FILE_SIZE, files: 10 } }).array('images', 10);
 
-// Multiple images (e.g., property photos, max 10)
-const uploadMultiple = multer({
-  storage,
-  fileFilter,
-  limits: { fileSize: MAX_FILE_SIZE, files: 10 },
-}).array('images', 10);
-
-// Wrap multer in error-handling middleware
-const handleUpload = (multerMiddleware) => (req, res, next) => {
-  multerMiddleware(req, res, (err) => {
-    if (err instanceof multer.MulterError) {
-      if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).json({ success: false, message: 'File too large. Maximum 5MB per file.' });
-      }
-      if (err.code === 'LIMIT_FILE_COUNT') {
-        return res.status(400).json({ success: false, message: 'Too many files. Maximum 10 images.' });
-      }
-      return res.status(400).json({ success: false, message: err.message });
+/**
+ * Handle multer errors and validate magic bytes after upload.
+ */
+function postProcess(err, req, res, next) {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ success: false, message: 'File too large. Maximum 5MB per file.' });
     }
-    if (err) {
-      return res.status(400).json({ success: false, message: err.message });
+    if (err.code === 'LIMIT_FILE_COUNT') {
+      return res.status(400).json({ success: false, message: 'Too many files. Maximum 10 images.' });
     }
+    return res.status(400).json({ success: false, message: err.message });
+  }
+  if (err) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
 
-    // Validate magic bytes for uploaded files (from buffer)
-    try {
-      if (req.file) {
-        validateMagicBytes(req.file.buffer, req.file.mimetype);
-      }
-      if (req.files && Array.isArray(req.files)) {
-        for (const file of req.files) {
-          validateMagicBytes(file.buffer, file.mimetype);
-        }
-      }
-    } catch (validationErr) {
-      return res.status(400).json({ success: false, message: validationErr.message });
+  // Validate magic bytes
+  try {
+    if (req.file) validateMagicBytes(req.file.buffer, req.file.mimetype);
+    if (req.files && Array.isArray(req.files)) {
+      for (const file of req.files) validateMagicBytes(file.buffer, file.mimetype);
     }
+  } catch (validationErr) {
+    return res.status(400).json({ success: false, message: validationErr.message });
+  }
 
-    next();
+  next();
+}
+
+/**
+ * Single image upload — accepts field name 'image' or 'file'.
+ */
+function uploadSingle(req, res, next) {
+  multerSingleImage(req, res, (err) => {
+    if (!err && req.file) return postProcess(null, req, res, next);
+    // Try 'file' field if 'image' field had no file
+    multerSingleFile(req, res, (err2) => postProcess(err2, req, res, next));
   });
-};
+}
 
-module.exports = {
-  uploadSingle: handleUpload(uploadSingle),
-  uploadMultiple: handleUpload(uploadMultiple),
-  validateMagicBytes,
-};
+/**
+ * Multiple image upload — field name 'images'.
+ */
+function uploadMultiple(req, res, next) {
+  multerMultiple(req, res, (err) => postProcess(err, req, res, next));
+}
+
+module.exports = { uploadSingle, uploadMultiple, validateMagicBytes };
