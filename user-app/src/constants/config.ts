@@ -7,6 +7,12 @@ export const API_URL =
 
 export const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
 
+export const GOOGLE_MAPS_KEY =
+  process.env.EXPO_PUBLIC_GOOGLE_MAPS_KEY ?? 'AIzaSyD9mcyuKK3L2TUkZ7vep6xF_eUV5DzIDUw';
+
+export const MOYASAR_PUBLISHABLE_KEY =
+  process.env.EXPO_PUBLIC_MOYASAR_KEY ?? 'pk_test_UsXhwogyGztDCpTZFVtrzCm2yartokcZ4bM935DJ';
+
 export const SAUDI_COUNTRY_CODE = '+966';
 
 export const PROPERTY_TYPES = [
