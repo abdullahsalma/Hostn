@@ -96,7 +96,7 @@ export default function ListingDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80 }}>
         {/* Image Gallery */}
         <View style={styles.imageContainer}>
           <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
@@ -304,7 +304,7 @@ export default function ListingDetailScreen() {
             </View>
           )}
 
-          <View style={{ height: 100 }} />
+          <View style={{ height: 120 }} />
         </View>
       </ScrollView>
 
