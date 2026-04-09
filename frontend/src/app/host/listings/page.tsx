@@ -9,13 +9,19 @@ import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { usePageTitle } from '@/lib/usePageTitle';
 
+interface PropertyImage {
+  url: string;
+  isPrimary?: boolean;
+}
+
 interface Property {
   _id: string;
   title: string;
   titleAr?: string;
   city: string;
   price: number;
-  images?: string[];
+  pricing?: { perNight?: number };
+  images?: PropertyImage[];
   isActive: boolean;
   type: string;
   bedrooms?: number;
@@ -99,9 +105,9 @@ export default function HostListingsPage() {
           {properties.map((property) => (
             <div key={property._id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
               <div className="h-40 bg-gray-100 relative">
-                {property.images && property.images[0] ? (
+                {property.images && property.images[0]?.url ? (
                   <img
-                    src={property.images[0]}
+                    src={property.images[0].url}
                     alt={property.title}
                     className="w-full h-full object-cover"
                   />
@@ -126,7 +132,7 @@ export default function HostListingsPage() {
                 </h3>
                 <p className="text-sm text-gray-500 mb-2">{property.city}</p>
                 <p className="text-lg font-bold text-primary-600">
-                  <span dir="ltr"><SarSymbol /> {property.price?.toLocaleString('en')}</span> / {lang === 'ar' ? 'ليلة' : 'night'}
+                  <span dir="ltr"><SarSymbol /> {(property.pricing?.perNight || property.price)?.toLocaleString('en')}</span> / {lang === 'ar' ? 'ليلة' : 'night'}
                 </p>
                 <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
                   <Link

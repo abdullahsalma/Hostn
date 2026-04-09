@@ -14,6 +14,14 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'api.dicebear.com',
       },
+      {
+        protocol: 'https',
+        hostname: '**.amazonaws.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.cloudfront.net',
+      },
     ],
     // Optimize images for Vercel
     formats: ['image/avif', 'image/webp'],
@@ -60,7 +68,7 @@ const nextConfig = {
               "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.moyasar.com https://cdnjs.cloudflare.com https://maps.googleapis.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.moyasar.com",
               "font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com",
-              "img-src 'self' data: blob: https://images.unsplash.com https://*.unsplash.com https://api.dicebear.com https://cdn.moyasar.com https://maps.googleapis.com https://maps.gstatic.com https://*.ggpht.com",
+              "img-src 'self' data: blob: https://images.unsplash.com https://*.unsplash.com https://api.dicebear.com https://cdn.moyasar.com https://maps.googleapis.com https://maps.gstatic.com https://*.ggpht.com https://*.amazonaws.com https://*.cloudfront.net",
               "connect-src 'self' http://localhost:5000 https://api.moyasar.com https://*.mongodb.net https://maps.googleapis.com",
               "frame-src 'self' https://cdn.moyasar.com https://api.moyasar.com",
               "object-src 'none'",
