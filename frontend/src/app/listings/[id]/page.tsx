@@ -13,7 +13,7 @@ import { Property, User } from '@/types';
 import { propertiesApi, publicHostApi } from '@/lib/api';
 import { getPropertyTypeLabel } from '@/lib/utils';
 import { CITIES, DISTRICTS } from '@/lib/constants';
-import { MapPin, Users, BedDouble, Bath, Clock, Cigarette, PawPrint, Music, BadgeCheck, Share2, Heart } from 'lucide-react';
+import { MapPin, Users, BedDouble, Bath, Clock, Cigarette, PawPrint, Music, BadgeCheck, Share2, Heart, ClipboardList, Star, MapPinned, ScrollText } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
 const PropertyMap = dynamic(() => import('@/components/maps/PropertyMap'), {
@@ -233,8 +233,8 @@ function PropertyDetailContent() {
                 <button onClick={handleShare} className="p-2 hover:bg-gray-100 rounded-full transition-colors" title={isAr ? 'مشاركة' : 'Share'}>
                   <Share2 className="w-5 h-5 text-gray-600" />
                 </button>
-                <button onClick={handleWishlistToggle} disabled={wishlistLoading} className="p-2 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50" title={isAr ? 'المفضلة' : 'Wishlist'}>
-                  <Heart className={`w-5 h-5 transition-colors ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-gray-600 hover:text-red-400'}`} />
+                <button onClick={handleWishlistToggle} disabled={wishlistLoading} className="group/heart p-2 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50" title={isAr ? 'المفضلة' : 'Wishlist'}>
+                  <Heart className={`w-5 h-5 transition-colors ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-gray-600 group-hover/heart:fill-red-500 group-hover/heart:text-red-500'}`} />
                 </button>
               </div>
             </div>
@@ -245,25 +245,26 @@ function PropertyDetailContent() {
             <ImageGallery images={property.images} title={property.title} />
           </div>
 
-          {/* Segmented navigation */}
-          <div className="sticky top-0 z-30 bg-white border-b border-gray-100 py-3 -mx-4 px-4 mb-6">
-            <div className="flex gap-2 overflow-x-auto no-scrollbar">
+          {/* Segmented navigation — track/pill style */}
+          <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-gray-100 py-3 -mx-4 px-4 mb-6">
+            <div className="inline-flex bg-gray-100 rounded-xl p-1 gap-0.5 overflow-x-auto no-scrollbar">
               {[
-                { id: 'specification', label: isAr ? 'المواصفات' : 'Specification' },
-                { id: 'reviews', label: isAr ? 'تقييمات الضيوف' : 'Guest Reviews' },
-                { id: 'location', label: isAr ? 'الموقع والخريطة' : 'Location & Map' },
-                { id: 'terms', label: isAr ? 'الشروط والسياسات' : 'Terms & Policies' },
-              ].map(s => (
+                { id: 'specification', label: isAr ? 'المواصفات' : 'Specification', Icon: ClipboardList },
+                { id: 'reviews', label: isAr ? 'تقييمات الضيوف' : 'Guest Reviews', Icon: Star },
+                { id: 'location', label: isAr ? 'الموقع والخريطة' : 'Location & Map', Icon: MapPinned },
+                { id: 'terms', label: isAr ? 'الشروط والسياسات' : 'Terms & Policies', Icon: ScrollText },
+              ].map(({ id: sId, label, Icon }) => (
                 <button
-                  key={s.id}
-                  onClick={() => document.getElementById(s.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap border transition-colors ${
-                    activeSection === s.id
-                      ? 'bg-primary-50 border-primary-300 text-primary-700'
-                      : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                  key={sId}
+                  onClick={() => document.getElementById(sId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                  className={`relative flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 ${
+                    activeSection === sId
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
-                  {s.label}
+                  <Icon className="w-4 h-4" />
+                  {label}
                 </button>
               ))}
             </div>
