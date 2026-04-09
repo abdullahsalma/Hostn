@@ -17,29 +17,32 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bookingsService } from '../../services/bookings.service';
 import { formatCurrency, formatDate, formatDateRange, getNights } from '../../utils/format';
 import { Colors, Typography, Spacing, Radius, Shadows } from '../../constants/theme';
+import { useLanguage } from '../../i18n';
 import type { Booking } from '../../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
-  confirmed: { color: Colors.success, label: 'Confirmed' },
-  pending: { color: Colors.warning, label: 'Pending' },
-  cancelled: { color: Colors.error, label: 'Cancelled' },
-  completed: { color: Colors.info, label: 'Completed' },
-  no_show: { color: Colors.textTertiary, label: 'No Show' },
+const STATUS_COLORS: Record<string, string> = {
+  confirmed: Colors.success,
+  pending: Colors.warning,
+  cancelled: Colors.error,
+  completed: Colors.info,
+  no_show: Colors.textTertiary,
 };
 
-const PAYMENT_STATUS_CONFIG: Record<string, { color: string; label: string }> = {
-  pending: { color: Colors.warning, label: 'Pending' },
-  paid: { color: Colors.success, label: 'Paid' },
-  refunded: { color: Colors.info, label: 'Refunded' },
-  failed: { color: Colors.error, label: 'Failed' },
+const PAYMENT_STATUS_COLORS: Record<string, string> = {
+  pending: Colors.warning,
+  paid: Colors.success,
+  refunded: Colors.info,
+  failed: Colors.error,
 };
 
 export default function BookingDetailScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { id } = useLocalSearchParams<{ id: string }>();
+
+  const { t } = useLanguage();
 
   const { data: booking, isLoading } = useQuery({
     queryKey: ['booking', id],
@@ -52,21 +55,21 @@ export default function BookingDetailScreen() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['booking', id] });
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
-      Alert.alert('Booking Cancelled', 'Your booking has been cancelled successfully.');
+      Alert.alert(t('common.success'), t('status.cancelled'));
     },
     onError: () => {
-      Alert.alert('Error', 'Failed to cancel booking. Please try again.');
+      Alert.alert(t('common.error'), t('common.unexpectedError'));
     },
   });
 
   const handleCancel = () => {
     Alert.alert(
-      'Cancel Booking',
-      'Are you sure you want to cancel this booking?',
+      t('booking.cancelBooking'),
+      t('booking.cancelConfirm'),
       [
-        { text: 'No', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Yes, Cancel',
+          text: t('common.ok'),
           style: 'destructive',
           onPress: () => cancelMutation.mutate(),
         },
@@ -101,8 +104,10 @@ export default function BookingDetailScreen() {
     );
   }
 
-  const status = STATUS_CONFIG[booking.status] ?? { color: Colors.textTertiary, label: booking.status };
-  const paymentStatus = PAYMENT_STATUS_CONFIG[booking.paymentStatus] ?? { color: Colors.textTertiary, label: booking.paymentStatus };
+  const statusColor = STATUS_COLORS[booking.status] ?? Colors.textTertiary;
+  const statusLabel = t(`status.${booking.status}` as any) || booking.status;
+  const paymentStatusColor = PAYMENT_STATUS_COLORS[booking.paymentStatus] ?? Colors.textTertiary;
+  const paymentStatusLabel = t(`status.${booking.paymentStatus}` as any) || booking.paymentStatus;
   const nights = getNights(booking.checkIn, booking.checkOut);
   const canCancel = booking.status === 'pending' || booking.status === 'confirmed';
   const imageUri = typeof booking.property?.images?.[0] === 'string'
@@ -119,7 +124,7 @@ export default function BookingDetailScreen() {
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={22} color={Colors.textPrimary} />
         </Pressable>
-        <Text style={styles.headerTitle}>Booking Details</Text>
+        <Text style={styles.headerTitle}>{t('booking.title')}</Text>
         <View style={{ width: 38 }} />
       </View>
 
@@ -144,33 +149,33 @@ export default function BookingDetailScreen() {
         {/* Status Badges */}
         <View style={styles.statusRow}>
           <View style={styles.statusItem}>
-            <Text style={styles.statusLabel}>Booking Status</Text>
-            <View style={[styles.statusBadge, { backgroundColor: status.color }]}>
-              <Text style={styles.statusBadgeText}>{status.label}</Text>
+            <Text style={styles.statusLabel}>{t('booking.status')}</Text>
+            <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
+              <Text style={styles.statusBadgeText}>{statusLabel}</Text>
             </View>
           </View>
           <View style={styles.statusItem}>
-            <Text style={styles.statusLabel}>Payment</Text>
-            <View style={[styles.statusBadge, { backgroundColor: paymentStatus.color }]}>
-              <Text style={styles.statusBadgeText}>{paymentStatus.label}</Text>
+            <Text style={styles.statusLabel}>{t('booking.payment')}</Text>
+            <View style={[styles.statusBadge, { backgroundColor: paymentStatusColor }]}>
+              <Text style={styles.statusBadgeText}>{paymentStatusLabel}</Text>
             </View>
           </View>
         </View>
 
         {/* Booking Dates */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Dates</Text>
+          <Text style={styles.sectionTitle}>{t('booking.dates')}</Text>
           <View style={styles.datesCard}>
             <View style={styles.dateColumn}>
-              <Text style={styles.dateLabel}>Check-in</Text>
+              <Text style={styles.dateLabel}>{t('search.checkIn')}</Text>
               <Text style={styles.dateValue}>{formatDate(booking.checkIn)}</Text>
             </View>
             <View style={styles.dateDivider}>
               <Ionicons name="arrow-forward" size={18} color={Colors.textTertiary} />
-              <Text style={styles.nightsText}>{nights} night{nights !== 1 ? 's' : ''}</Text>
+              <Text style={styles.nightsText}>{nights} {nights !== 1 ? t('booking.nights') : t('booking.night')}</Text>
             </View>
             <View style={styles.dateColumn}>
-              <Text style={styles.dateLabel}>Check-out</Text>
+              <Text style={styles.dateLabel}>{t('search.checkOut')}</Text>
               <Text style={styles.dateValue}>{formatDate(booking.checkOut)}</Text>
             </View>
           </View>
@@ -178,32 +183,32 @@ export default function BookingDetailScreen() {
 
         {/* Guests */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Guests</Text>
+          <Text style={styles.sectionTitle}>{t('booking.guests')}</Text>
           <View style={styles.infoRow}>
             <Ionicons name="people-outline" size={20} color={Colors.textSecondary} />
-            <Text style={styles.infoValue}>{booking.guests} guest{booking.guests !== 1 ? 's' : ''}</Text>
+            <Text style={styles.infoValue}>{booking.guests} {booking.guests !== 1 ? t('listing.guests') : t('booking.guest')}</Text>
           </View>
         </View>
 
         {/* Price Breakdown */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Price Breakdown</Text>
+          <Text style={styles.sectionTitle}>{t('booking.priceBreakdown')}</Text>
           <View style={styles.priceCard}>
             <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>Total Price</Text>
+              <Text style={styles.priceLabel}>{t('checkout.total')}</Text>
               <Text style={styles.priceValue}>{formatCurrency(booking.totalPrice)}</Text>
             </View>
             <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>Service Fee</Text>
+              <Text style={styles.priceLabel}>{t('checkout.serviceFee')}</Text>
               <Text style={styles.priceValue}>{formatCurrency(booking.serviceFee)}</Text>
             </View>
             <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>VAT</Text>
+              <Text style={styles.priceLabel}>{t('checkout.vat')}</Text>
               <Text style={styles.priceValue}>{formatCurrency(booking.vat)}</Text>
             </View>
             {(booking.discountAmount ?? 0) > 0 && (
               <View style={styles.priceRow}>
-                <Text style={styles.priceLabel}>Discount</Text>
+                <Text style={styles.priceLabel}>{t('checkout.couponDiscount')}</Text>
                 <Text style={[styles.priceValue, { color: Colors.success }]}>
                   -{formatCurrency(booking.discountAmount!)}
                 </Text>
@@ -211,12 +216,12 @@ export default function BookingDetailScreen() {
             )}
             {(booking.securityDeposit ?? 0) > 0 && (
               <View style={styles.priceRow}>
-                <Text style={styles.priceLabel}>Security Deposit</Text>
+                <Text style={styles.priceLabel}>{t('booking.securityDeposit')}</Text>
                 <Text style={styles.priceValue}>{formatCurrency(booking.securityDeposit!)}</Text>
               </View>
             )}
             <View style={[styles.priceRow, styles.totalRow]}>
-              <Text style={styles.totalLabel}>Total</Text>
+              <Text style={styles.totalLabel}>{t('checkout.total')}</Text>
               <Text style={styles.totalValue}>{formatCurrency(booking.totalPrice)}</Text>
             </View>
           </View>
@@ -224,7 +229,7 @@ export default function BookingDetailScreen() {
 
         {/* Host Info */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Host</Text>
+          <Text style={styles.sectionTitle}>{t('booking.host')}</Text>
           <Pressable style={styles.hostCard} onPress={handleViewHost}>
             <View style={styles.hostAvatar}>
               {booking.host?.avatar ? (
@@ -238,7 +243,7 @@ export default function BookingDetailScreen() {
               {booking.host?.isVerified && (
                 <View style={styles.verifiedRow}>
                   <Ionicons name="checkmark-circle" size={14} color={Colors.success} />
-                  <Text style={styles.verifiedText}>Verified host</Text>
+                  <Text style={styles.verifiedText}>{t('detail.verifiedHost')}</Text>
                 </View>
               )}
             </View>
@@ -248,10 +253,10 @@ export default function BookingDetailScreen() {
 
         {/* Booking Reference */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Booking Reference</Text>
+          <Text style={styles.sectionTitle}>{t('booking.reference')}</Text>
           <Text style={styles.referenceText}>{booking._id}</Text>
           <Text style={styles.bookedOnText}>
-            Booked on {formatDate(booking.createdAt)}
+            {t('booking.bookedOn')} {formatDate(booking.createdAt)}
           </Text>
         </View>
 
@@ -259,7 +264,7 @@ export default function BookingDetailScreen() {
         <View style={styles.actions}>
           <Pressable style={styles.contactButton} onPress={handleContactHost}>
             <Ionicons name="chatbubble-outline" size={18} color={Colors.primary} />
-            <Text style={styles.contactText}>Contact Host</Text>
+            <Text style={styles.contactText}>{t('booking.contactHost')}</Text>
           </Pressable>
 
           {canCancel && (
@@ -273,7 +278,7 @@ export default function BookingDetailScreen() {
               ) : (
                 <>
                   <Ionicons name="close-circle-outline" size={18} color={Colors.white} />
-                  <Text style={styles.cancelText}>Cancel Booking</Text>
+                  <Text style={styles.cancelText}>{t('booking.cancelBooking')}</Text>
                 </>
               )}
             </Pressable>

@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { authService } from '../../services/auth.service';
 import { useAuthStore } from '../../store/authStore';
 import { formatPhone } from '../../utils/format';
+import { useLanguage } from '../../i18n';
 import { Colors, Typography, Spacing, Radius } from '../../constants/theme';
 
 const OTP_LENGTH = 4;
@@ -24,6 +25,7 @@ export default function OtpScreen() {
   const router = useRouter();
   const { phone, countryCode } = useLocalSearchParams<{ phone: string; countryCode?: string }>();
   const login = useAuthStore((s) => s.login);
+  const { t } = useLanguage();
 
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -53,8 +55,8 @@ export default function OtpScreen() {
     } catch (error: any) {
       setCode('');
       Alert.alert(
-        'Invalid Code',
-        error.response?.data?.message || 'The code you entered is incorrect. Please try again.'
+        t('auth.invalidCode'),
+        error.response?.data?.message || t('auth.invalidCodeMsg')
       );
     } finally {
       setLoading(false);
@@ -83,9 +85,9 @@ export default function OtpScreen() {
         </Pressable>
 
         <View style={styles.header}>
-          <Text style={styles.title}>Verify your number</Text>
+          <Text style={styles.title}>{t('auth.verifyNumber')}</Text>
           <Text style={styles.subtitle}>
-            Enter the {OTP_LENGTH}-digit code sent to{'\n'}
+            {t('auth.enterCode', { length: OTP_LENGTH })}{'\n'}
             {phone ? formatPhone(phone) : ''}
           </Text>
         </View>
@@ -121,12 +123,12 @@ export default function OtpScreen() {
         )}
 
         <View style={styles.resendRow}>
-          <Text style={styles.resendText}>Didn't receive the code?</Text>
+          <Text style={styles.resendText}>{t('auth.didntReceive')}</Text>
           {countdown > 0 ? (
-            <Text style={styles.countdownText}>Resend in {countdown}s</Text>
+            <Text style={styles.countdownText}>{t('auth.resendIn', { seconds: countdown })}</Text>
           ) : (
             <Pressable onPress={handleResend}>
-              <Text style={styles.resendButton}>Resend Code</Text>
+              <Text style={styles.resendButton}>{t('auth.resendCode')}</Text>
             </Pressable>
           )}
         </View>

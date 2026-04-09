@@ -14,16 +14,10 @@ import { useQuery } from '@tanstack/react-query';
 import { supportService } from '../../services/support.service';
 import { formatDate } from '../../utils/format';
 import { Colors, Typography, Spacing, Radius, Shadows } from '../../constants/theme';
+import { useLanguage } from '../../i18n';
 import type { SupportTicket } from '../../types';
 
 type StatusFilter = 'all' | 'open' | 'in_progress' | 'resolved';
-
-const STATUS_TABS: { key: StatusFilter; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'open', label: 'Open' },
-  { key: 'in_progress', label: 'In Progress' },
-  { key: 'resolved', label: 'Resolved' },
-];
 
 const STATUS_COLORS: Record<SupportTicket['status'], string> = {
   open: Colors.info,
@@ -32,31 +26,39 @@ const STATUS_COLORS: Record<SupportTicket['status'], string> = {
   closed: Colors.textTertiary,
 };
 
-const STATUS_LABELS: Record<SupportTicket['status'], string> = {
-  open: 'Open',
-  in_progress: 'In Progress',
-  resolved: 'Resolved',
-  closed: 'Closed',
-};
-
 const PRIORITY_COLORS: Record<SupportTicket['priority'], string> = {
   low: Colors.success,
   medium: Colors.warning,
   high: Colors.error,
 };
 
-const CATEGORY_LABELS: Record<SupportTicket['category'], string> = {
-  payment: 'Payment',
-  booking: 'Booking',
-  complaint: 'Complaint',
-  technical: 'Technical',
-  account: 'Account',
-  other: 'Other',
-};
-
 export default function SupportScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [activeFilter, setActiveFilter] = useState<StatusFilter>('all');
+
+  const STATUS_TABS: { key: StatusFilter; label: string }[] = [
+    { key: 'all', label: t('support.all') },
+    { key: 'open', label: t('support.open') },
+    { key: 'in_progress', label: t('support.inProgress') },
+    { key: 'resolved', label: t('support.resolved') },
+  ];
+
+  const STATUS_LABELS: Record<SupportTicket['status'], string> = {
+    open: t('support.open'),
+    in_progress: t('support.inProgress'),
+    resolved: t('support.resolved'),
+    closed: t('support.resolved'),
+  };
+
+  const CATEGORY_LABELS: Record<SupportTicket['category'], string> = {
+    payment: t('support.cat.payment'),
+    booking: t('support.cat.booking'),
+    complaint: t('support.cat.complaint'),
+    technical: t('support.cat.technical'),
+    account: t('support.cat.account'),
+    other: t('support.cat.other'),
+  };
 
   const { data, isLoading } = useQuery({
     queryKey: ['supportTickets'],
@@ -106,7 +108,7 @@ export default function SupportScreen() {
           ]}
         />
         <Text style={styles.priorityText}>
-          {item.priority.charAt(0).toUpperCase() + item.priority.slice(1)}
+          {t(`support.pri.${item.priority}` as any)}
         </Text>
         <Text style={styles.ticketDate}>{formatDate(item.createdAt)}</Text>
       </View>
@@ -120,7 +122,7 @@ export default function SupportScreen() {
         <Pressable onPress={() => router.back()} hitSlop={12}>
           <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
         </Pressable>
-        <Text style={styles.title}>Support</Text>
+        <Text style={styles.title}>{t('support.title')}</Text>
         <Pressable
           onPress={() => router.push('/account/new-ticket' as any)}
           hitSlop={12}
@@ -163,17 +165,17 @@ export default function SupportScreen() {
             size={64}
             color={Colors.textTertiary}
           />
-          <Text style={styles.emptyTitle}>No tickets</Text>
+          <Text style={styles.emptyTitle}>{t('support.noTickets')}</Text>
           <Text style={styles.emptyText}>
             {activeFilter === 'all'
-              ? "You haven't created any support tickets yet."
-              : `No ${STATUS_LABELS[activeFilter as SupportTicket['status']]?.toLowerCase()} tickets.`}
+              ? t('support.noTicketsSub')
+              : `${t('support.noTickets')}`}
           </Text>
           <Pressable
             style={styles.newTicketButton}
             onPress={() => router.push('/account/new-ticket' as any)}
           >
-            <Text style={styles.newTicketButtonText}>New Ticket</Text>
+            <Text style={styles.newTicketButtonText}>{t('support.newTicket')}</Text>
           </Pressable>
         </View>
       ) : (

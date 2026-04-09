@@ -13,17 +13,19 @@ import { couponsService } from '../../services/coupons.service';
 import { useSearchStore } from '../../store/searchStore';
 import { formatCurrency, formatDateRange, getNights } from '../../utils/format';
 import { Colors, Typography, Spacing, Radius, Shadows } from '../../constants/theme';
-
-const PAYMENT_METHODS = [
-  { id: 'card', label: 'Bank Card', icon: 'card-outline' },
-  { id: 'tabby', label: 'Tabby', icon: 'pricetag-outline' },
-  { id: 'tamara', label: 'Tamara', icon: 'pricetags-outline' },
-] as const;
+import { useLanguage } from '../../i18n';
 
 export default function CheckoutScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const { listingId } = useLocalSearchParams<{ listingId: string }>();
   const { checkIn, checkOut, guests } = useSearchStore();
+
+  const PAYMENT_METHODS = [
+    { id: 'card', label: t('checkout.bankCard'), icon: 'card-outline' },
+    { id: 'tabby', label: 'Tabby', icon: 'pricetag-outline' },
+    { id: 'tamara', label: 'Tamara', icon: 'pricetags-outline' },
+  ] as const;
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [couponCode, setCouponCode] = useState('');
   const [couponDiscount, setCouponDiscount] = useState(0);
@@ -89,7 +91,7 @@ export default function CheckoutScreen() {
         <Pressable onPress={() => router.back()} hitSlop={12}>
           <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
         </Pressable>
-        <Text style={styles.title}>Review & Pay</Text>
+        <Text style={styles.title}>{t('checkout.title')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -103,58 +105,58 @@ export default function CheckoutScreen() {
             {checkIn && checkOut && (
               <Text style={styles.propertyDates}>{formatDateRange(checkIn, checkOut)}</Text>
             )}
-            <Text style={styles.propertyGuests}>{guests} guest{guests > 1 ? 's' : ''}</Text>
+            <Text style={styles.propertyGuests}>{guests} {guests > 1 ? t('listing.guests') : t('booking.guest')}</Text>
           </View>
         </View>
 
         {/* Price Breakdown */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Price Breakdown</Text>
+          <Text style={styles.sectionTitle}>{t('checkout.priceBreakdown')}</Text>
           <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>{formatCurrency(nightlyRate)} x {nights} night{nights > 1 ? 's' : ''}</Text>
+            <Text style={styles.priceLabel}>{formatCurrency(nightlyRate)} x {nights} {nights > 1 ? t('booking.nights') : t('booking.night')}</Text>
             <Text style={styles.priceValue}>{formatCurrency(subtotal)}</Text>
           </View>
           <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Service fee</Text>
+            <Text style={styles.priceLabel}>{t('checkout.serviceFee')}</Text>
             <Text style={styles.priceValue}>{formatCurrency(serviceFee)}</Text>
           </View>
           <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>VAT (15%)</Text>
+            <Text style={styles.priceLabel}>{t('checkout.vat')}</Text>
             <Text style={styles.priceValue}>{formatCurrency(vat)}</Text>
           </View>
           {couponDiscount > 0 && (
             <View style={styles.priceRow}>
-              <Text style={[styles.priceLabel, { color: Colors.success }]}>Coupon discount</Text>
+              <Text style={[styles.priceLabel, { color: Colors.success }]}>{t('checkout.couponDiscount')}</Text>
               <Text style={[styles.priceValue, { color: Colors.success }]}>-{formatCurrency(couponDiscount)}</Text>
             </View>
           )}
           <View style={[styles.priceRow, styles.totalRow]}>
-            <Text style={styles.totalLabel}>Total</Text>
+            <Text style={styles.totalLabel}>{t('checkout.total')}</Text>
             <Text style={styles.totalValue}>{formatCurrency(total)}</Text>
           </View>
         </View>
 
         {/* Coupon */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Discount Code</Text>
+          <Text style={styles.sectionTitle}>{t('checkout.discountCode')}</Text>
           <View style={styles.couponRow}>
             <TextInput
               style={styles.couponInput}
-              placeholder="Enter code"
+              placeholder={t('checkout.enterCode')}
               placeholderTextColor={Colors.textTertiary}
               value={couponCode}
               onChangeText={setCouponCode}
               autoCapitalize="characters"
             />
             <Pressable style={styles.couponButton} onPress={handleApplyCoupon}>
-              <Text style={styles.couponButtonText}>Apply</Text>
+              <Text style={styles.couponButtonText}>{t('checkout.apply')}</Text>
             </Pressable>
           </View>
         </View>
 
         {/* Payment Method */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Payment Method</Text>
+          <Text style={styles.sectionTitle}>{t('checkout.paymentMethod')}</Text>
           {PAYMENT_METHODS.map((method) => (
             <Pressable
               key={method.id}
@@ -178,7 +180,7 @@ export default function CheckoutScreen() {
           {bookMutation.isPending ? (
             <ActivityIndicator color={Colors.white} />
           ) : (
-            <Text style={styles.payText}>Pay {formatCurrency(total)}</Text>
+            <Text style={styles.payText}>{t('checkout.pay')} {formatCurrency(total)}</Text>
           )}
         </Pressable>
       </View>

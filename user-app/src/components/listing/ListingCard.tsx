@@ -4,18 +4,8 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { formatCurrency, formatRating } from '../../utils/format';
 import { Colors, Typography, Spacing, Radius, Shadows } from '../../constants/theme';
+import { useLanguage } from '../../i18n';
 import type { Listing } from '../../types';
-
-const TYPE_LABELS: Record<string, string> = {
-  chalet: 'Chalet',
-  apartment: 'Apartment',
-  villa: 'Villa',
-  studio: 'Studio',
-  farm: 'Farm',
-  camp: 'Camp',
-  resort: 'Resort',
-  hotel: 'Hotel',
-};
 
 interface Props {
   listing: Listing;
@@ -26,6 +16,7 @@ interface Props {
 }
 
 export default function ListingCard({ listing, onPress, onFavoritePress, isFavorite, style }: Props) {
+  const { t } = useLanguage();
   const primaryImage = listing.images?.find((img) => img.isPrimary) ?? listing.images?.[0];
   const imageUri = typeof primaryImage === 'string' ? primaryImage : primaryImage?.url;
   const originalPrice = listing.pricing?.perNight ?? 0;
@@ -39,7 +30,7 @@ export default function ListingCard({ listing, onPress, onFavoritePress, isFavor
   const guests = listing.capacity?.maxGuests;
   const bedrooms = listing.capacity?.bedrooms;
   const bathrooms = listing.capacity?.bathrooms;
-  const typeLabel = TYPE_LABELS[listing.type] ?? listing.type;
+  const typeLabel = t(('type.' + listing.type) as any) ?? listing.type;
 
   return (
     <Pressable style={[styles.container, style]} onPress={onPress}>
@@ -68,7 +59,7 @@ export default function ListingCard({ listing, onPress, onFavoritePress, isFavor
         )}
         {hasDiscount && (
           <View style={styles.discountBadge}>
-            <Text style={styles.discountText}>{discount}% OFF</Text>
+            <Text style={styles.discountText}>{discount}{t('listing.off')}</Text>
           </View>
         )}
         {/* Property type badge */}
@@ -118,7 +109,7 @@ export default function ListingCard({ listing, onPress, onFavoritePress, isFavor
               <Text style={styles.originalPrice}>{formatCurrency(originalPrice)}</Text>
             )}
             <Text style={styles.price}>{formatCurrency(price)}</Text>
-            <Text style={styles.perNight}>/night</Text>
+            <Text style={styles.perNight}>{t('listing.perNight')}</Text>
           </View>
           {rating > 0 && (
             <View style={styles.ratingRow}>

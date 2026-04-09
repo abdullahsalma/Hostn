@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { authService } from '../../services/auth.service';
+import { useLanguage } from '../../i18n';
 import { Colors, Typography, Spacing, Radius } from '../../constants/theme';
 
 interface GCCCountry {
@@ -41,6 +42,7 @@ type OtpMethod = 'sms' | 'whatsapp';
 
 export default function PhoneScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState<GCCCountry>(GCC_COUNTRIES[0]);
@@ -117,9 +119,9 @@ export default function PhoneScreen() {
           <View style={styles.iconCircle}>
             <Ionicons name="phone-portrait-outline" size={32} color={Colors.white} />
           </View>
-          <Text style={styles.title}>Enter your phone number</Text>
+          <Text style={styles.title}>{t('auth.enterPhone')}</Text>
           <Text style={styles.subtitle}>
-            We'll send you a verification code to confirm your identity
+            {t('auth.phoneSub')}
           </Text>
         </View>
 
@@ -146,7 +148,7 @@ export default function PhoneScreen() {
 
         {/* OTP Method Selector */}
         <View style={styles.methodContainer}>
-          <Text style={styles.methodLabel}>Send code via</Text>
+          <Text style={styles.methodLabel}>{t('auth.sendVia')}</Text>
           <View style={styles.methodToggle}>
             <Pressable
               style={[
@@ -201,7 +203,7 @@ export default function PhoneScreen() {
           {loading ? (
             <ActivityIndicator color={Colors.white} />
           ) : (
-            <Text style={styles.buttonText}>Send Code</Text>
+            <Text style={styles.buttonText}>{t('auth.sendCode')}</Text>
           )}
         </Pressable>
       </KeyboardAvoidingView>
@@ -215,7 +217,7 @@ export default function PhoneScreen() {
       >
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Select Country</Text>
+            <Text style={styles.modalTitle}>{t('auth.selectCountry')}</Text>
             <Pressable onPress={() => setCountryModalVisible(false)} hitSlop={12}>
               <Ionicons name="close" size={24} color={Colors.textPrimary} />
             </Pressable>

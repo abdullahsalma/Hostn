@@ -17,34 +17,51 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supportService } from '../../services/support.service';
 import { Colors, Typography, Spacing, Radius, Shadows } from '../../constants/theme';
+import { useLanguage } from '../../i18n';
 import type { SupportTicket } from '../../types';
 
 type Category = SupportTicket['category'];
 type Priority = SupportTicket['priority'];
 
-const CATEGORIES: { value: Category; label: string; icon: React.ComponentProps<typeof Ionicons>['name'] }[] = [
-  { value: 'payment', label: 'Payment', icon: 'card-outline' },
-  { value: 'booking', label: 'Booking', icon: 'calendar-outline' },
-  { value: 'complaint', label: 'Complaint', icon: 'warning-outline' },
-  { value: 'technical', label: 'Technical', icon: 'construct-outline' },
-  { value: 'account', label: 'Account', icon: 'person-outline' },
-  { value: 'other', label: 'Other', icon: 'ellipsis-horizontal-outline' },
-];
+const CATEGORY_ICONS: Record<Category, React.ComponentProps<typeof Ionicons>['name']> = {
+  payment: 'card-outline',
+  booking: 'calendar-outline',
+  complaint: 'warning-outline',
+  technical: 'construct-outline',
+  account: 'person-outline',
+  other: 'ellipsis-horizontal-outline',
+};
 
-const PRIORITIES: { value: Priority; label: string; color: string }[] = [
-  { value: 'low', label: 'Low', color: Colors.success },
-  { value: 'medium', label: 'Medium', color: Colors.warning },
-  { value: 'high', label: 'High', color: Colors.error },
-];
+const PRIORITY_COLORS: Record<Priority, string> = {
+  low: Colors.success,
+  medium: Colors.warning,
+  high: Colors.error,
+};
 
 export default function NewTicketScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const queryClient = useQueryClient();
 
   const [subject, setSubject] = useState('');
   const [category, setCategory] = useState<Category | null>(null);
   const [priority, setPriority] = useState<Priority>('medium');
   const [message, setMessage] = useState('');
+
+  const CATEGORIES: { value: Category; label: string; icon: React.ComponentProps<typeof Ionicons>['name'] }[] = [
+    { value: 'payment', label: t('support.cat.payment'), icon: CATEGORY_ICONS.payment },
+    { value: 'booking', label: t('support.cat.booking'), icon: CATEGORY_ICONS.booking },
+    { value: 'complaint', label: t('support.cat.complaint'), icon: CATEGORY_ICONS.complaint },
+    { value: 'technical', label: t('support.cat.technical'), icon: CATEGORY_ICONS.technical },
+    { value: 'account', label: t('support.cat.account'), icon: CATEGORY_ICONS.account },
+    { value: 'other', label: t('support.cat.other'), icon: CATEGORY_ICONS.other },
+  ];
+
+  const PRIORITIES: { value: Priority; label: string; color: string }[] = [
+    { value: 'low', label: t('support.pri.low'), color: PRIORITY_COLORS.low },
+    { value: 'medium', label: t('support.pri.medium'), color: PRIORITY_COLORS.medium },
+    { value: 'high', label: t('support.pri.high'), color: PRIORITY_COLORS.high },
+  ];
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -59,7 +76,7 @@ export default function NewTicketScreen() {
       router.back();
     },
     onError: () => {
-      Alert.alert('Error', 'Failed to create ticket. Please try again.');
+      Alert.alert(t('common.error'), t('common.unexpectedError'));
     },
   });
 
@@ -81,7 +98,7 @@ export default function NewTicketScreen() {
         <Pressable onPress={() => router.back()} hitSlop={12}>
           <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
         </Pressable>
-        <Text style={styles.title}>New Ticket</Text>
+        <Text style={styles.title}>{t('support.newTicket')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -95,7 +112,7 @@ export default function NewTicketScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {/* Subject */}
-          <Text style={styles.label}>Subject</Text>
+          <Text style={styles.label}>{t('support.subject')}</Text>
           <TextInput
             style={styles.input}
             placeholder="Brief description of your issue"
@@ -106,7 +123,7 @@ export default function NewTicketScreen() {
           />
 
           {/* Category */}
-          <Text style={styles.label}>Category</Text>
+          <Text style={styles.label}>{t('support.category')}</Text>
           <View style={styles.categoryGrid}>
             {CATEGORIES.map((cat) => (
               <Pressable
@@ -139,7 +156,7 @@ export default function NewTicketScreen() {
           </View>
 
           {/* Priority */}
-          <Text style={styles.label}>Priority</Text>
+          <Text style={styles.label}>{t('support.priority')}</Text>
           <View style={styles.priorityRow}>
             {PRIORITIES.map((p) => (
               <Pressable
@@ -169,7 +186,7 @@ export default function NewTicketScreen() {
           </View>
 
           {/* Message */}
-          <Text style={styles.label}>Message</Text>
+          <Text style={styles.label}>{t('support.message')}</Text>
           <TextInput
             style={styles.textArea}
             placeholder="Describe your issue in detail..."
@@ -190,7 +207,7 @@ export default function NewTicketScreen() {
             {createMutation.isPending ? (
               <ActivityIndicator color={Colors.white} />
             ) : (
-              <Text style={styles.submitButtonText}>Submit Ticket</Text>
+              <Text style={styles.submitButtonText}>{t('support.submit')}</Text>
             )}
           </Pressable>
         </ScrollView>

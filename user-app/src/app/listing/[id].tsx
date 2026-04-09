@@ -21,11 +21,13 @@ import { authService } from '../../services/auth.service';
 import { useAuthStore } from '../../store/authStore';
 import { formatCurrency, formatRating } from '../../utils/format';
 import { Colors, Typography, Spacing, Radius, Shadows } from '../../constants/theme';
+import { useLanguage } from '../../i18n';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function ListingDetailScreen() {
   const router = useRouter();
+  const { t, language, isRTL } = useLanguage();
   const { id } = useLocalSearchParams<{ id: string }>();
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
@@ -87,9 +89,9 @@ export default function ListingDetailScreen() {
   const district = listing.location?.district;
   const hostName = listing.host.name ?? `${listing.host.firstName ?? ''} ${listing.host.lastName ?? ''}`.trim();
 
-  const TYPE_LABELS: Record<string, string> = {
-    chalet: 'Chalet', apartment: 'Apartment', villa: 'Villa', studio: 'Studio',
-    farm: 'Farm', camp: 'Camp', resort: 'Resort', hotel: 'Hotel',
+  const getTypeLabel = (type: string) => {
+    const key = `type.${type}` as any;
+    return t(key) ?? type;
   };
 
   return (
@@ -134,11 +136,11 @@ export default function ListingDetailScreen() {
           <View style={styles.badgesRow}>
             {hasDiscount && (
               <View style={styles.discountTag}>
-                <Text style={styles.discountTagText}>{discount}% OFF</Text>
+                <Text style={styles.discountTagText}>{discount}{t('listing.off')}</Text>
               </View>
             )}
             <View style={styles.typeTag}>
-              <Text style={styles.typeTagText}>{TYPE_LABELS[listing.type] ?? listing.type}</Text>
+              <Text style={styles.typeTagText}>{getTypeLabel(listing.type)}</Text>
             </View>
           </View>
 
@@ -157,41 +159,41 @@ export default function ListingDetailScreen() {
               <View style={styles.stat}>
                 <Ionicons name="star" size={18} color={Colors.accent} />
                 <Text style={styles.statValue}>{formatRating(rating)}</Text>
-                <Text style={styles.statLabel}>({reviewCount} reviews)</Text>
+                <Text style={styles.statLabel}>({reviewCount} {t('listing.reviews')})</Text>
               </View>
             )}
             <View style={styles.stat}>
               <Ionicons name="people-outline" size={18} color={Colors.textSecondary} />
               <Text style={styles.statValue}>{listing.capacity?.maxGuests ?? '-'}</Text>
-              <Text style={styles.statLabel}>guests</Text>
+              <Text style={styles.statLabel}>{t('listing.guests')}</Text>
             </View>
             <View style={styles.stat}>
               <Ionicons name="bed-outline" size={18} color={Colors.textSecondary} />
               <Text style={styles.statValue}>{listing.capacity?.bedrooms ?? '-'}</Text>
-              <Text style={styles.statLabel}>beds</Text>
+              <Text style={styles.statLabel}>{t('listing.beds')}</Text>
             </View>
             <View style={styles.stat}>
               <Ionicons name="water-outline" size={18} color={Colors.textSecondary} />
               <Text style={styles.statValue}>{listing.capacity?.bathrooms ?? '-'}</Text>
-              <Text style={styles.statLabel}>baths</Text>
+              <Text style={styles.statLabel}>{t('listing.baths')}</Text>
             </View>
           </View>
 
           {/* Description */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>About</Text>
+            <Text style={styles.sectionTitle}>{t('detail.about')}</Text>
             <Text style={styles.description}>{listing.description}</Text>
           </View>
 
           {/* Amenities */}
           {listing.amenities?.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Amenities</Text>
+              <Text style={styles.sectionTitle}>{t('detail.amenities')}</Text>
               <View style={styles.amenitiesGrid}>
                 {listing.amenities.slice(0, 8).map((amenity: string, i: number) => (
                   <View key={i} style={styles.amenityItem}>
                     <Ionicons name="checkmark-circle" size={18} color={Colors.success} />
-                    <Text style={styles.amenityText}>{amenity}</Text>
+                    <Text style={styles.amenityText}>{t(('amenity.' + amenity) as any) ?? amenity}</Text>
                   </View>
                 ))}
               </View>
@@ -200,7 +202,7 @@ export default function ListingDetailScreen() {
 
           {/* Host */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Host</Text>
+            <Text style={styles.sectionTitle}>{t('detail.host')}</Text>
             <View style={styles.hostCard}>
               <View style={styles.hostAvatar}>
                 {listing.host.avatar ? (
@@ -212,11 +214,11 @@ export default function ListingDetailScreen() {
               <View style={styles.hostInfo}>
                 <Text style={styles.hostName}>{hostName}</Text>
                 {listing.host.isVerified && (
-                  <Text style={styles.hostMeta}>Verified host</Text>
+                  <Text style={styles.hostMeta}>{t('detail.verifiedHost')}</Text>
                 )}
               </View>
               <Pressable style={styles.contactButton} onPress={handleContactHost}>
-                <Text style={styles.contactText}>Contact</Text>
+                <Text style={styles.contactText}>{t('detail.contact')}</Text>
               </Pressable>
             </View>
           </View>
@@ -239,7 +241,7 @@ export default function ListingDetailScreen() {
             if (!lat || !lng) return null;
             return (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Location</Text>
+                <Text style={styles.sectionTitle}>{t('detail.location')}</Text>
                 <View style={styles.mapContainer}>
                   <MapView
                     provider={PROVIDER_GOOGLE}
@@ -259,7 +261,7 @@ export default function ListingDetailScreen() {
                   </MapView>
                 </View>
                 {listing.location?.isApproximate && (
-                  <Text style={styles.approximateText}>Approximate location shown</Text>
+                  <Text style={styles.approximateText}>{t('detail.approximateLocation')}</Text>
                 )}
               </View>
             );
@@ -268,36 +270,36 @@ export default function ListingDetailScreen() {
           {/* Policies */}
           {(listing.rules?.checkInTime || listing.rules?.checkOutTime) && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Policies</Text>
+              <Text style={styles.sectionTitle}>{t('detail.policies')}</Text>
               {listing.rules.checkInTime && (
                 <View style={styles.policyRow}>
-                  <Text style={styles.policyLabel}>Check-in</Text>
+                  <Text style={styles.policyLabel}>{t('detail.checkIn')}</Text>
                   <Text style={styles.policyValue}>{listing.rules.checkInTime}</Text>
                 </View>
               )}
               {listing.rules.checkOutTime && (
                 <View style={styles.policyRow}>
-                  <Text style={styles.policyLabel}>Check-out</Text>
+                  <Text style={styles.policyLabel}>{t('detail.checkOut')}</Text>
                   <Text style={styles.policyValue}>{listing.rules.checkOutTime}</Text>
                 </View>
               )}
               {listing.rules.minNights > 1 && (
                 <View style={styles.policyRow}>
-                  <Text style={styles.policyLabel}>Min nights</Text>
+                  <Text style={styles.policyLabel}>{t('detail.minNights')}</Text>
                   <Text style={styles.policyValue}>{listing.rules.minNights}</Text>
                 </View>
               )}
               <View style={styles.policyRow}>
-                <Text style={styles.policyLabel}>Smoking</Text>
-                <Text style={styles.policyValue}>{listing.rules.smokingAllowed ? 'Allowed' : 'Not allowed'}</Text>
+                <Text style={styles.policyLabel}>{t('detail.smoking')}</Text>
+                <Text style={styles.policyValue}>{listing.rules.smokingAllowed ? t('detail.allowed') : t('detail.notAllowed')}</Text>
               </View>
               <View style={styles.policyRow}>
-                <Text style={styles.policyLabel}>Pets</Text>
-                <Text style={styles.policyValue}>{listing.rules.petsAllowed ? 'Allowed' : 'Not allowed'}</Text>
+                <Text style={styles.policyLabel}>{t('detail.pets')}</Text>
+                <Text style={styles.policyValue}>{listing.rules.petsAllowed ? t('detail.allowed') : t('detail.notAllowed')}</Text>
               </View>
               <View style={styles.policyRow}>
-                <Text style={styles.policyLabel}>Parties</Text>
-                <Text style={styles.policyValue}>{listing.rules.partiesAllowed ? 'Allowed' : 'Not allowed'}</Text>
+                <Text style={styles.policyLabel}>{t('detail.parties')}</Text>
+                <Text style={styles.policyValue}>{listing.rules.partiesAllowed ? t('detail.allowed') : t('detail.notAllowed')}</Text>
               </View>
             </View>
           )}
@@ -315,10 +317,10 @@ export default function ListingDetailScreen() {
             )}
             <Text style={styles.bottomPrice}>{formatCurrency(price)}</Text>
           </View>
-          <Text style={styles.bottomPerNight}>per night</Text>
+          <Text style={styles.bottomPerNight}>{t('common.perNight')}</Text>
         </View>
         <Pressable style={styles.bookButton} onPress={handleBook}>
-          <Text style={styles.bookText}>Book Now</Text>
+          <Text style={styles.bookText}>{t('detail.bookNow')}</Text>
         </Pressable>
       </View>
     </SafeAreaView>

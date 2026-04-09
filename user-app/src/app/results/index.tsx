@@ -9,10 +9,12 @@ import { useSearchStore } from '../../store/searchStore';
 import { useAuthStore } from '../../store/authStore';
 import { authService } from '../../services/auth.service';
 import { Colors, Typography, Spacing, Radius } from '../../constants/theme';
+import { useLanguage } from '../../i18n';
 import ListingCard from '../../components/listing/ListingCard';
 
 export default function ResultsScreen() {
   const router = useRouter();
+  const { t, language, isRTL } = useLanguage();
   const params = useLocalSearchParams<{ city?: string; cityName?: string }>();
   const searchStore = useSearchStore();
   const user = useAuthStore((s) => s.user);
@@ -84,15 +86,15 @@ export default function ResultsScreen() {
         </Pressable>
       </View>
 
-      <Text style={styles.resultCount}>{total} properties found</Text>
+      <Text style={styles.resultCount}>{total} {t('results.propertiesFound')}</Text>
 
       {isLoading ? (
         <ActivityIndicator size="large" color={Colors.primary} style={styles.loader} />
       ) : listings.length === 0 ? (
         <View style={styles.emptyState}>
           <Ionicons name="search-outline" size={64} color={Colors.textTertiary} />
-          <Text style={styles.emptyTitle}>No results found</Text>
-          <Text style={styles.emptyText}>Try adjusting your search or filters</Text>
+          <Text style={styles.emptyTitle}>{t('results.noResults')}</Text>
+          <Text style={styles.emptyText}>{t('results.noResultsSub')}</Text>
         </View>
       ) : (
         <FlatList

@@ -7,6 +7,7 @@ import { useMutation } from '@tanstack/react-query';
 import { authService } from '../../services/auth.service';
 import { useAuthStore } from '../../store/authStore';
 import { formatPhone } from '../../utils/format';
+import { useLanguage } from '../../i18n';
 import { Colors, Typography, Spacing, Radius } from '../../constants/theme';
 
 export default function ProfileScreen() {
@@ -14,6 +15,7 @@ export default function ProfileScreen() {
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
   const logout = useAuthStore((s) => s.logout);
+  const { t } = useLanguage();
 
   const [firstName, setFirstName] = useState(user?.firstName ?? '');
   const [lastName, setLastName] = useState(user?.lastName ?? '');
@@ -23,10 +25,10 @@ export default function ProfileScreen() {
     mutationFn: () => authService.updateProfile({ firstName, lastName, email }),
     onSuccess: (updatedUser) => {
       setUser(updatedUser);
-      Alert.alert('Success', 'Profile updated successfully.');
+      Alert.alert(t('common.success'), t('common.success'));
     },
     onError: (error: any) => {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to update profile.');
+      Alert.alert(t('common.error'), error.response?.data?.message || t('common.somethingWrong'));
     },
   });
 
@@ -34,10 +36,10 @@ export default function ProfileScreen() {
     mutationFn: () => authService.upgradeToHost(),
     onSuccess: (updatedUser) => {
       setUser(updatedUser);
-      Alert.alert('Success', 'You are now a host! You can start listing your properties.');
+      Alert.alert(t('common.success'), t('common.success'));
     },
     onError: (error: any) => {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to upgrade account.');
+      Alert.alert(t('common.error'), error.response?.data?.message || t('common.somethingWrong'));
     },
   });
 
@@ -48,37 +50,37 @@ export default function ProfileScreen() {
       router.replace('/(auth)/phone');
     },
     onError: (error: any) => {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to delete account.');
+      Alert.alert(t('common.error'), error.response?.data?.message || t('common.somethingWrong'));
     },
   });
 
   const handleBecomeHost = () => {
     Alert.alert(
-      'Become a Host',
-      'Would you like to upgrade your account to a host? You will be able to list and manage properties.',
+      t('profile.becomeHost'),
+      t('profile.becomeHostMsg'),
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Upgrade', onPress: () => upgradeToHost.mutate() },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('profile.upgrade'), onPress: () => upgradeToHost.mutate() },
       ]
     );
   };
 
   const handleDeleteAccount = () => {
     Alert.alert(
-      'Delete Account',
-      'Are you sure you want to delete your account? This action is permanent and cannot be undone. All your data will be lost.',
+      t('profile.deleteAccount'),
+      t('profile.deleteConfirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: () => {
             Alert.alert(
-              'Final Confirmation',
-              'This will permanently delete your account and all associated data. Are you absolutely sure?',
+              t('profile.deleteAccount'),
+              t('profile.deleteConfirmFinal'),
               [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Delete Permanently', style: 'destructive', onPress: () => deleteAccount.mutate() },
+                { text: t('common.cancel'), style: 'cancel' },
+                { text: t('profile.deletePermanently'), style: 'destructive', onPress: () => deleteAccount.mutate() },
               ]
             );
           },
@@ -106,17 +108,17 @@ export default function ProfileScreen() {
         <Pressable onPress={() => router.back()} hitSlop={12}>
           <Ionicons name="arrow-back" size={24} color={Colors.textPrimary} />
         </Pressable>
-        <Text style={styles.title}>Edit Profile</Text>
+        <Text style={styles.title}>{t('profile.title')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {renderField('First Name', firstName, setFirstName)}
-        {renderField('Last Name', lastName, setLastName)}
-        {renderField('Email', email, setEmail, { keyboard: 'email-address' })}
+        {renderField(t('profile.firstName'), firstName, setFirstName)}
+        {renderField(t('profile.lastName'), lastName, setLastName)}
+        {renderField(t('profile.email'), email, setEmail, { keyboard: 'email-address' })}
 
         <View style={styles.field}>
-          <Text style={styles.label}>Phone</Text>
+          <Text style={styles.label}>{t('profile.phone')}</Text>
           <View style={[styles.input, styles.inputDisabled]}>
             <Text style={styles.disabledText}>
               {user?.phone ? formatPhone(user.phone) : ''}
@@ -132,13 +134,13 @@ export default function ProfileScreen() {
           {updateProfile.isPending ? (
             <ActivityIndicator color={Colors.white} />
           ) : (
-            <Text style={styles.saveText}>Save Changes</Text>
+            <Text style={styles.saveText}>{t('profile.save')}</Text>
           )}
         </Pressable>
 
         {/* Account Actions */}
         <View style={styles.accountSection}>
-          <Text style={styles.sectionTitle}>Account</Text>
+          <Text style={styles.sectionTitle}>{t('account.title')}</Text>
 
           {user?.role === 'guest' && (
             <Pressable
@@ -151,7 +153,7 @@ export default function ProfileScreen() {
               ) : (
                 <>
                   <Ionicons name="home-outline" size={20} color={Colors.white} />
-                  <Text style={styles.hostButtonText}>Become a Host</Text>
+                  <Text style={styles.hostButtonText}>{t('profile.becomeHost')}</Text>
                 </>
               )}
             </Pressable>
@@ -167,7 +169,7 @@ export default function ProfileScreen() {
             ) : (
               <>
                 <Ionicons name="trash-outline" size={20} color={Colors.error} />
-                <Text style={styles.deleteButtonText}>Delete Account</Text>
+                <Text style={styles.deleteButtonText}>{t('profile.deleteAccount')}</Text>
               </>
             )}
           </Pressable>

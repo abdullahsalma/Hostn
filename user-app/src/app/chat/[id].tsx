@@ -11,6 +11,7 @@ import { chatService } from '../../services/chat.service';
 import { useAuthStore } from '../../store/authStore';
 import { formatDate } from '../../utils/format';
 import { Colors, Typography, Spacing, Radius } from '../../constants/theme';
+import { useLanguage } from '../../i18n';
 import type { Message } from '../../types';
 
 export default function ChatScreen() {
@@ -22,6 +23,7 @@ export default function ChatScreen() {
   }>();
   const queryClient = useQueryClient();
   const userId = useAuthStore((s) => s.user?._id);
+  const { t } = useLanguage();
   const [text, setText] = useState('');
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -93,7 +95,7 @@ export default function ChatScreen() {
     );
   };
 
-  const displayName = hostName || 'Chat';
+  const displayName = hostName || t('chat.title');
 
   return (
     <SafeAreaView style={styles.container}>
@@ -123,7 +125,7 @@ export default function ChatScreen() {
             ListEmptyComponent={
               <View style={styles.emptyState}>
                 <Ionicons name="chatbubbles-outline" size={48} color={Colors.textTertiary} />
-                <Text style={styles.emptyText}>Send a message to start the conversation</Text>
+                <Text style={styles.emptyText}>{t('chat.emptyChat')}</Text>
               </View>
             }
           />
@@ -132,7 +134,7 @@ export default function ChatScreen() {
         <View style={styles.inputRow}>
           <TextInput
             style={styles.input}
-            placeholder="Type a message..."
+            placeholder={t('chat.placeholder')}
             placeholderTextColor={Colors.textTertiary}
             value={text}
             onChangeText={setText}

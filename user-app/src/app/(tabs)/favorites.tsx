@@ -19,6 +19,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { wishlistsService } from '../../services/wishlists.service';
 import { listingsService } from '../../services/listings.service';
 import { Colors, Typography, Spacing, Radius, Shadows } from '../../constants/theme';
+import { useLanguage } from '../../i18n';
 import type { WishlistList, Listing } from '../../types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -28,6 +29,7 @@ const CARD_WIDTH = (SCREEN_WIDTH - Spacing.xl * 2 - CARD_GAP) / 2;
 export default function FavoritesScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { t } = useLanguage();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newListName, setNewListName] = useState('');
 
@@ -101,12 +103,12 @@ export default function FavoritesScreen() {
 
   const handleRename = (list: WishlistList) => {
     Alert.prompt(
-      'Rename List',
-      'Enter a new name for this list',
+      t('favorites.rename'),
+      t('favorites.listName'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Save',
+          text: t('common.save'),
           onPress: (value?: string) => {
             const trimmed = value?.trim();
             if (trimmed && trimmed !== list.name) {
@@ -122,12 +124,12 @@ export default function FavoritesScreen() {
 
   const handleDelete = (list: WishlistList) => {
     Alert.alert(
-      'Delete List',
-      `Are you sure you want to delete "${list.name}"? This cannot be undone.`,
+      t('favorites.delete'),
+      `${list.name}`,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: () => deleteList.mutate(list._id),
         },
@@ -139,18 +141,18 @@ export default function FavoritesScreen() {
     if (list.isDefault) {
       // Default list can only be renamed, not deleted
       Alert.alert(list.name, undefined, [
-        { text: 'Rename', onPress: () => handleRename(list) },
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('favorites.rename'), onPress: () => handleRename(list) },
+        { text: t('common.cancel'), style: 'cancel' },
       ]);
     } else {
       Alert.alert(list.name, undefined, [
-        { text: 'Rename', onPress: () => handleRename(list) },
+        { text: t('favorites.rename'), onPress: () => handleRename(list) },
         {
-          text: 'Delete',
+          text: t('favorites.delete'),
           style: 'destructive',
           onPress: () => handleDelete(list),
         },
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
       ]);
     }
   };
@@ -193,7 +195,7 @@ export default function FavoritesScreen() {
             {item.name}
           </Text>
           <Text style={styles.cardCount}>
-            {item.properties?.length ?? 0} {(item.properties?.length ?? 0) === 1 ? 'property' : 'properties'}
+            {item.properties?.length ?? 0} {(item.properties?.length ?? 0) === 1 ? t('favorites.property') : t('favorites.properties')}
           </Text>
         </View>
       </Pressable>
@@ -210,14 +212,14 @@ export default function FavoritesScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <Text style={styles.header}>Wishlists</Text>
+      <Text style={styles.header}>{t('favorites.title')}</Text>
 
       {/* Create new list */}
       {showCreateForm ? (
         <View style={styles.createForm}>
           <TextInput
             style={styles.createInput}
-            placeholder="List name"
+            placeholder={t('favorites.listName')}
             placeholderTextColor={Colors.textTertiary}
             value={newListName}
             onChangeText={setNewListName}
@@ -236,7 +238,7 @@ export default function FavoritesScreen() {
             {createList.isPending ? (
               <ActivityIndicator size="small" color={Colors.white} />
             ) : (
-              <Text style={styles.createSubmitText}>Create</Text>
+              <Text style={styles.createSubmitText}>{t('favorites.create')}</Text>
             )}
           </Pressable>
           <Pressable
@@ -255,16 +257,16 @@ export default function FavoritesScreen() {
           onPress={() => setShowCreateForm(true)}
         >
           <Ionicons name="add-circle-outline" size={22} color={Colors.primary} />
-          <Text style={styles.createButtonText}>Create New List</Text>
+          <Text style={styles.createButtonText}>{t('favorites.createNew')}</Text>
         </Pressable>
       )}
 
       {lists.length === 0 ? (
         <View style={styles.emptyState}>
           <Ionicons name="heart-outline" size={64} color={Colors.textTertiary} />
-          <Text style={styles.emptyTitle}>No wishlists yet</Text>
+          <Text style={styles.emptyTitle}>{t('favorites.noLists')}</Text>
           <Text style={styles.emptyText}>
-            Create a wishlist to organize your favorite properties
+            {t('favorites.noListsSub')}
           </Text>
         </View>
       ) : (

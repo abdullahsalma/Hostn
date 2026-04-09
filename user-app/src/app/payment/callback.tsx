@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { paymentsService, bnplService } from '../../services/payments.service';
 import { Colors, Typography, Spacing, Radius, Shadows } from '../../constants/theme';
+import { useLanguage } from '../../i18n';
 
 type PaymentStatus = 'loading' | 'success' | 'failure';
 
@@ -16,6 +17,7 @@ export default function PaymentCallbackScreen() {
     provider: string;
   }>();
 
+  const { t } = useLanguage();
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('loading');
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -58,8 +60,8 @@ export default function PaymentCallbackScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loadingTitle}>Verifying Payment</Text>
-          <Text style={styles.loadingSubtitle}>Please wait while we confirm your payment...</Text>
+          <Text style={styles.loadingTitle}>{t('payment.verifying')}</Text>
+          <Text style={styles.loadingSubtitle}>{t('common.loading')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -72,15 +74,15 @@ export default function PaymentCallbackScreen() {
           <View style={styles.iconCircleSuccess}>
             <Ionicons name="checkmark" size={48} color={Colors.white} />
           </View>
-          <Text style={styles.title}>Payment Successful</Text>
+          <Text style={styles.title}>{t('payment.success')}</Text>
           <Text style={styles.subtitle}>
-            Your payment has been confirmed and your booking is now active.
+            {t('payment.success')}
           </Text>
           <Pressable
             style={styles.primaryButton}
             onPress={() => router.replace('/(tabs)/bookings')}
           >
-            <Text style={styles.primaryButtonText}>View My Bookings</Text>
+            <Text style={styles.primaryButtonText}>{t('payment.viewBookings')}</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -93,15 +95,15 @@ export default function PaymentCallbackScreen() {
         <View style={styles.iconCircleError}>
           <Ionicons name="close" size={48} color={Colors.white} />
         </View>
-        <Text style={styles.title}>Payment Failed</Text>
+        <Text style={styles.title}>{t('payment.failed')}</Text>
         <Text style={styles.subtitle}>
-          {errorMessage || 'Something went wrong with your payment. Please try again.'}
+          {errorMessage || t('common.unexpectedError')}
         </Text>
         <Pressable style={styles.primaryButton} onPress={verifyPayment}>
-          <Text style={styles.primaryButtonText}>Try Again</Text>
+          <Text style={styles.primaryButtonText}>{t('payment.tryAgain')}</Text>
         </Pressable>
         <Pressable style={styles.secondaryButton} onPress={() => router.back()}>
-          <Text style={styles.secondaryButtonText}>Go Back</Text>
+          <Text style={styles.secondaryButtonText}>{t('payment.goBack')}</Text>
         </Pressable>
       </View>
     </SafeAreaView>
