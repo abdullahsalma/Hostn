@@ -89,7 +89,7 @@ export default function HomeScreen() {
                 <View style={styles.cityIcon}>
                   <Ionicons name="location" size={24} color={Colors.white} />
                 </View>
-                <Text style={styles.cityName}>{item.name}</Text>
+                <Text style={styles.cityName}>{language === 'ar' ? item.nameAr : item.name}</Text>
               </Pressable>
             )}
           />

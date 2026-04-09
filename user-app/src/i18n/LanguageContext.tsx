@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { I18nManager } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { translations, type Language, type TranslationKey } from './translations';
 
 const STORAGE_KEY = 'hostn-lang';
@@ -25,17 +25,17 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLang] = useState<Language>('ar');
 
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then((stored) => {
+    SecureStore.getItemAsync(STORAGE_KEY).then((stored) => {
       if (stored === 'en' || stored === 'ar') {
         setLang(stored);
         I18nManager.forceRTL(stored === 'ar');
       }
-    });
+    }).catch(() => {});
   }, []);
 
   const setLanguage = useCallback((lang: Language) => {
     setLang(lang);
-    AsyncStorage.setItem(STORAGE_KEY, lang);
+    SecureStore.setItemAsync(STORAGE_KEY, lang).catch(() => {});
     I18nManager.forceRTL(lang === 'ar');
   }, []);
 
