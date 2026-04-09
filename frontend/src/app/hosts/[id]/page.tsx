@@ -53,7 +53,10 @@ export default function HostProfilePage() {
     }
   };
 
-  useEffect(() => { fetchData(); }, [id]);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    fetchData();
+  }, [id]);
 
   const handleReviewPageChange = async (page: number) => {
     setReviewPage(page);

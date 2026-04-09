@@ -331,9 +331,9 @@ export default function PropertyCard({ property, checkIn, checkOut }: PropertyCa
             ref={heartRef}
             onClick={handleHeartClick}
             disabled={wishlistLoading}
-            className="absolute bottom-3 ltr:right-3 rtl:left-3 p-1.5 hover:scale-110 transition-all duration-200 disabled:opacity-60 drop-shadow-[0_1px_3px_rgba(0,0,0,0.4)]"
+            className="group/heart absolute bottom-3 ltr:right-3 rtl:left-3 p-1.5 hover:scale-110 transition-all duration-200 disabled:opacity-60 drop-shadow-[0_1px_3px_rgba(0,0,0,0.4)]"
           >
-            <Heart className={`w-5 h-5 transition-colors ${isWishlisted ? 'fill-red-500 text-red-500' : 'fill-white/60 text-white/80 hover:fill-red-400 hover:text-red-400'}`} />
+            <Heart className={`w-5 h-5 transition-colors ${isWishlisted ? 'fill-red-500 text-red-500' : 'fill-white/60 text-white/80 group-hover/heart:fill-red-500 group-hover/heart:text-red-500'}`} />
           </button>
 
           {/* Type badge */}
