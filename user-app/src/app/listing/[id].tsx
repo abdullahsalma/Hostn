@@ -3,6 +3,7 @@ import {
   View,
   Text,
   ScrollView,
+  FlatList,
   Pressable,
   StyleSheet,
   Share,
@@ -96,17 +97,22 @@ export default function ListingDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }} nestedScrollEnabled>
         {/* Image Gallery */}
         <View style={styles.imageContainer}>
-          <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
-            {(listing.images ?? []).map((img: any, i: number) => {
+          <FlatList
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            data={listing.images ?? []}
+            keyExtractor={(_: any, i: number) => i.toString()}
+            renderItem={({ item: img }: { item: any }) => {
               const uri = typeof img === 'string' ? img : img?.url;
               return uri ? (
-                <Image key={i} source={{ uri }} style={styles.heroImage} contentFit="cover" />
+                <Image source={{ uri }} style={styles.heroImage} contentFit="cover" />
               ) : null;
-            })}
-          </ScrollView>
+            }}
+          />
           <View style={styles.imageOverlay}>
             <Pressable style={styles.overlayButton} onPress={() => router.back()}>
               <Ionicons name="arrow-back" size={22} color={Colors.textPrimary} />
