@@ -44,8 +44,8 @@ export default function ListingDetailScreen() {
           // Mark as unit for downstream logic
           return { ...unit, _isUnit: true };
         }
-      } catch {
-        // Not a unit — fall through to property
+      } catch (err) {
+        console.debug('[listing] getUnit failed, falling back to getById:', err);
       }
       return listingsService.getById(id!);
     },
@@ -78,7 +78,9 @@ export default function ListingDetailScreen() {
       await authService.toggleWishlist(id);
       const updated = await authService.getMe();
       setUser(updated);
-    } catch {}
+    } catch (err) {
+      console.debug('[listing] toggleWishlist failed:', err);
+    }
   };
 
   const handleShare = async () => {
@@ -87,7 +89,9 @@ export default function ListingDetailScreen() {
       await Share.share({
         message: `Check out ${listing.title} on Hostn! ${listing.location?.city ?? ''}`,
       });
-    } catch {}
+    } catch (err) {
+      console.debug('[listing] share failed:', err);
+    }
   };
 
   const handleBook = () => {

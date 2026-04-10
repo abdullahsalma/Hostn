@@ -53,8 +53,8 @@ export default function CheckoutScreen() {
       try {
         const unit = await listingsService.getUnit(listingId!);
         if (unit) return unit;
-      } catch {
-        // Not a unit — fall back to property lookup
+      } catch (err) {
+        console.debug('[checkout] getUnit failed, falling back to getById:', err);
       }
       return listingsService.getById(listingId!);
     },
@@ -197,7 +197,7 @@ export default function CheckoutScreen() {
     setHoldLoading(true);
     try {
       const res = await bookingsService.createHold({
-        propertyId: isUnit ? parentPropertyId! : listingId!,
+        propertyId: isUnit ? (parentPropertyId || listingId!) : listingId!,
         ...(isUnit ? { unitId: listingId! } : {}),
         checkIn,
         checkOut,
@@ -231,20 +231,20 @@ export default function CheckoutScreen() {
       if (!currentHoldId) {
         try {
           const holdRes = await bookingsService.createHold({
-            propertyId: isUnit ? parentPropertyId! : listingId!,
+            propertyId: isUnit ? (parentPropertyId || listingId!) : listingId!,
             ...(isUnit ? { unitId: listingId! } : {}),
             checkIn,
             checkOut,
             guests: { adults, children, infants: 0 },
           });
           currentHoldId = holdRes?.data?.holdId ?? null;
-        } catch {
-          // Proceed without hold
+        } catch (err) {
+          console.debug('[checkout] createHold failed, proceeding without hold:', err);
         }
       }
 
       return bookingsService.create({
-        propertyId: isUnit ? parentPropertyId! : listingId!,
+        propertyId: isUnit ? (parentPropertyId || listingId!) : listingId!,
         ...(isUnit ? { unitId: listingId! } : {}),
         checkIn,
         checkOut,

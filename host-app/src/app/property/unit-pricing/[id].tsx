@@ -43,7 +43,7 @@ export default function UnitPricingScreen() {
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['unit-pricing', id],
-    queryFn: () => hostService.getUnitPricing(id!),
+    queryFn: () => hostService.getUnit(id!),
     enabled: !!id,
     retry: false,
   });
@@ -51,7 +51,8 @@ export default function UnitPricingScreen() {
   // Pre-populate from fetched data
   useEffect(() => {
     if (!data) return;
-    const pricing = data.data ?? data;
+    const raw = data.data ?? data;
+    const pricing = raw.pricing ?? raw;
     const newPrices: Record<string, string> = {};
     for (const key of DAY_KEYS) {
       newPrices[key] = String(pricing[key] ?? pricing.perNight ?? '');

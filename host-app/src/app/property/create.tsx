@@ -57,6 +57,17 @@ export default function CreatePropertyScreen() {
     onSuccess: (res: any) => {
       queryClient.invalidateQueries({ queryKey: ['properties'] });
       const propertyId = res?.data?._id || res?.data?.id || res?._id || res?.id;
+      if (!propertyId) {
+        Alert.alert(
+          l({ en: 'Warning', ar: 'تنبيه' }),
+          l({
+            en: 'Property created but could not retrieve its ID. Please check your properties list.',
+            ar: 'تم إنشاء العقار لكن لم يتم استرجاع المعرف. يرجى التحقق من قائمة العقارات.',
+          }),
+          [{ text: l({ en: 'OK', ar: 'موافق' }), onPress: () => router.back() }],
+        );
+        return;
+      }
       Alert.alert(
         l({ en: 'Success', ar: 'تم بنجاح' }),
         l({

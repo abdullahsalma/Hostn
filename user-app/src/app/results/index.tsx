@@ -65,8 +65,8 @@ export default function ResultsScreen() {
         if (Array.isArray(unitData) && unitData.length > 0) {
           return unitResult;
         }
-      } catch {
-        // searchUnits not available or failed — fall through
+      } catch (err) {
+        console.debug('[results] searchUnits failed, falling back to search:', err);
       }
       return listingsService.search(params as any);
     },
@@ -85,7 +85,9 @@ export default function ResultsScreen() {
       await authService.toggleWishlist(propertyId);
       const updatedUser = await authService.getMe();
       setUser(updatedUser);
-    } catch {}
+    } catch (err) {
+      console.debug('[results] toggleWishlist failed:', err);
+    }
   };
 
   return (

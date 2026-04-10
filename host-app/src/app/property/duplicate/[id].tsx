@@ -17,10 +17,13 @@ export default function DuplicateUnitScreen() {
   const l = (obj: { en: string; ar: string }) => (locale === 'ar' ? obj.ar : obj.en);
   const { id, groupTag } = useLocalSearchParams<{ id: string; groupTag: string }>();
 
-  // Load the source property to clone its data
-  const { data: property, isLoading } = useQuery({
+  // Load the source unit/property to clone its data
+  const { data: property, isLoading, isError } = useQuery({
     queryKey: ['property', id],
-    queryFn: () => hostService.getProperty(id!),
+    queryFn: async () => {
+      try { return await hostService.getUnit(id!); }
+      catch { return await hostService.getProperty(id!); }
+    },
     enabled: !!id,
   });
 
@@ -48,6 +51,16 @@ export default function DuplicateUnitScreen() {
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={Colors.primary} />
         <Text style={styles.loadingText}>{l({ en: 'Loading...', ar: 'جاري التحميل...' })}</Text>
+      </View>
+    );
+  }
+
+  if (isError) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.loadingText}>
+          {l({ en: 'Failed to load property data', ar: 'فشل تحميل بيانات العقار' })}
+        </Text>
       </View>
     );
   }
