@@ -14,7 +14,8 @@ import { usePageTitle } from '@/lib/usePageTitle';
 
 const t: Record<string, Record<string, string>> = {
   title: { en: 'Create New Listing', ar: '\u0625\u0646\u0634\u0627\u0621 \u0625\u0639\u0644\u0627\u0646 \u062c\u062f\u064a\u062f' },
-  propertyTitle: { en: 'Title', ar: '\u0627\u0644\u0639\u0646\u0648\u0627\u0646' },
+  propertyTitle: { en: 'Title (English)', ar: '\u0627\u0644\u0639\u0646\u0648\u0627\u0646 (\u0627\u0644\u0625\u0646\u062c\u0644\u064a\u0632\u064a\u0629)' },
+  propertyTitleAr: { en: 'Title (Arabic)', ar: '\u0627\u0644\u0639\u0646\u0648\u0627\u0646 (\u0627\u0644\u0639\u0631\u0628\u064a\u0629)' },
   description: { en: 'Description', ar: '\u0627\u0644\u0648\u0635\u0641' },
   type: { en: 'Property Type', ar: '\u0646\u0648\u0639 \u0627\u0644\u0639\u0642\u0627\u0631' },
   city: { en: 'City', ar: '\u0627\u0644\u0645\u062f\u064a\u0646\u0629' },
@@ -82,6 +83,7 @@ export default function NewListingPage() {
 
   const [form, setForm] = useState({
     title: '',
+    titleAr: '',
     description: '',
     type: '',
     city: '',
@@ -205,6 +207,7 @@ export default function NewListingPage() {
     try {
       await propertiesApi.create({
         title: form.title,
+        ...(form.titleAr && { titleAr: form.titleAr }),
         description: form.description,
         type: form.type,
         location: {
@@ -267,10 +270,17 @@ export default function NewListingPage() {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Info */}
         <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t.propertyTitle[lang]} *</label>
-            <input name="title" value={form.title} onChange={handleChange} required className={inputClass}
-              placeholder={lang === 'ar' ? '\u0645\u062b\u0644: \u0634\u0627\u0644\u064a\u0647 \u0641\u0627\u062e\u0631 \u0639\u0644\u0649 \u0627\u0644\u0628\u062d\u0631' : 'e.g. Luxury Beachfront Chalet'} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.propertyTitle[lang]} *</label>
+              <input name="title" value={form.title} onChange={handleChange} required className={inputClass}
+                placeholder="e.g. Luxury Beachfront Chalet" dir="ltr" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t.propertyTitleAr[lang]}</label>
+              <input name="titleAr" value={form.titleAr} onChange={handleChange} className={inputClass}
+                placeholder={'\u0645\u062b\u0644: \u0634\u0627\u0644\u064a\u0647 \u0641\u0627\u062e\u0631 \u0639\u0644\u0649 \u0627\u0644\u0628\u062d\u0631'} dir="rtl" />
+            </div>
           </div>
 
           <div>

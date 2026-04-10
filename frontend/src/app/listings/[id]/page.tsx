@@ -9,6 +9,7 @@ import ImageGallery from '@/components/property/ImageGallery';
 import AmenitiesList from '@/components/property/AmenitiesList';
 import ReviewsList from '@/components/property/ReviewsList';
 import BookingWidget from '@/components/property/BookingWidget';
+import UnitsList from '@/components/property/UnitsList';
 import { Property, User } from '@/types';
 import { propertiesApi, publicHostApi } from '@/lib/api';
 import { getPropertyTypeLabel } from '@/lib/utils';
@@ -43,7 +44,8 @@ function PropertyDetailContent() {
   const { t, language } = useLanguage();
   const { user, isAuthenticated, toggleWishlist } = useAuth();
   const isAr = language === 'ar';
-  usePageTitle(property ? property.title : (isAr ? 'تفاصيل العقار' : 'Property Details'));
+  const displayTitle = property ? (isAr && property.titleAr ? property.titleAr : property.title) : '';
+  usePageTitle(displayTitle || (isAr ? 'تفاصيل العقار' : 'Property Details'));
 
   // Wishlist state
   const [isWishlisted, setIsWishlisted] = useState(false);
@@ -104,7 +106,7 @@ function PropertyDetailContent() {
 
   const handleShare = async () => {
     const url = window.location.href;
-    const title = property?.title || 'Hostn';
+    const title = (isAr && property?.titleAr ? property.titleAr : property?.title) || 'Hostn';
     if (navigator.share) {
       try { await navigator.share({ title, url }); } catch { /* cancelled */ }
     } else {
@@ -186,14 +188,14 @@ function PropertyDetailContent() {
               {isAr ? (CITIES.find(c => c.value.toLowerCase() === property.location.city.toLowerCase())?.ar || property.location.city) : property.location.city}
             </a>
             <span className="mx-2">/</span>
-            <span className="text-gray-800 line-clamp-1">{property.title}</span>
+            <span className="text-gray-800 line-clamp-1">{displayTitle}</span>
           </nav>
 
           {/* Title */}
           <div className="mb-4">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{property.title}</h1>
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{displayTitle}</h1>
                 <div className="flex flex-wrap items-center gap-3 text-sm">
                   {property.ratings.count > 0 && (
                     <StarRating rating={property.ratings.average} count={property.ratings.count} size="md" />
@@ -225,7 +227,7 @@ function PropertyDetailContent() {
 
           {/* Image gallery */}
           <div className="mb-8">
-            <ImageGallery images={property.images} title={property.title} />
+            <ImageGallery images={property.images} title={displayTitle} />
           </div>
 
           {/* Segmented navigation — tab/pill style */}
@@ -332,6 +334,9 @@ function PropertyDetailContent() {
                       )}
                     </div>
                   )}
+
+                  {/* Units */}
+                  <UnitsList propertyId={property._id} />
                 </>
               )}
 
@@ -356,7 +361,7 @@ function PropertyDetailContent() {
                       <PropertyMap
                         lat={property.location.coordinates.lat}
                         lng={property.location.coordinates.lng}
-                        title={property.title}
+                        title={displayTitle}
                         className="h-[350px] rounded-xl"
                         isApproximate={(property.location as { isApproximate?: boolean }).isApproximate}
                       />

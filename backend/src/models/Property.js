@@ -13,6 +13,11 @@ const propertySchema = new mongoose.Schema(
       trim: true,
       maxlength: [200, 'Title cannot exceed 200 characters'],
     },
+    titleAr: {
+      type: String,
+      trim: true,
+      maxlength: [200, 'Arabic title cannot exceed 200 characters'],
+    },
     description: {
       type: String,
       required: [true, 'Description is required'],
@@ -128,7 +133,7 @@ propertySchema.index({ type: 1 });
 propertySchema.index({ 'pricing.perNight': 1 });
 propertySchema.index({ 'ratings.average': -1 });
 propertySchema.index({ isFeatured: 1 });
-propertySchema.index({ title: 'text', description: 'text', 'location.city': 'text' });
+propertySchema.index({ title: 'text', titleAr: 'text', description: 'text', 'location.city': 'text' });
 
 // Sync coordinates to GeoJSON on save
 propertySchema.pre('save', function (next) {
@@ -146,6 +151,15 @@ propertySchema.virtual('discountedPrice').get(function () {
     return this.pricing.perNight * (1 - this.pricing.discountPercent / 100);
   }
   return this.pricing.perNight;
+});
+
+// Virtual: count of active units (populated via Unit model)
+propertySchema.virtual('units', {
+  ref: 'Unit',
+  localField: '_id',
+  foreignField: 'property',
+  count: true,
+  match: { isActive: true },
 });
 
 propertySchema.set('toJSON', { virtuals: true });
