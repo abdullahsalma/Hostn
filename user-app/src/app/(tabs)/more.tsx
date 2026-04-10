@@ -7,6 +7,7 @@ import { Image } from 'expo-image';
 import { useAuthStore } from '../../store/authStore';
 import { useLanguage } from '../../i18n';
 import { Colors, Typography, Spacing, Radius, Shadows } from '../../constants/theme';
+import { formatPhone } from '../../utils/format';
 
 type MenuIcon = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -75,7 +76,7 @@ export default function MoreScreen() {
             <Text style={styles.profileName}>
               {user?.firstName ? `${user.firstName} ${user.lastName ?? ''}` : t('account.guest')}
             </Text>
-            <Text style={styles.profilePhone}>{user?.phone ?? ''}</Text>
+            <Text style={styles.profilePhone}>{user?.phone ? formatPhone(user.phone, '+966') : ''}</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={Colors.textTertiary} />
         </Pressable>
