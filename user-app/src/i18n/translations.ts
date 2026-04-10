@@ -61,6 +61,11 @@ export const translations = {
     'detail.notAllowed': 'Not allowed',
     'detail.bookNow': 'Book Now',
     'detail.verifiedHost': 'Verified host',
+    'detail.specifications': 'Specifications',
+    'detail.guestReviews': 'Guest Reviews',
+    'detail.locationMap': 'Location & Map',
+    'detail.termsPolicies': 'Terms & Policies',
+    'detail.noReviews': 'No reviews yet',
 
     // Search
     'search.whereTo': 'Where to?',
@@ -148,6 +153,14 @@ export const translations = {
     'favorites.delete': 'Delete',
     'favorites.noProperties': 'No properties in this list',
     'favorites.noPropertiesSub': 'Add properties to this list from the listing page',
+    'favorites.filterCity': 'City',
+    'favorites.filterDates': 'Dates',
+    'favorites.filterGuests': 'Guests',
+    'favorites.clearAll': 'Clear all',
+    'favorites.mismatchCity': 'City: {city}',
+    'favorites.mismatchGuests': 'Max {count} guests',
+    'favorites.mismatchNights': 'Min stay {count} nights',
+    'favorites.booked': 'Booked for these dates',
 
     // Bookings
     'bookings.title': 'My Bookings',
@@ -401,6 +414,11 @@ export const translations = {
     'detail.notAllowed': 'غير مسموح',
     'detail.bookNow': 'احجز الآن',
     'detail.verifiedHost': 'مضيف موثّق',
+    'detail.specifications': 'المواصفات',
+    'detail.guestReviews': 'تقييمات الضيوف',
+    'detail.locationMap': 'الموقع والخريطة',
+    'detail.termsPolicies': 'الشروط والسياسات',
+    'detail.noReviews': 'لا توجد تقييمات بعد',
 
     // Search
     'search.whereTo': 'إلى أين؟',
@@ -488,6 +506,14 @@ export const translations = {
     'favorites.delete': 'حذف',
     'favorites.noProperties': 'لا توجد عقارات في هذه القائمة',
     'favorites.noPropertiesSub': 'أضف عقارات لهذه القائمة من صفحة العقار',
+    'favorites.filterCity': 'المدينة',
+    'favorites.filterDates': 'التواريخ',
+    'favorites.filterGuests': 'الضيوف',
+    'favorites.clearAll': 'مسح الكل',
+    'favorites.mismatchCity': 'المدينة: {city}',
+    'favorites.mismatchGuests': 'أقصى عدد {count} ضيوف',
+    'favorites.mismatchNights': 'الحد الأدنى {count} ليالٍ',
+    'favorites.booked': 'محجوز في هذه التواريخ',
 
     // Bookings
     'bookings.title': 'حجوزاتي',

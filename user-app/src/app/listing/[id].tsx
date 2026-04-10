@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,9 @@ import {
   ActivityIndicator,
   Dimensions,
   Platform,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  LayoutChangeEvent,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -39,6 +42,38 @@ export default function ListingDetailScreen() {
     queryFn: () => listingsService.getById(id!),
     enabled: !!id,
   });
+
+  const { data: reviewsData } = useQuery({
+    queryKey: ['reviews', id],
+    queryFn: () => listingsService.getReviews(id!),
+    enabled: !!id,
+  });
+
+  const reviews = reviewsData?.data ?? reviewsData ?? [];
+
+  const scrollViewRef = useRef<ScrollView>(null);
+  const sectionPositions = useRef<Record<string, number>>({});
+  const [activeSegment, setActiveSegment] = useState(0);
+
+  const NAV_SEGMENTS = [
+    { key: 'specifications', label: t('detail.specifications' as any) },
+    { key: 'reviews', label: t('detail.guestReviews' as any) },
+    { key: 'location', label: t('detail.locationMap' as any) },
+    { key: 'policies', label: t('detail.termsPolicies' as any) },
+  ];
+
+  const handleSegmentPress = useCallback((index: number) => {
+    setActiveSegment(index);
+    const key = NAV_SEGMENTS[index].key;
+    const y = sectionPositions.current[key];
+    if (y !== undefined && scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({ y: y - 60, animated: true });
+    }
+  }, []);
+
+  const handleSectionLayout = useCallback((key: string, event: LayoutChangeEvent) => {
+    sectionPositions.current[key] = event.nativeEvent.layout.y;
+  }, []);
 
   const isFavorite = user?.wishlist?.includes(id!) ?? false;
 
@@ -98,7 +133,7 @@ export default function ListingDetailScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }} nestedScrollEnabled>
+      <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }} nestedScrollEnabled>
         {/* Image Gallery */}
         <View style={styles.imageContainer}>
           <FlatList
@@ -136,6 +171,23 @@ export default function ListingDetailScreen() {
               1/{listing.images?.length ?? 0}
             </Text>
           </View>
+        </View>
+
+        {/* Segmented Navigation */}
+        <View style={styles.segmentedNavContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.segmentedNavContent}>
+            {NAV_SEGMENTS.map((seg, idx) => (
+              <Pressable
+                key={seg.key}
+                style={[styles.segmentPill, activeSegment === idx && styles.segmentPillActive]}
+                onPress={() => handleSegmentPress(idx)}
+              >
+                <Text style={[styles.segmentText, activeSegment === idx && styles.segmentTextActive]}>
+                  {seg.label}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
         </View>
 
         <View style={styles.content}>
@@ -186,8 +238,8 @@ export default function ListingDetailScreen() {
             </View>
           </View>
 
-          {/* Description */}
-          <View style={styles.section}>
+          {/* Description / Specifications */}
+          <View style={styles.section} onLayout={(e) => handleSectionLayout('specifications', e)}>
             <Text style={styles.sectionTitle}>{t('detail.about')}</Text>
             <Text style={styles.description}>{listing.description}</Text>
           </View>
@@ -230,6 +282,52 @@ export default function ListingDetailScreen() {
             </View>
           </View>
 
+          {/* Guest Reviews */}
+          <View style={styles.section} onLayout={(e) => handleSectionLayout('reviews', e)}>
+            <Text style={styles.sectionTitle}>{t('detail.guestReviews' as any)}</Text>
+            {Array.isArray(reviews) && reviews.length > 0 ? (
+              reviews.slice(0, 5).map((review: any, idx: number) => (
+                <View key={review._id ?? idx} style={styles.reviewCard}>
+                  <View style={styles.reviewHeader}>
+                    <View style={styles.reviewerAvatar}>
+                      {review.user?.avatar ? (
+                        <Image source={{ uri: review.user.avatar }} style={styles.reviewerAvatarImage} />
+                      ) : (
+                        <Ionicons name="person" size={20} color={Colors.textSecondary} />
+                      )}
+                    </View>
+                    <View style={styles.reviewerInfo}>
+                      <Text style={styles.reviewerName}>
+                        {review.user?.name ?? review.user?.firstName ?? t('account.guest' as any)}
+                      </Text>
+                      <Text style={styles.reviewDate}>
+                        {review.createdAt ? new Date(review.createdAt).toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US') : ''}
+                      </Text>
+                    </View>
+                    <View style={styles.reviewStars}>
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Ionicons
+                          key={star}
+                          name={star <= (review.rating ?? 0) ? 'star' : 'star-outline'}
+                          size={14}
+                          color={Colors.accent}
+                        />
+                      ))}
+                    </View>
+                  </View>
+                  {review.comment ? (
+                    <Text style={styles.reviewComment}>{review.comment}</Text>
+                  ) : null}
+                </View>
+              ))
+            ) : (
+              <View style={styles.emptyReviews}>
+                <Ionicons name="chatbubble-outline" size={32} color={Colors.textTertiary} />
+                <Text style={styles.emptyReviewsText}>{t('detail.noReviews' as any)}</Text>
+              </View>
+            )}
+          </View>
+
           {/* Location Map */}
           {(() => {
             const coords = listing.location?.coordinates
@@ -247,7 +345,7 @@ export default function ListingDetailScreen() {
             }
             if (!lat || !lng) return null;
             return (
-              <View style={styles.section}>
+              <View style={styles.section} onLayout={(e) => handleSectionLayout('location', e)}>
                 <Text style={styles.sectionTitle}>{t('detail.location')}</Text>
                 <View style={styles.mapContainer}>
                   <MapView
@@ -276,7 +374,7 @@ export default function ListingDetailScreen() {
 
           {/* Policies */}
           {(listing.rules?.checkInTime || listing.rules?.checkOutTime) && (
-            <View style={styles.section}>
+            <View style={styles.section} onLayout={(e) => handleSectionLayout('policies', e)}>
               <Text style={styles.sectionTitle}>{t('detail.policies')}</Text>
               {listing.rules.checkInTime && (
                 <View style={styles.policyRow}>
@@ -367,6 +465,33 @@ const styles = StyleSheet.create({
     borderRadius: Radius.xs,
   },
   imageBadgeText: { ...Typography.tiny, color: Colors.white },
+  segmentedNavContainer: {
+    backgroundColor: Colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
+    paddingVertical: Spacing.sm,
+  },
+  segmentedNavContent: {
+    paddingHorizontal: Spacing.base,
+    gap: Spacing.sm,
+  },
+  segmentPill: {
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radius.xl,
+    backgroundColor: Colors.surface,
+  },
+  segmentPillActive: {
+    backgroundColor: Colors.primary,
+  },
+  segmentText: {
+    ...Typography.small,
+    color: Colors.textSecondary,
+  },
+  segmentTextActive: {
+    color: Colors.white,
+    fontWeight: '600',
+  },
   content: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.base },
   badgesRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.sm },
   discountTag: {
@@ -454,6 +579,38 @@ const styles = StyleSheet.create({
   },
   policyLabel: { ...Typography.small, color: Colors.textSecondary },
   policyValue: { ...Typography.smallBold, color: Colors.textPrimary },
+  reviewCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.md,
+    padding: Spacing.base,
+    marginBottom: Spacing.md,
+  },
+  reviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  reviewerAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  reviewerAvatarImage: { width: 36, height: 36 },
+  reviewerInfo: { flex: 1, marginLeft: Spacing.sm },
+  reviewerName: { ...Typography.smallBold, color: Colors.textPrimary },
+  reviewDate: { ...Typography.caption, color: Colors.textTertiary, marginTop: 1 },
+  reviewStars: { flexDirection: 'row', gap: 1 },
+  reviewComment: { ...Typography.small, color: Colors.textSecondary, lineHeight: 20 },
+  emptyReviews: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xxl,
+    gap: Spacing.sm,
+  },
+  emptyReviewsText: { ...Typography.small, color: Colors.textTertiary },
   bottomBar: {
     position: 'absolute',
     bottom: 0,
