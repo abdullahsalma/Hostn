@@ -28,6 +28,27 @@ export default function ResultsScreen() {
     ratingMin, hasDiscount, district, direction, minArea, maxArea,
   } = searchStore;
 
+  const buildSearchParams = (pageParam: number) => ({
+    city: city ?? undefined,
+    type: searchStore.propertyType ?? undefined,
+    guests: searchStore.guests,
+    checkIn: searchStore.checkIn ?? undefined,
+    checkOut: searchStore.checkOut ?? undefined,
+    minPrice: minPrice ?? undefined,
+    maxPrice: maxPrice ?? undefined,
+    bedrooms: bedrooms || undefined,
+    bathrooms: bathrooms || undefined,
+    amenities: amenities.length > 0 ? amenities : undefined,
+    ratingMin: ratingMin ?? undefined,
+    hasDiscount: hasDiscount || undefined,
+    district: district ?? undefined,
+    direction: direction ?? undefined,
+    minArea: minArea ?? undefined,
+    maxArea: maxArea ?? undefined,
+    page: pageParam,
+    limit: 20,
+  });
+
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useInfiniteQuery({
     queryKey: [
       'search', city, searchStore.propertyType, searchStore.guests,
@@ -35,27 +56,20 @@ export default function ResultsScreen() {
       minPrice, maxPrice, bedrooms, bathrooms, amenities,
       ratingMin, hasDiscount, district, direction, minArea, maxArea,
     ],
-    queryFn: ({ pageParam = 1 }) =>
-      listingsService.search({
-        city: city ?? undefined,
-        type: searchStore.propertyType ?? undefined,
-        guests: searchStore.guests,
-        checkIn: searchStore.checkIn ?? undefined,
-        checkOut: searchStore.checkOut ?? undefined,
-        minPrice: minPrice ?? undefined,
-        maxPrice: maxPrice ?? undefined,
-        bedrooms: bedrooms || undefined,
-        bathrooms: bathrooms || undefined,
-        amenities: amenities.length > 0 ? amenities : undefined,
-        ratingMin: ratingMin ?? undefined,
-        hasDiscount: hasDiscount || undefined,
-        district: district ?? undefined,
-        direction: direction ?? undefined,
-        minArea: minArea ?? undefined,
-        maxArea: maxArea ?? undefined,
-        page: pageParam,
-        limit: 20,
-      }),
+    queryFn: async ({ pageParam = 1 }) => {
+      const params = buildSearchParams(pageParam);
+      // Try unit search first, fall back to property search
+      try {
+        const unitResult = await listingsService.searchUnits(params as any);
+        const unitData = unitResult?.data ?? unitResult;
+        if (Array.isArray(unitData) && unitData.length > 0) {
+          return unitResult;
+        }
+      } catch {
+        // searchUnits not available or failed — fall through
+      }
+      return listingsService.search(params as any);
+    },
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
       const p = lastPage.pagination ?? (lastPage as any);
@@ -99,7 +113,7 @@ export default function ResultsScreen() {
       ) : (
         <FlatList
           data={listings}
-          keyExtractor={(item) => item._id}
+          keyExtractor={(item) => item._id ?? item.id}
           contentContainerStyle={styles.list}
           onEndReached={() => hasNextPage && fetchNextPage()}
           onEndReachedThreshold={0.5}
@@ -108,14 +122,17 @@ export default function ResultsScreen() {
               <ActivityIndicator color={Colors.primary} style={styles.footerLoader} />
             ) : null
           }
-          renderItem={({ item }) => (
-            <ListingCard
-              listing={item}
-              onPress={() => router.push(`/listing/${item._id}`)}
-              onFavoritePress={() => handleToggleFavorite(item._id)}
-              isFavorite={user?.wishlist?.includes(item._id)}
-            />
-          )}
+          renderItem={({ item }) => {
+            const itemId = item._id ?? (item as any).id;
+            return (
+              <ListingCard
+                listing={item}
+                onPress={() => router.push(`/listing/${itemId}`)}
+                onFavoritePress={() => handleToggleFavorite(itemId)}
+                isFavorite={user?.wishlist?.includes(itemId)}
+              />
+            );
+          }}
         />
       )}
     </SafeAreaView>

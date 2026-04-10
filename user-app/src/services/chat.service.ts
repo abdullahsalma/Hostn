@@ -38,4 +38,14 @@ export const chatService = {
         return (d.data ?? d) as Conversation;
       });
   },
+
+  blockConversation(conversationId: string) {
+    return api
+      .put(`/messages/conversations/${conversationId}/block`)
+      .then((r) => r.data);
+  },
+
+  reportUser(data: { reportedUser: string; reason: string; details?: string }) {
+    return api.post('/reports', data).then((r) => r.data);
+  },
 };

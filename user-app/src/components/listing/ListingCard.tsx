@@ -20,9 +20,26 @@ interface Props {
 export default function ListingCard({ listing, onPress, onFavoritePress, isFavorite, style }: Props) {
   const { t, language } = useLanguage();
   const { checkIn, checkOut } = useSearchStore();
-  const primaryImage = listing.images?.find((img) => img.isPrimary) ?? listing.images?.[0];
-  const imageUri = typeof primaryImage === 'string' ? primaryImage : primaryImage?.url;
-  const originalPrice = listing.pricing?.perNight ?? 0;
+
+  // ── Unit-aware data extraction ──────────────────────────────
+  const item = listing as any;
+  const isUnit = !!(item.nameEn || item.nameAr);
+
+  const primaryImage = listing.images?.find((img: any) =>
+    typeof img === 'string' ? false : img.isPrimary,
+  ) ?? listing.images?.[0];
+  const imageUri = typeof primaryImage === 'string' ? primaryImage : (primaryImage as any)?.url;
+
+  // Pricing: units may have per-day pricing (sunday..saturday), compute average
+  let originalPrice = listing.pricing?.perNight ?? 0;
+  if (isUnit && item.pricing) {
+    const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const dayPrices = dayKeys.map((k) => parseFloat(item.pricing[k]) || 0).filter((v) => v > 0);
+    if (dayPrices.length > 0) {
+      originalPrice = dayPrices.reduce((a: number, b: number) => a + b, 0) / dayPrices.length;
+    }
+  }
+
   const price = listing.discountedPrice ?? originalPrice;
   const discount = listing.pricing?.discountPercent ?? 0;
   const hasDiscount = discount > 0 && price < originalPrice;
@@ -31,8 +48,8 @@ export default function ListingCard({ listing, onPress, onFavoritePress, isFavor
   const rating = listing.ratings?.average ?? 0;
   const reviewCount = listing.ratings?.count ?? 0;
   const guests = listing.capacity?.maxGuests;
-  const bedrooms = listing.capacity?.bedrooms;
-  const bathrooms = listing.capacity?.bathrooms;
+  const bedrooms = isUnit ? (item.bedrooms?.count ?? item.rooms?.bedrooms ?? listing.capacity?.bedrooms) : listing.capacity?.bedrooms;
+  const bathrooms = isUnit ? (item.bathroomCount ?? item.rooms?.bathrooms ?? listing.capacity?.bathrooms) : listing.capacity?.bathrooms;
   const typeLabel = t(('type.' + listing.type) as any) ?? listing.type;
 
   // Date-aware pricing
@@ -90,7 +107,9 @@ export default function ListingCard({ listing, onPress, onFavoritePress, isFavor
 
       <View style={styles.info}>
         <Text style={styles.title} numberOfLines={1}>
-          {listing.title}
+          {isUnit
+            ? (language === 'ar' ? item.nameAr : item.nameEn) || item.nameAr || item.nameEn || listing.title
+            : listing.title}
         </Text>
         <View style={styles.locationRow}>
           <Ionicons name="location-outline" size={14} color={Colors.textSecondary} />

@@ -34,9 +34,21 @@ export default function ListingDetailScreen() {
   const setUser = useAuthStore((s) => s.setUser);
   const isAr = language === 'ar';
 
+  // Try fetching as unit first, fall back to property
   const { data: listing, isLoading } = useQuery({
     queryKey: ['listing', id],
-    queryFn: () => listingsService.getById(id!),
+    queryFn: async () => {
+      try {
+        const unit = await listingsService.getUnit(id!);
+        if (unit && (unit.nameEn || unit.nameAr || unit.name)) {
+          // Mark as unit for downstream logic
+          return { ...unit, _isUnit: true };
+        }
+      } catch {
+        // Not a unit — fall through to property
+      }
+      return listingsService.getById(id!);
+    },
     enabled: !!id,
   });
 
@@ -79,7 +91,14 @@ export default function ListingDetailScreen() {
   };
 
   const handleBook = () => {
-    router.push(`/checkout/${id}`);
+    if (isUnitDetail) {
+      router.push({
+        pathname: `/checkout/${id}` as any,
+        params: { unitId: id, isUnit: '1' },
+      });
+    } else {
+      router.push(`/checkout/${id}`);
+    }
   };
 
   const handleContactHost = () => {
@@ -99,7 +118,19 @@ export default function ListingDetailScreen() {
     );
   }
 
-  const originalPrice = listing.pricing?.perNight ?? 0;
+  const itemData = listing as any;
+  const isUnitDetail = !!(itemData._isUnit);
+
+  // Pricing: units may use per-day rates
+  let originalPrice = listing.pricing?.perNight ?? 0;
+  if (isUnitDetail && itemData.pricing) {
+    const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const dayPrices = dayKeys.map((k: string) => parseFloat(itemData.pricing[k]) || 0).filter((v: number) => v > 0);
+    if (dayPrices.length > 0) {
+      originalPrice = dayPrices.reduce((a: number, b: number) => a + b, 0) / dayPrices.length;
+    }
+  }
+
   const price = listing.discountedPrice ?? originalPrice;
   const discount = listing.pricing?.discountPercent ?? 0;
   const hasDiscount = discount > 0 && price < originalPrice;
@@ -107,7 +138,23 @@ export default function ListingDetailScreen() {
   const reviewCount = listing.ratings?.count ?? 0;
   const city = listing.location?.city ?? '';
   const district = listing.location?.district;
-  const hostName = listing.host.name ?? `${listing.host.firstName ?? ''} ${listing.host.lastName ?? ''}`.trim();
+  const hostName = listing.host?.name ?? `${listing.host?.firstName ?? ''} ${listing.host?.lastName ?? ''}`.trim();
+
+  // Unit-aware title
+  const displayTitle = isUnitDetail
+    ? (isAr ? itemData.nameAr : itemData.nameEn) || itemData.nameAr || itemData.nameEn || listing.title
+    : listing.title;
+  const displaySubtitle = isUnitDetail
+    ? (itemData.propertyName || itemData.property?.name || '')
+    : '';
+
+  // Unit-aware capacity
+  const displayBedrooms = isUnitDetail
+    ? (itemData.bedrooms?.count ?? itemData.rooms?.bedrooms ?? listing.capacity?.bedrooms)
+    : listing.capacity?.bedrooms;
+  const displayBathrooms = isUnitDetail
+    ? (itemData.bathroomCount ?? itemData.rooms?.bathrooms ?? listing.capacity?.bathrooms)
+    : listing.capacity?.bathrooms;
 
   const getTypeLabel = (type: string) => {
     const key = `type.${type}` as any;
@@ -185,7 +232,10 @@ export default function ListingDetailScreen() {
           </View>
 
           {/* Title & Location */}
-          <Text style={styles.listingTitle}>{listing.title}</Text>
+          <Text style={styles.listingTitle}>{displayTitle}</Text>
+          {displaySubtitle ? (
+            <Text style={styles.locationText}>{displaySubtitle}</Text>
+          ) : null}
           <View style={styles.locationRow}>
             <Ionicons name="location-outline" size={16} color={Colors.textSecondary} />
             <Text style={styles.locationText}>
@@ -209,12 +259,12 @@ export default function ListingDetailScreen() {
             </View>
             <View style={styles.stat}>
               <Ionicons name="bed-outline" size={18} color={Colors.textSecondary} />
-              <Text style={styles.statValue}>{listing.capacity?.bedrooms ?? '-'}</Text>
+              <Text style={styles.statValue}>{displayBedrooms ?? '-'}</Text>
               <Text style={styles.statLabel}>{t('listing.beds')}</Text>
             </View>
             <View style={styles.stat}>
               <Ionicons name="water-outline" size={18} color={Colors.textSecondary} />
-              <Text style={styles.statValue}>{listing.capacity?.bathrooms ?? '-'}</Text>
+              <Text style={styles.statValue}>{displayBathrooms ?? '-'}</Text>
               <Text style={styles.statLabel}>{t('listing.baths')}</Text>
             </View>
           </View>

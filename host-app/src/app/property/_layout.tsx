@@ -16,6 +16,8 @@ export default function PropertyLayout() {
       <Stack.Screen name="add-unit" options={{ headerShown: false }} />
       <Stack.Screen name="edit" options={{ headerShown: false }} />
       <Stack.Screen name="duplicate" options={{ headerShown: false }} />
+      <Stack.Screen name="edit-unit" options={{ headerShown: false }} />
+      <Stack.Screen name="unit-pricing" options={{ headerShown: false }} />
     </Stack>
   );
 }

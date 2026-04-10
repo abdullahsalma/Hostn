@@ -114,27 +114,51 @@ export default function PropertiesScreen() {
             )}
           </View>
 
-          {/* Right: thumbnail + duplicate */}
+          {/* Right: thumbnail + action buttons */}
           <View style={styles.unitActions}>
             <View style={styles.unitThumbnail}>
               <Ionicons name="image-outline" size={28} color={Colors.textTertiary} />
             </View>
-            <TouchableOpacity
-              style={styles.duplicateBtn}
-              hitSlop={8}
-              onPress={(e) => {
-                e.stopPropagation?.();
-                router.push({
-                  pathname: `/property/duplicate/${item.id}` as any,
-                  params: {
-                    groupTag: displayProperty?.nameAr || displayProperty?.nameEn || '',
-                  },
-                });
-              }}
-            >
-              <Ionicons name="copy-outline" size={16} color={Colors.primary} />
-              <Text style={styles.duplicateBtnText}>نسخ</Text>
-            </TouchableOpacity>
+            <View style={styles.unitActionRow}>
+              <TouchableOpacity
+                style={styles.actionBtn}
+                hitSlop={8}
+                onPress={(e) => {
+                  e.stopPropagation?.();
+                  router.push(`/property/edit-unit/${item.id}` as any);
+                }}
+              >
+                <Ionicons name="create-outline" size={16} color={Colors.primary} />
+                <Text style={styles.actionBtnText}>تعديل</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.actionBtn}
+                hitSlop={8}
+                onPress={(e) => {
+                  e.stopPropagation?.();
+                  router.push(`/property/unit-pricing/${item.id}` as any);
+                }}
+              >
+                <Ionicons name="pricetag-outline" size={16} color={Colors.primary} />
+                <Text style={styles.actionBtnText}>تسعير</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.duplicateBtn}
+                hitSlop={8}
+                onPress={(e) => {
+                  e.stopPropagation?.();
+                  router.push({
+                    pathname: `/property/duplicate/${item.id}` as any,
+                    params: {
+                      groupTag: displayProperty?.nameAr || displayProperty?.nameEn || '',
+                    },
+                  });
+                }}
+              >
+                <Ionicons name="copy-outline" size={16} color={Colors.primary} />
+                <Text style={styles.duplicateBtnText}>نسخ</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </TouchableOpacity>
       );
@@ -463,6 +487,25 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
 
+  // Unit action row
+  unitActionRow: {
+    flexDirection: 'row' as const,
+    gap: Spacing.xs,
+  },
+  actionBtn: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 2,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: Radius.xs,
+    backgroundColor: Colors.primary + '10',
+  },
+  actionBtnText: {
+    ...Typography.tiny,
+    color: Colors.primary,
+    fontWeight: '600' as const,
+  },
   // Duplicate button
   duplicateBtn: {
     flexDirection: 'row' as const,
