@@ -20,10 +20,19 @@ if (process.env.RESEND_API_KEY) {
 // ── SMTP (Nodemailer) ─────────────────────────────────────────────────
 const createTransporter = () => {
   if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+    // Brevo (smtp-relay.brevo.com) and many providers block port 587 from
+    // cloud platforms. Try port 465 (implicit SSL) as primary, fall back to
+    // the configured port.
+    const configuredPort = parseInt(process.env.SMTP_PORT || '587', 10);
+    const usePort = configuredPort === 587 ? 465 : configuredPort;
+    const useSecure = usePort === 465 ? true : process.env.SMTP_SECURE === 'true';
+
+    console.log(`[EMAIL] SMTP transporter: ${process.env.SMTP_HOST}:${usePort} (secure: ${useSecure})`);
+
     return nodemailer.createTransport({
       host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || '587', 10),
-      secure: process.env.SMTP_SECURE === 'true',
+      port: usePort,
+      secure: useSecure,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
