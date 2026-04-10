@@ -36,9 +36,17 @@ const sendEmail = async ({ to, subject, html, text }) => {
     return { accepted: [to], dev: true };
   }
 
+  console.log(`[EMAIL] Sending to ${to} via ${process.env.SMTP_HOST}:${process.env.SMTP_PORT} (secure: ${process.env.SMTP_SECURE}, user: ${process.env.SMTP_USER})`);
+
   const from = process.env.SMTP_FROM || 'Hostn <noreply@hostn.co>';
-  const info = await transporter.sendMail({ from, to, subject, html, text });
-  return info;
+  try {
+    const info = await transporter.sendMail({ from, to, subject, html, text });
+    console.log(`[EMAIL] Sent OK — messageId: ${info.messageId}, accepted: ${info.accepted}`);
+    return info;
+  } catch (err) {
+    console.error(`[EMAIL] Send failed — code: ${err.code}, command: ${err.command}, message: ${err.message}`);
+    throw err;
+  }
 };
 
 /**
