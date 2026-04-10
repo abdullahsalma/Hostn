@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/context/LanguageContext';
 import { propertiesApi, hostApi } from '@/lib/api';
-import { Plus, ToggleLeft, ToggleRight, Edit, Loader2, Building } from 'lucide-react';
+import { Plus, ToggleLeft, ToggleRight, Edit, Loader2, Building, Layers } from 'lucide-react';
 import SarSymbol from '@/components/ui/SarSymbol';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -36,6 +36,7 @@ const t: Record<string, Record<string, string>> = {
   perNight: { en: 'SAR / night', ar: '\u0631.\u0633 / \u0644\u064a\u0644\u0629' },
   noProperties: { en: 'No properties yet. Add your first property!', ar: '\u0644\u0627 \u062a\u0648\u062c\u062f \u0639\u0642\u0627\u0631\u0627\u062a \u0628\u0639\u062f. \u0623\u0636\u0641 \u0639\u0642\u0627\u0631\u0643 \u0627\u0644\u0623\u0648\u0644!' },
   edit: { en: 'Edit', ar: '\u062a\u0639\u062f\u064a\u0644' },
+  units: { en: 'Units', ar: '\u0627\u0644\u0648\u062d\u062f\u0627\u062a' },
   toggled: { en: 'Status updated', ar: '\u062a\u0645 \u062a\u062d\u062f\u064a\u062b \u0627\u0644\u062d\u0627\u0644\u0629' },
 };
 
@@ -69,8 +70,9 @@ export default function HostListingsPage() {
         prev.map((p) => (p._id === id ? { ...p, isActive: !p.isActive } : p))
       );
       toast.success(t.toggled[lang]);
-    } catch {
-      toast.error(lang === 'ar' ? '\u0641\u0634\u0644 \u0641\u064a \u062a\u062d\u062f\u064a\u062b \u0627\u0644\u062d\u0627\u0644\u0629' : 'Failed to update status');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg || (lang === 'ar' ? '\u0641\u0634\u0644 \u0641\u064a \u062a\u062d\u062f\u064a\u062b \u0627\u0644\u062d\u0627\u0644\u0629' : 'Failed to update status'));
     }
   };
 
@@ -108,7 +110,7 @@ export default function HostListingsPage() {
                 {property.images && property.images[0]?.url ? (
                   <img
                     src={property.images[0].url}
-                    alt={property.title}
+                    alt={lang === 'ar' && property.titleAr ? property.titleAr : property.title}
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -135,13 +137,22 @@ export default function HostListingsPage() {
                   <span dir="ltr"><SarSymbol /> {(property.pricing?.perNight || property.price)?.toLocaleString('en')}</span> / {lang === 'ar' ? 'ليلة' : 'night'}
                 </p>
                 <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
-                  <Link
-                    href={`/host/listings/${property._id}/edit`}
-                    className="flex items-center gap-1 text-sm text-gray-600 hover:text-primary-600 transition-colors"
-                  >
-                    <Edit className="w-4 h-4" />
-                    {t.edit[lang]}
-                  </Link>
+                  <div className="flex items-center gap-3">
+                    <Link
+                      href={`/host/listings/${property._id}/edit`}
+                      className="flex items-center gap-1 text-sm text-gray-600 hover:text-primary-600 transition-colors"
+                    >
+                      <Edit className="w-4 h-4" />
+                      {t.edit[lang]}
+                    </Link>
+                    <Link
+                      href={`/host/listings/${property._id}/units`}
+                      className="flex items-center gap-1 text-sm text-gray-600 hover:text-primary-600 transition-colors"
+                    >
+                      <Layers className="w-4 h-4" />
+                      {t.units[lang]}
+                    </Link>
+                  </div>
                   <button
                     onClick={() => handleToggle(property._id)}
                     className="flex items-center gap-1 text-sm text-gray-600 hover:text-primary-600 transition-colors"
