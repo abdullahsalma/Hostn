@@ -49,8 +49,6 @@ function getCancellationLabel(policy: string | undefined, isAr: boolean): string
   return entry ? (isAr ? entry.ar : entry.en) : policy;
 }
 
-const SECTION_IDS = ['specification', 'reviews', 'location', 'terms'] as const;
-
 function UnitDetailContent() {
   const { id } = useParams<{ id: string }>();
   const [unit, setUnit] = useState<Unit | null>(null);
@@ -95,9 +93,8 @@ function UnitDetailContent() {
   // Host stats from public API
   const [hostStats, setHostStats] = useState<{ propertyCount: number; averageRating: number; totalReviews: number } | null>(null);
 
-  // Segmented nav — scroll-to-section approach
+  // Segmented nav — tab switching
   const [activeSection, setActiveSection] = useState('specification');
-  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Read dates and guests from cookies
   const [initialCheckIn, setInitialCheckIn] = useState('');
@@ -157,28 +154,6 @@ function UnitDetailContent() {
       .then(res => setHostStats(res.data.data.stats))
       .catch(() => {});
   }, [host]);
-
-  // IntersectionObserver for active section highlighting
-  useEffect(() => {
-    const observers: IntersectionObserver[] = [];
-    for (const sId of SECTION_IDS) {
-      const el = sectionRefs.current[sId];
-      if (!el) continue;
-      const obs = new IntersectionObserver(
-        ([entry]) => {
-          if (entry.isIntersecting) setActiveSection(sId);
-        },
-        { rootMargin: '-20% 0px -60% 0px', threshold: 0 }
-      );
-      obs.observe(el);
-      observers.push(obs);
-    }
-    return () => observers.forEach(o => o.disconnect());
-  }, [unit]);
-
-  const scrollToSection = (sId: string) => {
-    sectionRefs.current[sId]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
 
   const handleShare = async () => {
     const url = window.location.href;
@@ -445,177 +420,182 @@ function UnitDetailContent() {
             <ImageGallery images={galleryImages} title={displayTitle} />
           </div>
 
-          {/* Host info — always visible above tabs */}
-          {host && typeof host === 'object' && (
-            <Link href={`/hosts/${host._id}`} className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors group mb-6">
-              <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
-                {host.avatar ? (
-                  <img src={host.avatar} alt={host.name} className="w-12 h-12 rounded-full object-cover" />
-                ) : (
-                  <span className="text-primary-600 font-bold text-lg">
-                    {host.name?.charAt(0).toUpperCase()}
-                  </span>
-                )}
-              </div>
-              <div className="flex-1">
-                <p className="font-semibold text-gray-900 flex items-center gap-1.5 group-hover:text-primary-600">
-                  {t('property.hostedBy')} {host.name}
-                  {host.isVerified && (
-                    <BadgeCheck className="w-4 h-4 text-primary-600" />
-                  )}
-                </p>
-                <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
-                  <span>{isAr ? `مضيف منذ ${new Date(host.createdAt).getFullYear()}` : `Host since ${new Date(host.createdAt).getFullYear()}`}</span>
-                  {hostStats && hostStats.averageRating > 0 && (
-                    <StarRating rating={hostStats.averageRating} count={hostStats.totalReviews} size="sm" />
-                  )}
-                  {hostStats && (
-                    <span>{isAr ? `${hostStats.propertyCount} عقارات` : `${hostStats.propertyCount} properties`}</span>
-                  )}
-                </div>
-              </div>
-            </Link>
-          )}
-
-          {/* Segmented navigation — scroll-to-section pills */}
-          <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-gray-100 py-3 -mx-4 px-4 mb-6">
-            <div className="flex bg-gray-100 rounded-xl p-1 gap-0.5 w-full overflow-x-auto no-scrollbar">
-              {[
-                { id: 'specification', label: isAr ? 'المواصفات' : 'Specification', Icon: ClipboardList },
-                { id: 'reviews', label: isAr ? 'التقييمات' : 'Reviews', Icon: Star },
-                { id: 'location', label: isAr ? 'الموقع' : 'Location', Icon: MapPinned },
-                { id: 'terms', label: isAr ? 'الشروط' : 'Terms', Icon: ScrollText },
-              ].map(({ id: sId, label, Icon }) => (
-                <button
-                  key={sId}
-                  onClick={() => scrollToSection(sId)}
-                  className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 min-w-0 ${
-                    activeSection === sId
-                      ? 'bg-white text-primary-700 shadow-sm ring-1 ring-primary-100'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  <Icon className="w-4 h-4 flex-shrink-0" />
-                  <span className="truncate">{label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Main content */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-            {/* Left column — all sections always visible */}
-            <div className="lg:col-span-2 space-y-8">
+            {/* Left column */}
+            <div className="lg:col-span-2 space-y-6">
 
-              {/* ── Section: Specification ── */}
-              <div ref={(el) => { sectionRefs.current.specification = el; }} id="specification" className="scroll-mt-20">
-                {/* Quick stats — from unit data */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-                  {[
-                    { Icon: Users, label: t('property.maxGuests'), value: unit.capacity?.maxGuests ?? '\u2014' },
-                    { Icon: BedDouble, label: t('property.bedrooms'), value: unit.bedrooms?.count ?? '\u2014' },
-                    { Icon: Bath, label: t('property.bathrooms'), value: unit.bathroomCount ?? '\u2014' },
-                    { Icon: BedDouble, label: t('property.beds'), value: ((unit.bedrooms?.singleBeds ?? 0) + (unit.bedrooms?.doubleBeds ?? 0)) || '\u2014' },
-                  ].map(({ Icon, label, value }) => (
-                    <div key={label} className="bg-gray-50 rounded-2xl p-4 text-center">
-                      <Icon className="w-5 h-5 text-primary-600 mx-auto mb-2" />
-                      <div className="text-xl font-bold text-gray-900">{value}</div>
-                      <div className="text-xs text-gray-500">{label}</div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Description — from unit */}
-                <div className="mb-8">
-                  <h2 className="text-xl font-bold text-gray-900 mb-4">{t('property.aboutThisPlace')}</h2>
-                  <p className="text-gray-600 leading-relaxed whitespace-pre-line">
-                    {unit.description || (isAr ? 'لا يوجد وصف متاح.' : 'No description available.')}
-                  </p>
-                </div>
-
-                {/* Suitability */}
-                {unit.suitability && (
-                  <div className="mb-8">
-                    <h2 className="text-lg font-bold text-gray-900 mb-2">{isAr ? 'مناسبة لـ' : 'Suitable for'}</h2>
-                    <p className="text-gray-600">{unit.suitability}</p>
+              {/* Quick stats — always visible */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {[
+                  { Icon: Users, label: t('property.maxGuests'), value: unit.capacity?.maxGuests ?? '\u2014' },
+                  { Icon: BedDouble, label: t('property.bedrooms'), value: unit.bedrooms?.count ?? '\u2014' },
+                  { Icon: Bath, label: t('property.bathrooms'), value: unit.bathroomCount ?? '\u2014' },
+                  { Icon: BedDouble, label: t('property.beds'), value: ((unit.bedrooms?.singleBeds ?? 0) + (unit.bedrooms?.doubleBeds ?? 0)) || '\u2014' },
+                ].map(({ Icon, label, value }) => (
+                  <div key={label} className="bg-gray-50 rounded-2xl p-4 text-center">
+                    <Icon className="w-5 h-5 text-primary-600 mx-auto mb-2" />
+                    <div className="text-xl font-bold text-gray-900">{value}</div>
+                    <div className="text-xs text-gray-500">{label}</div>
                   </div>
-                )}
+                ))}
+              </div>
 
-                {/* Amenities — from unit */}
-                {unitAmenities.length > 0 && (
-                  <div className="mb-8">
-                    <h2 className="text-xl font-bold text-gray-900 mb-4">
-                      {t('property.whatThisPlaceOffers')}
-                    </h2>
-                    <AmenitiesList amenities={unitAmenities} showAll={showAllAmenities} />
-                    {unitAmenities.length > 10 && (
-                      <button
-                        onClick={() => setShowAllAmenities(!showAllAmenities)}
-                        className="mt-4 text-sm font-semibold text-primary-600 hover:text-primary-700 underline"
-                      >
-                        {showAllAmenities ? t('property.showLess') : `${t('property.showAll')} (${unitAmenities.length})`}
-                      </button>
+              {/* Host info — always visible */}
+              {host && typeof host === 'object' && (
+                <Link href={`/hosts/${host._id}`} className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors group">
+                  <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    {host.avatar ? (
+                      <img src={host.avatar} alt={host.name} className="w-12 h-12 rounded-full object-cover" />
+                    ) : (
+                      <span className="text-primary-600 font-bold text-lg">
+                        {host.name?.charAt(0).toUpperCase()}
+                      </span>
                     )}
                   </div>
-                )}
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-900 flex items-center gap-1.5 group-hover:text-primary-600">
+                      {t('property.hostedBy')} {host.name}
+                      {host.isVerified && (
+                        <BadgeCheck className="w-4 h-4 text-primary-600" />
+                      )}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
+                      <span>{isAr ? `مضيف منذ ${new Date(host.createdAt).getFullYear()}` : `Host since ${new Date(host.createdAt).getFullYear()}`}</span>
+                      {hostStats && hostStats.averageRating > 0 && (
+                        <StarRating rating={hostStats.averageRating} count={hostStats.totalReviews} size="sm" />
+                      )}
+                      {hostStats && (
+                        <span>{isAr ? `${hostStats.propertyCount} عقارات` : `${hostStats.propertyCount} properties`}</span>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              )}
 
-                {/* Features — from unit */}
-                {unit.features && unit.features.length > 0 && (
+              {/* Segmented navigation — tab switching */}
+              <div className="bg-gray-100 rounded-xl p-1 flex gap-0.5 w-full overflow-x-auto no-scrollbar">
+                {[
+                  { id: 'specification', label: isAr ? 'المواصفات' : 'Specification', Icon: ClipboardList },
+                  { id: 'reviews', label: isAr ? 'التقييمات' : 'Reviews', Icon: Star },
+                  { id: 'location', label: isAr ? 'الموقع' : 'Location', Icon: MapPinned },
+                  { id: 'terms', label: isAr ? 'الشروط' : 'Terms', Icon: ScrollText },
+                ].map(({ id: sId, label, Icon }) => (
+                  <button
+                    key={sId}
+                    onClick={() => setActiveSection(sId)}
+                    className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 min-w-0 ${
+                      activeSection === sId
+                        ? 'bg-white text-primary-700 shadow-sm ring-1 ring-primary-100'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">{label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* ── Tab: Specification ── */}
+              {activeSection === 'specification' && (
+                <div className="space-y-8">
+                  {/* Description — from unit */}
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900 mb-4">{isAr ? 'المميزات' : 'Features'}</h2>
-                    <div className="flex flex-wrap gap-2">
-                      {unit.features.map((feature) => (
-                        <span key={feature} className="badge bg-gray-100 text-gray-700 text-sm px-3 py-1.5 rounded-lg">
-                          {feature}
-                        </span>
-                      ))}
-                    </div>
+                    <h2 className="text-xl font-bold text-gray-900 mb-4">{t('property.aboutThisPlace')}</h2>
+                    <p className="text-gray-600 leading-relaxed whitespace-pre-line">
+                      {unit.description || (isAr ? 'لا يوجد وصف متاح.' : 'No description available.')}
+                    </p>
                   </div>
-                )}
-              </div>
 
-              {/* ── Section: Reviews — still uses property._id ── */}
-              <div ref={(el) => { sectionRefs.current.reviews = el; }} id="reviews" className="scroll-mt-20 pt-4 border-t border-gray-100">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">{t('property.guestReviews')}</h2>
-                <ReviewsList
-                  propertyId={property._id}
-                  averageRating={ratings?.average ?? 0}
-                  reviewCount={ratings?.count ?? 0}
-                />
-              </div>
+                  {/* Suitability */}
+                  {unit.suitability && (
+                    <div>
+                      <h2 className="text-lg font-bold text-gray-900 mb-2">{isAr ? 'مناسبة لـ' : 'Suitable for'}</h2>
+                      <p className="text-gray-600">{unit.suitability}</p>
+                    </div>
+                  )}
 
-              {/* ── Section: Location & Map — from property ── */}
-              <div ref={(el) => { sectionRefs.current.location = el; }} id="location" className="scroll-mt-20 pt-4 border-t border-gray-100">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">{isAr ? 'الموقع والخريطة' : 'Location & Map'}</h2>
-                {property.location.coordinates?.lat && property.location.coordinates?.lng ? (
-                  <>
-                    <PropertyMap
-                      lat={property.location.coordinates.lat}
-                      lng={property.location.coordinates.lng}
-                      title={displayTitle}
-                      className="h-[350px] rounded-xl"
-                      isApproximate={(property.location as { isApproximate?: boolean }).isApproximate}
-                    />
-                    {(property.location as { isApproximate?: boolean }).isApproximate && (
-                      <p className="mt-3 text-sm text-gray-500 italic flex items-center gap-1.5">
-                        <MapPin className="w-4 h-4" />
-                        {isAr ? 'سيتم عرض الموقع الدقيق بعد تأكيد الحجز' : 'Exact location shown after booking confirmation'}
-                      </p>
-                    )}
-                  </>
-                ) : (
-                  <p className="text-gray-500 text-sm">{isAr ? 'لم يتم تحديد الموقع على الخريطة' : 'Location not available on map'}</p>
-                )}
-                <div className="mt-4 p-4 bg-gray-50 rounded-xl">
-                  <p className="text-sm text-gray-600 flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-primary-500 flex-shrink-0" />
-                    {property.location.district && `${isAr ? (Object.values(DISTRICTS).flat().find(d => d.value === property.location.district)?.ar || property.location.district) : property.location.district}, `}{isAr ? (CITIES.find(c => c.value.toLowerCase() === property.location.city.toLowerCase())?.ar || property.location.city) : property.location.city}
-                  </p>
+                  {/* Amenities — from unit */}
+                  {unitAmenities.length > 0 && (
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900 mb-4">
+                        {t('property.whatThisPlaceOffers')}
+                      </h2>
+                      <AmenitiesList amenities={unitAmenities} showAll={showAllAmenities} />
+                      {unitAmenities.length > 10 && (
+                        <button
+                          onClick={() => setShowAllAmenities(!showAllAmenities)}
+                          className="mt-4 text-sm font-semibold text-primary-600 hover:text-primary-700 underline"
+                        >
+                          {showAllAmenities ? t('property.showLess') : `${t('property.showAll')} (${unitAmenities.length})`}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Features — from unit */}
+                  {unit.features && unit.features.length > 0 && (
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-900 mb-4">{isAr ? 'المميزات' : 'Features'}</h2>
+                      <div className="flex flex-wrap gap-2">
+                        {unit.features.map((feature) => (
+                          <span key={feature} className="badge bg-gray-100 text-gray-700 text-sm px-3 py-1.5 rounded-lg">
+                            {feature}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
 
-              {/* ── Section: Terms & Policies — unit cancellation + written rules, with property rules fallback ── */}
-              <div ref={(el) => { sectionRefs.current.terms = el; }} id="terms" className="scroll-mt-20 pt-4 border-t border-gray-100">
+              {/* ── Tab: Reviews ── */}
+              {activeSection === 'reviews' && (
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 mb-4">{t('property.guestReviews')}</h2>
+                  <ReviewsList
+                    propertyId={property._id}
+                    averageRating={ratings?.average ?? 0}
+                    reviewCount={ratings?.count ?? 0}
+                  />
+                </div>
+              )}
+
+              {/* ── Tab: Location & Map ── */}
+              {activeSection === 'location' && (
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 mb-4">{isAr ? 'الموقع والخريطة' : 'Location & Map'}</h2>
+                  {property.location.coordinates?.lat && property.location.coordinates?.lng ? (
+                    <>
+                      <PropertyMap
+                        lat={property.location.coordinates.lat}
+                        lng={property.location.coordinates.lng}
+                        title={displayTitle}
+                        className="h-[350px] rounded-xl"
+                        isApproximate={(property.location as { isApproximate?: boolean }).isApproximate}
+                      />
+                      {(property.location as { isApproximate?: boolean }).isApproximate && (
+                        <p className="mt-3 text-sm text-gray-500 italic flex items-center gap-1.5">
+                          <MapPin className="w-4 h-4" />
+                          {isAr ? 'سيتم عرض الموقع الدقيق بعد تأكيد الحجز' : 'Exact location shown after booking confirmation'}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-gray-500 text-sm">{isAr ? 'لم يتم تحديد الموقع على الخريطة' : 'Location not available on map'}</p>
+                  )}
+                  <div className="mt-4 p-4 bg-gray-50 rounded-xl">
+                    <p className="text-sm text-gray-600 flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                      {property.location.district && `${isAr ? (Object.values(DISTRICTS).flat().find(d => d.value === property.location.district)?.ar || property.location.district) : property.location.district}, `}{isAr ? (CITIES.find(c => c.value.toLowerCase() === property.location.city.toLowerCase())?.ar || property.location.city) : property.location.city}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* ── Tab: Terms & Policies ── */}
+              {activeSection === 'terms' && (
+                <div>
                 <div className="space-y-6">
                   <h2 className="text-xl font-bold text-gray-900 mb-4">{t('property.houseRules')}</h2>
 
@@ -688,7 +668,8 @@ function UnitDetailContent() {
                     </div>
                   )}
                 </div>
-              </div>
+                </div>
+              )}
 
             </div>
 
