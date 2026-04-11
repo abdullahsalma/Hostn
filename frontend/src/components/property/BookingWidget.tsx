@@ -41,7 +41,7 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
   const [selectingCheckOut, setSelectingCheckOut] = useState(false);
 
   // ── Unit selection ──
-  interface UnitOption { _id: string; nameEn?: string; nameAr?: string; pricing?: Record<string, number>; capacity?: { maxGuests?: number } }
+  interface UnitOption { _id: string; nameEn?: string; nameAr?: string; pricing?: Record<string, number>; capacity?: { maxGuests?: number }; datePricing?: { date: string; price?: number; isBlocked?: boolean }[] }
   const [units, setUnits] = useState<UnitOption[]>([]);
   const [selectedUnitId, setSelectedUnitId] = useState<string>(initialUnitId);
   const selectedUnit = units.find((u) => u._id === selectedUnitId) || null;
@@ -92,17 +92,46 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
   let discount: number;
 
   if (hasUnit && selectedUnit.pricing && nights > 0) {
-    // Sum per-day prices for the selected date range
     const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+    // Build date override map from datePricing
+    const dateOverrides = new Map<string, { price?: number; isBlocked?: boolean }>();
+    if (selectedUnit.datePricing) {
+      for (const dp of selectedUnit.datePricing) {
+        const key = new Date(dp.date).toISOString().slice(0, 10);
+        dateOverrides.set(key, dp);
+      }
+    }
+
     let sum = 0;
+    let hasBlockedDate = false;
     const start = new Date(checkIn);
     for (let i = 0; i < nights; i++) {
       const d = new Date(start);
       d.setDate(d.getDate() + i);
-      sum += selectedUnit.pricing[dayNames[d.getDay()]] || 0;
+      const dateKey = d.toISOString().slice(0, 10);
+      const override = dateOverrides.get(dateKey);
+
+      if (override?.isBlocked) {
+        hasBlockedDate = true;
+        break;
+      }
+
+      if (override?.price != null && override.price > 0) {
+        sum += override.price;
+      } else {
+        sum += selectedUnit.pricing[dayNames[d.getDay()]] || 0;
+      }
     }
-    subtotal = sum;
-    pricePerNight = Math.round(sum / nights);
+
+    if (hasBlockedDate) {
+      // Some dates are blocked — show 0 and the UI will handle it
+      subtotal = 0;
+      pricePerNight = 0;
+    } else {
+      subtotal = sum;
+      pricePerNight = Math.round(sum / nights);
+    }
     cleaningFee = selectedUnit.pricing.cleaningFee || 0;
     let discPct = selectedUnit.pricing.discountPercent || 0;
     if (nights >= 7 && (selectedUnit.pricing.weeklyDiscount || 0) > discPct) {
@@ -344,6 +373,29 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
           </div>
         </div>
       </div>
+
+      {/* Blocked dates warning */}
+      {(() => {
+        if (!selectedUnit?.datePricing || !checkIn || !checkOut || nights <= 0) return null;
+        const dateOverrides = new Map<string, { price?: number; isBlocked?: boolean }>();
+        for (const dp of selectedUnit.datePricing) {
+          const key = new Date(dp.date).toISOString().slice(0, 10);
+          dateOverrides.set(key, dp);
+        }
+        const start = new Date(checkIn);
+        for (let i = 0; i < nights; i++) {
+          const d = new Date(start);
+          d.setDate(d.getDate() + i);
+          if (dateOverrides.get(d.toISOString().slice(0, 10))?.isBlocked) {
+            return (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600 mb-3">
+                {isAr ? 'بعض التواريخ المحددة غير متاحة. يرجى اختيار تواريخ أخرى.' : 'Some selected dates are unavailable. Please choose different dates.'}
+              </div>
+            );
+          }
+        }
+        return null;
+      })()}
 
       {/* Min nights warning */}
       {property.rules?.minNights > 1 && nights > 0 && nights < property.rules.minNights && (

@@ -85,7 +85,7 @@ const t: Record<string, Record<string, string>> = {
 };
 
 const DAY_KEYS_EN = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
-const DAY_HEADERS = [t.sat, t.sun, t.mon, t.tue, t.wed, t.thu, t.fri];
+const DAY_HEADERS = [t.sun, t.mon, t.tue, t.wed, t.thu, t.fri, t.sat];
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
 /* Month names                                                                */
@@ -112,13 +112,12 @@ function getDaysInMonth(year: number, month: number): Date[] {
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
 
-  // Saudi week starts Saturday. JS: 0=Sun,...,6=Sat
-  // Sat=0, Sun=1, Mon=2, Tue=3, Wed=4, Thu=5, Fri=6
-  const saturdayOffset = (firstDay.getDay() + 1) % 7;
+  // Week starts Sunday. JS: 0=Sun,...,6=Sat — getDay() already gives Sunday-first offset
+  const sundayOffset = firstDay.getDay();
 
   const days: Date[] = [];
 
-  for (let i = saturdayOffset - 1; i >= 0; i--) {
+  for (let i = sundayOffset - 1; i >= 0; i--) {
     days.push(new Date(year, month, -i));
   }
 
@@ -127,7 +126,7 @@ function getDaysInMonth(year: number, month: number): Date[] {
   }
 
   while (days.length % 7 !== 0) {
-    const next = days.length - saturdayOffset - lastDay.getDate() + 1;
+    const next = days.length - sundayOffset - lastDay.getDate() + 1;
     days.push(new Date(year, month + 1, next));
   }
 
@@ -420,9 +419,9 @@ export default function UnitPricingPage() {
 
   /* ── Day-of-week badge data ── */
   const dayBadges = useMemo(() => {
-    // Order: Sat, Sun, Mon, Tue, Wed, Thu, Fri (Saudi week)
-    const order = [6, 0, 1, 2, 3, 4, 5]; // JS day indices
-    const shortNames = [t.sat, t.sun, t.mon, t.tue, t.wed, t.thu, t.fri];
+    // Order: Sun, Mon, Tue, Wed, Thu, Fri, Sat (Sunday-first)
+    const order = [0, 1, 2, 3, 4, 5, 6]; // JS day indices
+    const shortNames = [t.sun, t.mon, t.tue, t.wed, t.thu, t.fri, t.sat];
     return order.map((jsDay, i) => ({
       label: shortNames[i][lang],
       price: unit?.pricing?.[DAY_KEYS_EN[jsDay]] || 0,
@@ -453,7 +452,7 @@ export default function UnitPricingPage() {
   const unitName = isAr ? (unit.nameAr || unit.nameEn || '') : (unit.nameEn || unit.nameAr || '');
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto py-6 pb-20">
       {/* ── Header ── */}
       <div className="mb-6">
         <Link
@@ -563,44 +562,40 @@ export default function UnitPricingPage() {
         {/* Individual Day Prices */}
         <div className="mt-6 pt-5 border-t border-gray-200">
           <h3 className="text-sm font-semibold text-gray-900 mb-1">{t.individualDays[lang]}</h3>
-          <p className="text-xs text-gray-400 mb-4">{t.individualDaysDesc[lang]}</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {/* Saudi week order: saturday, sunday, monday, tuesday, wednesday, thursday, friday */}
-            {(['saturday', 'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as const).map((dayKey) => {
+          <p className="text-xs text-gray-400 mb-3">{t.individualDaysDesc[lang]}</p>
+          <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+            {/* Sunday-first order */}
+            {(['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const).map((dayKey) => {
               const jsIndex = DAY_KEYS_EN.indexOf(dayKey);
-              const dayLabel = isAr ? WEEKDAY_AR[jsIndex] : WEEKDAY_EN[jsIndex];
+              const shortNameMap: Record<string, Record<string, string>> = { sunday: t.sun, monday: t.mon, tuesday: t.tue, wednesday: t.wed, thursday: t.thu, friday: t.fri, saturday: t.sat };
+              const dayAbbr = shortNameMap[dayKey][lang];
               const isWknd = isWeekendDay(jsIndex);
               return (
                 <div
                   key={dayKey}
-                  className={`rounded-lg p-3 border ${
+                  className={`rounded-lg px-2 py-2 border text-center ${
                     isWknd ? 'bg-amber-50/60 border-amber-100' : 'bg-gray-50 border-gray-100'
                   }`}
                 >
-                  <label className="block text-xs font-medium text-gray-700 mb-1.5">{dayLabel}</label>
-                  <div className="flex items-center gap-1.5">
-                    <div className="relative flex-1">
-                      <input
-                        type="number"
-                        min="0"
-                        value={dayInputs[dayKey] || ''}
-                        onChange={(e) => setDayInputs((prev) => ({ ...prev, [dayKey]: e.target.value }))}
-                        onKeyDown={(e) => { if (e.key === 'Enter') applyDayPrice(dayKey); }}
-                        placeholder="0"
-                        className="w-full px-2 py-1.5 pe-8 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none text-xs"
-                      />
-                      <span className="absolute end-2 top-1/2 -translate-y-1/2 text-gray-400">
-                        <SarSymbol size={10} />
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => applyDayPrice(dayKey)}
-                      disabled={saving || !dayInputs[dayKey]}
-                      className="px-2.5 py-1.5 bg-primary-600 text-white rounded-md text-xs font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-                    >
-                      {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : t.apply[lang]}
-                    </button>
+                  <span className="block text-[10px] font-medium text-gray-500 mb-1">{dayAbbr}</span>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      value={dayInputs[dayKey] || ''}
+                      onChange={(e) => setDayInputs((prev) => ({ ...prev, [dayKey]: e.target.value }))}
+                      onKeyDown={(e) => { if (e.key === 'Enter') applyDayPrice(dayKey); }}
+                      placeholder="0"
+                      className="w-full px-1.5 py-1 text-center border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
                   </div>
+                  <button
+                    onClick={() => applyDayPrice(dayKey)}
+                    disabled={saving || !dayInputs[dayKey]}
+                    className="mt-1 w-full py-0.5 bg-primary-600 text-white rounded text-[10px] font-medium hover:bg-primary-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {saving ? '...' : t.apply[lang]}
+                  </button>
                 </div>
               );
             })}

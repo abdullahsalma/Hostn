@@ -422,7 +422,7 @@ export default function WishlistDetailPage() {
         </button>
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-gray-900">
-            {list.isDefault ? (isAr ? 'مفضلاتي' : 'My Favorites') : list.name}
+            {list.isDefault ? (isAr ? 'مفضلتي' : 'My Favorites') : list.name}
           </h1>
           <p className="text-gray-500 text-sm mt-0.5">
             {properties.length} {isAr ? 'عقار' : properties.length === 1 ? 'property' : 'properties'}

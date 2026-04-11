@@ -257,7 +257,7 @@ export default function UnitCard({ unit }: UnitCardProps) {
 
   const getListDisplayName = (list?: WishlistList) => {
     if (!list) return '';
-    if (list.isDefault) return isAr ? 'مفضلاتي' : 'My Favorites';
+    if (list.isDefault) return isAr ? 'مفضلتي' : 'My Favorites';
     return list.name;
   };
 

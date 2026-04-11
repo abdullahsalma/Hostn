@@ -271,7 +271,7 @@ export default function PropertyCard({ property, checkIn, checkOut }: PropertyCa
 
   const getListDisplayName = (list?: WishlistList) => {
     if (!list) return '';
-    if (list.isDefault) return isAr ? 'مفضلاتي' : 'My Favorites';
+    if (list.isDefault) return isAr ? 'مفضلتي' : 'My Favorites';
     return list.name;
   };
 
