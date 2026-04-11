@@ -42,19 +42,46 @@ function calculateDateRangePrice(
   let subtotal = 0;
   let blocked = false;
 
+  // Build discount rules map (weekday/weekend)
+  const discountRulesMap: Record<string, number> = {};
+  if (listing?.discountRules) {
+    for (const rule of listing.discountRules) {
+      discountRulesMap[rule.type] = rule.percent;
+    }
+  }
+
   for (let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
     const dateStr = d.toISOString().split('T')[0];
     const override = datePricingMap.get(dateStr);
 
     if (override?.isBlocked) { blocked = true; break; }
-    if (override?.price) { subtotal += override.price; continue; }
 
-    const dayOfWeek = d.getDay(); // 0=sunday
-    const dayKey = dayKeys[dayOfWeek];
-    const dayPrice = listing?.pricing?.[dayKey];
-    if (dayPrice && dayPrice > 0) { subtotal += dayPrice; continue; }
+    let dayTotal = 0;
 
-    subtotal += listing?.pricing?.perNight || 0;
+    if (override?.price) {
+      dayTotal = override.price;
+    } else {
+      const dayOfWeek = d.getDay(); // 0=sunday
+      const dayKey = dayKeys[dayOfWeek];
+      const dayPrice = listing?.pricing?.[dayKey];
+      dayTotal = (dayPrice && dayPrice > 0) ? dayPrice : (listing?.pricing?.perNight || 0);
+    }
+
+    // Apply per-date discount if set
+    if (override?.discountPercent && override.discountPercent > 0) {
+      dayTotal = dayTotal * (1 - override.discountPercent / 100);
+    }
+    // Otherwise apply weekday/weekend discount rules
+    else {
+      const dayOfWeek = d.getDay();
+      const isWeekend = dayOfWeek === 4 || dayOfWeek === 5 || dayOfWeek === 6; // Thu-Sat
+      const ruleKey = isWeekend ? 'weekend' : 'weekday';
+      if (discountRulesMap[ruleKey] && discountRulesMap[ruleKey] > 0) {
+        dayTotal = dayTotal * (1 - discountRulesMap[ruleKey] / 100);
+      }
+    }
+
+    subtotal += Math.round(dayTotal);
   }
 
   return { subtotal, blocked, nights };
