@@ -22,6 +22,12 @@ function calculateDateRangePrice(
 ): { subtotal: number; blocked: boolean; nights: number } {
   const start = new Date(checkIn);
   const end = new Date(checkOut);
+
+  // Guard: invalid dates or end <= start
+  if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) {
+    return { subtotal: 0, blocked: false, nights: 0 };
+  }
+
   const nights = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / 86400000));
 
   const datePricingMap = new Map<string, any>();

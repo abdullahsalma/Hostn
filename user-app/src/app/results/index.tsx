@@ -49,7 +49,7 @@ export default function ResultsScreen() {
     limit: 20,
   });
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useInfiniteQuery({
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError, refetch } = useInfiniteQuery({
     queryKey: [
       'search', city, searchStore.propertyType, searchStore.guests,
       searchStore.checkIn, searchStore.checkOut,
@@ -106,6 +106,15 @@ export default function ResultsScreen() {
 
       {isLoading ? (
         <ActivityIndicator size="large" color={Colors.primary} style={styles.loader} />
+      ) : isError ? (
+        <View style={styles.emptyState}>
+          <Ionicons name="alert-circle-outline" size={64} color={Colors.error} />
+          <Text style={styles.emptyTitle}>{t('results.noResults')}</Text>
+          <Text style={styles.emptyText}>{language === 'ar' ? 'حدث خطأ أثناء البحث' : 'An error occurred while searching'}</Text>
+          <Pressable style={{ backgroundColor: Colors.primary, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.md, borderRadius: Radius.md, marginTop: Spacing.md }} onPress={() => refetch()}>
+            <Text style={{ ...Typography.bodyBold, color: Colors.white }}>{language === 'ar' ? 'إعادة المحاولة' : 'Retry'}</Text>
+          </Pressable>
+        </View>
       ) : listings.length === 0 ? (
         <View style={styles.emptyState}>
           <Ionicons name="search-outline" size={64} color={Colors.textTertiary} />

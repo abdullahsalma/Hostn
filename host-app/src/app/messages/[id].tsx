@@ -136,6 +136,7 @@ export default function ChatScreen() {
           text: isAr ? 'حظر' : 'Block',
           style: 'destructive',
           onPress: async () => {
+            if (!conversationId) return;
             try {
               await hostService.blockConversation(conversationId);
               Alert.alert(

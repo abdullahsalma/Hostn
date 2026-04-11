@@ -94,8 +94,28 @@ export default function UnitPricingScreen() {
   });
 
   const handleSave = () => {
+    // Validate all prices are valid non-negative numbers
+    for (const key of DAY_KEYS) {
+      const val = parseFloat(prices[key]);
+      if (isNaN(val) || val < 0) {
+        Alert.alert(
+          l({ en: 'Error', ar: 'خطأ' }),
+          l({ en: 'Prices must be valid non-negative numbers', ar: 'يجب أن تكون الأسعار أرقام صحيحة وغير سالبة' }),
+        );
+        return;
+      }
+    }
+    const cfVal = parseFloat(cleaningFee);
+    if (isNaN(cfVal) || cfVal < 0) {
+      Alert.alert(
+        l({ en: 'Error', ar: 'خطأ' }),
+        l({ en: 'Cleaning fee must be a valid non-negative number', ar: 'يجب أن تكون رسوم التنظيف رقم صحيح وغير سالب' }),
+      );
+      return;
+    }
+
     const payload: Record<string, unknown> = {
-      cleaningFee: parseFloat(cleaningFee) || 0,
+      cleaningFee: cfVal,
       discountPercent: parseFloat(discountPercent) || 0,
     };
     for (const key of DAY_KEYS) {

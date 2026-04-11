@@ -136,7 +136,7 @@ export default function ReservationsScreen() {
         </View>
 
         {/* Guest name */}
-        <Text style={styles.guestName}>{item.guestName}</Text>
+        <Text style={styles.guestName}>{item.guestName || 'ضيف'}</Text>
 
         {/* Property / unit */}
         <Text style={styles.propertyName}>
@@ -160,19 +160,29 @@ export default function ReservationsScreen() {
         {(item.status === 'waiting' || item.status === 'pending' || item.status === 'in_payment') && (
           <View style={styles.actionRow}>
             <TouchableOpacity
-              style={styles.acceptBtn}
+              style={[styles.acceptBtn, statusMutation.isPending && { opacity: 0.5 }]}
               onPress={() => handleAccept(item.id)}
               activeOpacity={0.7}
+              disabled={statusMutation.isPending}
             >
-              <Ionicons name="checkmark-circle" size={20} color={Colors.white} />
+              {statusMutation.isPending ? (
+                <ActivityIndicator size="small" color={Colors.white} />
+              ) : (
+                <Ionicons name="checkmark-circle" size={20} color={Colors.white} />
+              )}
               <Text style={styles.actionBtnText}>قبول</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.declineBtn}
+              style={[styles.declineBtn, statusMutation.isPending && { opacity: 0.5 }]}
               onPress={() => handleDecline(item.id)}
               activeOpacity={0.7}
+              disabled={statusMutation.isPending}
             >
-              <Ionicons name="close-circle" size={20} color={Colors.white} />
+              {statusMutation.isPending ? (
+                <ActivityIndicator size="small" color={Colors.white} />
+              ) : (
+                <Ionicons name="close-circle" size={20} color={Colors.white} />
+              )}
               <Text style={styles.actionBtnText}>رفض</Text>
             </TouchableOpacity>
           </View>

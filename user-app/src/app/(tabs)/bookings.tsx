@@ -61,12 +61,12 @@ export default function BookingsScreen() {
         onPress={() => router.push(`/booking/${item._id}`)}
       >
         <Image
-          source={{ uri: typeof item.property?.images?.[0] === 'string' ? item.property.images[0] : item.property?.images?.[0]?.url }}
+          source={{ uri: (item.property?.images?.length ?? 0) > 0 ? (typeof item.property.images[0] === 'string' ? item.property.images[0] : item.property.images[0]?.url) : undefined }}
           style={styles.bookingImage}
           contentFit="cover"
         />
         <View style={styles.bookingInfo}>
-          <Text style={styles.bookingTitle} numberOfLines={1}>{item.property.title}</Text>
+          <Text style={styles.bookingTitle} numberOfLines={1}>{item.property?.title ?? ''}</Text>
           <Text style={styles.bookingDates}>{formatDateRange(item.checkIn, item.checkOut)}</Text>
           <View style={styles.bookingBottom}>
             <Text style={styles.bookingPrice}>

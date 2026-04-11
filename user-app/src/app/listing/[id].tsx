@@ -106,8 +106,8 @@ export default function ListingDetailScreen() {
   };
 
   const handleContactHost = () => {
-    if (!listing) return;
-    const hostName = listing.host.name ?? listing.host.firstName ?? '';
+    if (!listing?.host?._id) return;
+    const hostName = listing.host?.name ?? listing.host?.firstName ?? '';
     router.push({
       pathname: `/chat/${listing.host._id}`,
       params: { propertyId: id, hostName },
@@ -142,7 +142,7 @@ export default function ListingDetailScreen() {
   const reviewCount = listing.ratings?.count ?? 0;
   const city = listing.location?.city ?? '';
   const district = listing.location?.district;
-  const hostName = listing.host?.name ?? `${listing.host?.firstName ?? ''} ${listing.host?.lastName ?? ''}`.trim();
+  const hostName = listing.host?.name ?? (`${listing.host?.firstName ?? ''} ${listing.host?.lastName ?? ''}`.trim() || '');
 
   // Unit-aware title
   const displayTitle = isUnitDetail
@@ -200,19 +200,25 @@ export default function ListingDetailScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }} nestedScrollEnabled>
         {/* Image Gallery */}
         <View style={styles.imageContainer}>
-          <FlatList
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            data={sortedImages}
-            keyExtractor={(_: any, i: number) => i.toString()}
-            renderItem={({ item: img }: { item: any }) => {
-              const uri = typeof img === 'string' ? img : img?.url;
-              return uri ? (
-                <Image source={{ uri }} style={styles.heroImage} contentFit="cover" />
-              ) : null;
-            }}
-          />
+          {sortedImages.length > 0 ? (
+            <FlatList
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              data={sortedImages}
+              keyExtractor={(_: any, i: number) => i.toString()}
+              renderItem={({ item: img }: { item: any }) => {
+                const uri = typeof img === 'string' ? img : img?.url;
+                return uri ? (
+                  <Image source={{ uri }} style={styles.heroImage} contentFit="cover" />
+                ) : null;
+              }}
+            />
+          ) : (
+            <View style={[styles.heroImage, { backgroundColor: Colors.surface, justifyContent: 'center', alignItems: 'center' }]}>
+              <Ionicons name="image-outline" size={48} color={Colors.textTertiary} />
+            </View>
+          )}
           <View style={styles.imageOverlay}>
             <Pressable style={styles.overlayButton} onPress={() => router.back()}>
               <Ionicons name="arrow-back" size={22} color={Colors.textPrimary} />
@@ -347,7 +353,7 @@ export default function ListingDetailScreen() {
                 <Text style={styles.sectionTitle}>{t('detail.host')}</Text>
                 <View style={styles.hostCard}>
                   <View style={styles.hostAvatar}>
-                    {listing.host.avatar ? (
+                    {listing.host?.avatar ? (
                       <Image source={{ uri: listing.host.avatar }} style={styles.hostAvatarImage} />
                     ) : (
                       <Ionicons name="person" size={28} color={Colors.textSecondary} />
@@ -355,7 +361,7 @@ export default function ListingDetailScreen() {
                   </View>
                   <View style={styles.hostInfo}>
                     <Text style={styles.hostName}>{hostName}</Text>
-                    {listing.host.isVerified && (
+                    {listing.host?.isVerified && (
                       <Text style={styles.hostMeta}>{t('detail.verifiedHost')}</Text>
                     )}
                   </View>
