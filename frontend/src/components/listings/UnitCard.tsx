@@ -50,7 +50,7 @@ const avgPriceForDates = (pricing: Record<string, number> | undefined, checkIn: 
 };
 
 export default function UnitCard({ unit, checkIn, checkOut }: UnitCardProps) {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, updateUser } = useAuth();
   const { t, language } = useLanguage();
   const isAr = language === 'ar';
 
@@ -207,6 +207,17 @@ export default function UnitCard({ unit, checkIn, checkOut }: UnitCardProps) {
         ? memberListIds.size > 1 // removing from one, but still in others
         : true; // just added
       setIsWishlisted(stillInAny);
+      // Sync AuthContext so sibling UnitCards update their hearts
+      if (user) {
+        const currentWishlist = user.wishlist || [];
+        if (stillInAny && !currentWishlist.includes(propertyId)) {
+          updateUser({ ...user, wishlist: [...currentWishlist, propertyId] });
+        } else if (!stillInAny) {
+          updateUser({ ...user, wishlist: currentWishlist.filter(id => id !== propertyId) });
+        }
+      }
+      // Update picker list count
+      setLists(prev => prev.map(l => l._id === listId ? { ...l, propertyCount: l.propertyCount + (wasIn ? -1 : 1) } : l));
       // Show feedback toast
       const listName = getListDisplayName(lists.find(l => l._id === listId));
       if (wasIn) {
@@ -234,6 +245,10 @@ export default function UnitCard({ unit, checkIn, checkOut }: UnitCardProps) {
       setNewListName('');
       setShowNewList(false);
       setIsWishlisted(true);
+      // Sync AuthContext
+      if (user && !user.wishlist?.includes(propertyId)) {
+        updateUser({ ...user, wishlist: [...(user.wishlist || []), propertyId] });
+      }
       toast.success(isAr ? `تم الحفظ في "${newListName.trim()}"` : `Saved to "${newListName.trim()}"`);
     } catch {
       toast.error(isAr ? 'فشل في إنشاء القائمة' : 'Failed to create list');
@@ -255,6 +270,10 @@ export default function UnitCard({ unit, checkIn, checkOut }: UnitCardProps) {
       setShowListPicker(false);
       setShowNewList(false);
       setNewListName('');
+      // Sync AuthContext
+      if (user) {
+        updateUser({ ...user, wishlist: (user.wishlist || []).filter(id => id !== propertyId) });
+      }
       toast.success(isAr ? 'تم الإزالة من جميع القوائم' : 'Removed from all wishlists');
     } catch {
       toast.error(isAr ? 'فشل في الإزالة' : 'Failed to remove');
