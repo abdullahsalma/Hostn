@@ -79,26 +79,45 @@ function BookingContent() {
   const fetchProperty = async () => {
     try {
       // Try as unit first (id may be a unit ID after Property→Unit migration)
+      let foundUnit = false;
       try {
         const unitRes = await unitsApi.getOne(id);
         const unitData = unitRes.data.data;
         setUnit(unitData);
+        foundUnit = true;
         if (unitData?.property && typeof unitData.property === 'object') {
-          // property is populated (full object)
           setProperty(unitData.property);
         } else if (unitData?.property && typeof unitData.property === 'string') {
-          // property is just an ID string — fetch the full property
           const propRes = await propertiesApi.getOne(unitData.property);
           setProperty(propRes.data.data);
         } else {
-          // No property ref — try as legacy property ID
           const res = await propertiesApi.getOne(id);
           setProperty(res.data.data);
         }
       } catch {
-        // Fall back to property lookup
+        // ID is a property ID — fetch property + its units
         const res = await propertiesApi.getOne(id);
         setProperty(res.data.data);
+
+        // Try to load the selected unit from localStorage, or fetch the property's first unit
+        try {
+          const savedUnitId = typeof window !== 'undefined' ? localStorage.getItem(`hostn_unit_${id}`) : null;
+          if (savedUnitId) {
+            const unitRes = await unitsApi.getOne(savedUnitId);
+            setUnit(unitRes.data.data);
+            foundUnit = true;
+          } else {
+            // Fetch units for this property and use the first active one
+            const unitsRes = await unitsApi.getForProperty(id);
+            const units = unitsRes.data.data;
+            if (units && units.length > 0) {
+              setUnit(units[0]);
+              foundUnit = true;
+            }
+          }
+        } catch {
+          // No units available — proceed with property-only data
+        }
       }
     } catch {
       router.push('/search');
