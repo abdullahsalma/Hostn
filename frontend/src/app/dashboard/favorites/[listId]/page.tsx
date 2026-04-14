@@ -81,11 +81,14 @@ function formatDateDisplay(dateStr: string, locale: string = 'en'): string {
   return d.toLocaleDateString(locale === 'ar' ? 'ar-SA' : 'en', { month: 'short', day: 'numeric' });
 }
 
-// ─── Unit nightly price helper ──────────────────────────────────────────────
-function getUnitNightlyPrice(unit: Unit): number {
+// ─── Unit nightly price helper (discount-aware) ────────────────────────────
+function getUnitEffectivePrice(unit: Unit): number {
   if (!unit.pricing) return 0;
+  const pricing = unit.pricing as Record<string, number>;
   const todayKey = DAY_KEYS[new Date().getDay()];
-  return (unit.pricing as Record<string, number>)[todayKey] || 0;
+  const basePrice = pricing[todayKey] || 0;
+  const discountPct = pricing.discountPercent ?? 0;
+  return discountPct > 0 ? Math.round(basePrice * (1 - discountPct / 100)) : basePrice;
 }
 
 // ─── Mismatch reasons (unit-based) ─────────────────────────────────────────
@@ -159,10 +162,10 @@ function getMismatchReasons(
     reasons.push(isAr ? 'بدون خصم' : 'No discount');
   }
 
-  // Price
-  const nightlyPrice = getUnitNightlyPrice(unit);
-  if (filters.priceRange < 4000 && nightlyPrice > filters.priceRange) {
-    reasons.push(isAr ? `السعر ﷼${nightlyPrice}` : `Price SAR ${nightlyPrice}`);
+  // Price (discount-aware)
+  const effectivePrice = getUnitEffectivePrice(unit);
+  if (filters.priceRange < 4000 && effectivePrice > filters.priceRange) {
+    reasons.push(isAr ? `السعر ﷼${effectivePrice}` : `Price SAR ${effectivePrice}`);
   }
 
   // Area
