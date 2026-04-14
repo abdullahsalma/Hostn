@@ -16,7 +16,8 @@ interface Booking {
   checkIn: string;
   checkOut: string;
   status: string;
-  totalPrice: number;
+  totalPrice?: number;
+  pricing?: { total?: number; perNight?: number; nights?: number };
   nights?: number;
 }
 
@@ -41,6 +42,7 @@ const t: Record<string, Record<string, string>> = {
   confirmed: { en: 'Confirmed', ar: '\u0645\u0624\u0643\u062f' },
   cancelled: { en: 'Cancelled', ar: '\u0645\u0644\u063a\u064a' },
   completed: { en: 'Completed', ar: '\u0645\u0643\u062a\u0645\u0644' },
+  held: { en: 'Held', ar: 'محجوز مؤقتاً' },
 };
 
 const statusColors: Record<string, string> = {
@@ -48,6 +50,7 @@ const statusColors: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-700',
   cancelled: 'bg-red-100 text-red-700',
   completed: 'bg-blue-100 text-blue-700',
+  held: 'bg-purple-100 text-purple-700',
 };
 
 export default function HostBookingsPage() {
@@ -102,7 +105,7 @@ export default function HostBookingsPage() {
 
       {/* Filter Tabs */}
       <div className="flex gap-2 mb-6 flex-wrap">
-        {['all', 'pending', 'confirmed', 'completed', 'cancelled'].map((s) => (
+        {['all', 'pending', 'confirmed', 'held', 'completed', 'cancelled'].map((s) => (
           <button
             key={s}
             onClick={() => setFilter(s)}
@@ -149,19 +152,19 @@ export default function HostBookingsPage() {
                         : '-'}
                     </td>
                     <td className="p-3 text-gray-600">
-                      {new Date(booking.checkIn).toLocaleDateString(lang === 'ar' ? 'ar-u-nu-latn' : 'en-US')}
+                      {new Date(booking.checkIn).toLocaleDateString(lang === 'ar' ? 'ar-u-nu-latn' : 'en-US', { month: 'short', day: 'numeric' })}
                     </td>
                     <td className="p-3 text-gray-600">
-                      {new Date(booking.checkOut).toLocaleDateString(lang === 'ar' ? 'ar-u-nu-latn' : 'en-US')}
+                      {new Date(booking.checkOut).toLocaleDateString(lang === 'ar' ? 'ar-u-nu-latn' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </td>
                     <td className="p-3">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[booking.status] || 'bg-gray-100 text-gray-600'}`}>
                         {t[booking.status]?.[lang] || booking.status}
                       </span>
                     </td>
-                    <td className="p-3 font-medium text-gray-900">{booking.totalPrice != null ? <span dir="ltr"><SarSymbol /> {booking.totalPrice.toLocaleString('en')}</span> : <span className="text-gray-400">-</span>}</td>
+                    <td className="p-3 font-medium text-gray-900">{(booking.pricing?.total ?? booking.totalPrice) != null ? <span dir="ltr"><SarSymbol /> {(booking.pricing?.total ?? booking.totalPrice ?? 0).toLocaleString('en')}</span> : <span className="text-gray-400">-</span>}</td>
                     <td className="p-3">
-                      {booking.status === 'pending' && (
+                      {(booking.status === 'pending' || booking.status === 'held') && (
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleStatusUpdate(booking._id, 'confirmed')}
@@ -178,6 +181,15 @@ export default function HostBookingsPage() {
                             <X className="w-4 h-4" />
                           </button>
                         </div>
+                      )}
+                      {booking.status === 'confirmed' && (
+                        <button
+                          onClick={() => handleStatusUpdate(booking._id, 'cancelled')}
+                          className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
+                          title={t.cancelled[lang]}
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
                       )}
                     </td>
                   </tr>

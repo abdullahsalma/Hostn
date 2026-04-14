@@ -47,9 +47,9 @@ export default function ImageGallery({ images, title, videoCount = 0, onVideoCli
             />
           </div>
         ) : (
-          <div className="grid grid-cols-4 grid-rows-2 gap-2 h-80 md:h-96">
-            {/* Main image */}
-            <div className="col-span-2 row-span-2 relative cursor-pointer" onClick={() => openAtIndex(0)}>
+          <div className="grid grid-cols-2 gap-2 h-80 md:h-96">
+            {/* Main image — always left half */}
+            <div className="relative cursor-pointer" onClick={() => openAtIndex(0)}>
               <Image
                 src={primaryImages[0]?.url || ''}
                 alt={title}
@@ -59,18 +59,32 @@ export default function ImageGallery({ images, title, videoCount = 0, onVideoCli
                 unoptimized
               />
             </div>
-            {/* Side images — each individually clickable */}
-            {primaryImages.slice(1, 5).map((img, i) => (
-              <div key={i} className="relative cursor-pointer" onClick={() => openAtIndex(i + 1)}>
+            {/* Side images — right half, nested grid */}
+            {primaryImages.length === 2 ? (
+              <div className="relative cursor-pointer" onClick={() => openAtIndex(1)}>
                 <Image
-                  src={img.url}
-                  alt={`${title} ${i + 2}`}
+                  src={primaryImages[1].url}
+                  alt={`${title} 2`}
                   fill
                   className="object-cover hover:brightness-90 transition-all"
                   unoptimized
                 />
               </div>
-            ))}
+            ) : (
+              <div className="grid grid-cols-2 grid-rows-2 gap-2">
+                {primaryImages.slice(1, 5).map((img, i) => (
+                  <div key={i} className="relative cursor-pointer" onClick={() => openAtIndex(i + 1)}>
+                    <Image
+                      src={img.url}
+                      alt={`${title} ${i + 2}`}
+                      fill
+                      className="object-cover hover:brightness-90 transition-all"
+                      unoptimized
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

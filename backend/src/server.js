@@ -197,6 +197,7 @@ app.use('/api/v1/blog', blogRoutes);
 app.use('/api/v1/properties/:propertyId/units', unitRoutes);
 app.use('/api/v1/units', unitRoutes);
 app.use('/api/v1/hosts', require('./routes/publicHost'));
+app.use('/api/v1/contact', require('./routes/contact'));
 app.use('/api/v1/seed', require('./routes/seed'));
 
 // Backwards compatibility: /api/* redirects to /api/v1/*

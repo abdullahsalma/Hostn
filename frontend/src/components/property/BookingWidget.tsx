@@ -246,9 +246,13 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
     router.push(`/booking/${property._id}`);
   };
 
-  const displayPrice = (property.pricing?.discountPercent ?? 0) > 0
-    ? getDiscountedPrice(property.pricing?.perNight ?? 0, property.pricing?.discountPercent ?? 0)
-    : property.pricing?.perNight ?? 0;
+  // Use unit discount if available, fall back to property discount
+  const discountPct = (selectedUnit?.pricing as Record<string, number>)?.discountPercent
+    ?? property.pricing?.discountPercent ?? 0;
+  const baseNightlyPrice = pricePerNight > 0 ? pricePerNight : (property.pricing?.perNight ?? 0);
+  const displayPrice = discountPct > 0
+    ? getDiscountedPrice(baseNightlyPrice, discountPct)
+    : baseNightlyPrice;
   const nightLabel = getNightLabel(nights, language as 'en' | 'ar');
 
   return (
@@ -256,13 +260,13 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
       {/* Price header */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          {(property.pricing?.discountPercent ?? 0) > 0 ? (
+          {discountPct > 0 ? (
             <div className="flex items-baseline gap-1.5">
               <span className="text-2xl font-bold text-primary-600" dir="ltr">
                 <SarSymbol /> {formatPriceNumber(displayPrice)}
               </span>
               <span className="text-base text-gray-400 line-through" dir="ltr">
-                <SarSymbol /> {formatPriceNumber(property.pricing?.perNight ?? 0)}
+                <SarSymbol /> {formatPriceNumber(baseNightlyPrice)}
               </span>
               <span className="text-sm text-gray-500">{t('booking.perNight')}</span>
             </div>

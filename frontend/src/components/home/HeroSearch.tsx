@@ -172,7 +172,7 @@ export default function HeroSearch() {
   const currentStepIndex = step === 'idle' ? -1 : steps.findIndex((s) => s.key === step);
 
   return (
-    <div className="relative z-20 min-h-[520px] sm:min-h-[600px] md:min-h-[720px] flex items-center justify-center">
+    <div className="relative z-20 min-h-[400px] sm:min-h-[440px] md:min-h-[500px] flex items-center justify-center">
       {/* Background image */}
       <div className="absolute inset-0 overflow-hidden">
         <div

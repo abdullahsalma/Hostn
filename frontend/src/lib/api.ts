@@ -262,6 +262,11 @@ export const wishlistsApi = {
     api.get(`/wishlists/unit/${unitId}/membership`),
 };
 
+export const contactApi = {
+  send: (data: { name: string; email: string; subject: string; message: string }) =>
+    api.post('/contact', data),
+};
+
 export const supportApi = {
   getMyTickets: () => api.get('/support'),
   createTicket: (data: { subject: string; category: string; priority: string; message: string }) =>
