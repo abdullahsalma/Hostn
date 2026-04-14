@@ -10,15 +10,15 @@ exports.getLists = async (req, res, next) => {
     await Wishlist.getOrCreateDefault(req.user._id);
 
     const lists = await Wishlist.find({ user: req.user._id })
-      .populate('properties', 'images title')
+      .populate('units', 'images nameEn nameAr')
       .sort({ isDefault: -1, updatedAt: -1 });
 
     const data = lists.map((list) => ({
       _id: list._id,
       name: list.name,
       isDefault: list.isDefault,
-      propertyCount: list.properties.length,
-      coverImage: list.properties[0]?.images?.[0]?.url || null,
+      unitCount: list.units.length,
+      coverImage: list.units[0]?.images?.find(i => i.isPrimary)?.url || list.units[0]?.images?.[0]?.url || null,
       createdAt: list.createdAt,
       updatedAt: list.updatedAt,
     }));
@@ -29,13 +29,20 @@ exports.getLists = async (req, res, next) => {
   }
 };
 
-// @desc    Get a single list with full property data
+// @desc    Get a single list with full unit data (+ nested property)
 // @route   GET /api/v1/wishlists/:listId
 // @access  Private
 exports.getList = async (req, res, next) => {
   try {
     const list = await Wishlist.findById(req.params.listId)
-      .populate('properties', 'title images location pricing ratings type capacity amenities area direction rules');
+      .populate({
+        path: 'units',
+        populate: {
+          path: 'property',
+          select: 'title titleAr images location pricing ratings type capacity amenities area direction rules host',
+          populate: { path: 'host', select: 'name isVerified avatar' },
+        },
+      });
 
     if (!list) {
       return res.status(404).json({ success: false, message: 'List not found' });
@@ -44,25 +51,25 @@ exports.getList = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
-    // Attach bookedDates for each property (same pattern as getProperty)
-    if (list.properties && list.properties.length > 0) {
+    // Attach bookedDates for each unit
+    if (list.units && list.units.length > 0) {
       const Booking = require('../models/Booking');
       const now = new Date();
-      const propertyIds = list.properties.map((p) => p._id);
+      const unitIds = list.units.map((u) => u._id);
       const bookings = await Booking.find({
-        property: { $in: propertyIds },
+        unit: { $in: unitIds },
         $or: [
           { status: { $in: ['pending', 'confirmed'] } },
           { status: 'held', holdExpiresAt: { $gt: now } },
         ],
         checkOut: { $gt: now },
-      }).select('property checkIn checkOut');
+      }).select('unit checkIn checkOut');
 
       const listObj = list.toObject();
-      listObj.properties = listObj.properties.map((p) => {
-        const propBookings = bookings.filter((b) => b.property.toString() === p._id.toString());
-        p.bookedDates = propBookings.map((b) => ({ start: b.checkIn, end: b.checkOut }));
-        return p;
+      listObj.units = listObj.units.map((u) => {
+        const unitBookings = bookings.filter((b) => b.unit.toString() === u._id.toString());
+        u.bookedDates = unitBookings.map((b) => ({ start: b.checkIn, end: b.checkOut }));
+        return u;
       });
       return res.json({ success: true, data: listObj });
     }
@@ -147,9 +154,9 @@ exports.deleteList = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Cannot delete default list' });
     }
 
-    // Remove these properties from user.wishlist too
+    // Remove these units from user.wishlist too
     await User.findByIdAndUpdate(req.user._id, {
-      $pull: { wishlist: { $in: list.properties } },
+      $pull: { wishlist: { $in: list.units } },
     });
 
     await list.deleteOne();
@@ -160,12 +167,12 @@ exports.deleteList = async (req, res, next) => {
   }
 };
 
-// @desc    Add or remove a property from a specific list
-// @route   POST /api/v1/wishlists/:listId/properties/:propertyId
+// @desc    Add or remove a unit from a specific list
+// @route   POST /api/v1/wishlists/:listId/units/:unitId
 // @access  Private
-exports.toggleProperty = async (req, res, next) => {
+exports.toggleUnit = async (req, res, next) => {
   try {
-    const { listId, propertyId } = req.params;
+    const { listId, unitId } = req.params;
     const list = await Wishlist.findById(listId);
 
     if (!list) {
@@ -175,15 +182,15 @@ exports.toggleProperty = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
-    const idx = list.properties.indexOf(propertyId);
+    const idx = list.units.indexOf(unitId);
     if (idx > -1) {
-      list.properties.splice(idx, 1);
+      list.units.splice(idx, 1);
     } else {
-      list.properties.push(propertyId);
+      list.units.push(unitId);
     }
     await list.save();
 
-    // Keep user.wishlist in sync: property is wishlisted if it's in ANY list
+    // Keep user.wishlist in sync: unit is wishlisted if it's in ANY list
     await syncUserWishlist(req.user._id);
 
     res.json({ success: true, data: list });
@@ -192,14 +199,14 @@ exports.toggleProperty = async (req, res, next) => {
   }
 };
 
-// @desc    Move a property from one list to another
+// @desc    Move a unit from one list to another
 // @route   PUT /api/v1/wishlists/move
 // @access  Private
-exports.moveProperty = async (req, res, next) => {
+exports.moveUnit = async (req, res, next) => {
   try {
-    const { propertyId, fromListId, toListId } = req.body;
-    if (!propertyId || !fromListId || !toListId) {
-      return res.status(400).json({ success: false, message: 'propertyId, fromListId, toListId required' });
+    const { unitId, fromListId, toListId } = req.body;
+    if (!unitId || !fromListId || !toListId) {
+      return res.status(400).json({ success: false, message: 'unitId, fromListId, toListId required' });
     }
 
     const userId = req.user._id;
@@ -207,30 +214,30 @@ exports.moveProperty = async (req, res, next) => {
     // Remove from source
     await Wishlist.updateOne(
       { _id: fromListId, user: userId },
-      { $pull: { properties: propertyId } }
+      { $pull: { units: unitId } }
     );
 
     // Add to target
     await Wishlist.updateOne(
       { _id: toListId, user: userId },
-      { $addToSet: { properties: propertyId } }
+      { $addToSet: { units: unitId } }
     );
 
-    res.json({ success: true, message: 'Property moved' });
+    res.json({ success: true, message: 'Unit moved' });
   } catch (error) {
     next(error);
   }
 };
 
-// @desc    Check which lists contain a specific property
-// @route   GET /api/v1/wishlists/property/:propertyId/membership
+// @desc    Check which lists contain a specific unit
+// @route   GET /api/v1/wishlists/unit/:unitId/membership
 // @access  Private
-exports.getPropertyMembership = async (req, res, next) => {
+exports.getUnitMembership = async (req, res, next) => {
   try {
-    const { propertyId } = req.params;
-    const lists = await Wishlist.find({ user: req.user._id }).select('_id properties');
+    const { unitId } = req.params;
+    const lists = await Wishlist.find({ user: req.user._id }).select('_id units');
     const listIds = lists
-      .filter((l) => l.properties.some((p) => p.toString() === propertyId))
+      .filter((l) => l.units.some((u) => u.toString() === unitId))
       .map((l) => l._id.toString());
     res.json({ success: true, data: listIds });
   } catch (error) {
@@ -239,10 +246,10 @@ exports.getPropertyMembership = async (req, res, next) => {
 };
 
 /**
- * Sync user.wishlist with all Wishlist lists — union of all list properties.
+ * Sync user.wishlist with all Wishlist lists — union of all list units.
  */
 async function syncUserWishlist(userId) {
-  const lists = await Wishlist.find({ user: userId }).select('properties');
-  const allIds = [...new Set(lists.flatMap((l) => l.properties.map(String)))];
+  const lists = await Wishlist.find({ user: userId }).select('units');
+  const allIds = [...new Set(lists.flatMap((l) => l.units.map(String)))];
   await User.findByIdAndUpdate(userId, { wishlist: allIds });
 }

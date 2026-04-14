@@ -18,9 +18,9 @@ export interface WishlistList {
   _id: string;
   name: string;
   isDefault: boolean;
-  propertyCount: number;
+  unitCount: number;
   coverImage: string | null;
-  properties?: Property[];
+  units?: Unit[];
   createdAt: string;
   updatedAt: string;
 }

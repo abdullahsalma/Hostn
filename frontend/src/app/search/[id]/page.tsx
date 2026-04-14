@@ -142,10 +142,10 @@ function UnitDetailContent() {
     fetchUnit();
   }, [id]);
 
-  // Track wishlist state (uses property._id)
-  const propertyId = property?._id || '';
+  // Track wishlist state (uses unit._id)
+  const wishlistId = unit?._id || id;
   useEffect(() => {
-    if (property) setIsWishlisted(user?.wishlist?.includes(property._id) ?? false);
+    if (unit) setIsWishlisted(user?.wishlist?.includes(unit._id) ?? false);
   }, [user?.wishlist, property]);
 
   // Fetch host stats
@@ -171,8 +171,8 @@ function UnitDetailContent() {
   const openListPicker = useCallback(async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!isAuthenticated || !propertyId) {
-      toast.error(isAr ? 'سجّل دخولك لحفظ العقارات' : 'Please sign in to save properties');
+    if (!isAuthenticated || !wishlistId) {
+      toast.error(isAr ? 'سجّل دخولك أولاً' : 'Please sign in to save');
       return;
     }
     if (heartRef.current) {
@@ -194,7 +194,7 @@ function UnitDetailContent() {
     try {
       const [listsRes, memberRes] = await Promise.all([
         wishlistsApi.getLists(),
-        wishlistsApi.getPropertyMembership(propertyId),
+        wishlistsApi.getUnitMembership(wishlistId),
       ]);
       setLists(listsRes.data.data || []);
       setMemberListIds(new Set(memberRes.data.data || []));
@@ -203,7 +203,7 @@ function UnitDetailContent() {
     } finally {
       setListsLoading(false);
     }
-  }, [isAuthenticated, propertyId, isAr]);
+  }, [isAuthenticated, wishlistId, isAr]);
 
   // Close picker on outside click
   useEffect(() => {
@@ -232,11 +232,11 @@ function UnitDetailContent() {
   }, [showListPicker]);
 
   const handleToggleInList = async (listId: string) => {
-    if (!propertyId) return;
+    if (!wishlistId) return;
     setTogglingList(listId);
     const wasIn = memberListIds.has(listId);
     try {
-      await wishlistsApi.toggleProperty(listId, propertyId);
+      await wishlistsApi.toggleUnit(listId, wishlistId);
       setMemberListIds(prev => {
         const next = new Set(prev);
         if (wasIn) next.delete(listId);
@@ -253,13 +253,13 @@ function UnitDetailContent() {
   };
 
   const handleCreateList = async () => {
-    if (!newListName.trim() || !propertyId) return;
+    if (!newListName.trim() || !wishlistId) return;
     setCreatingList(true);
     try {
       const res = await wishlistsApi.createList(newListName.trim());
       const newList = res.data.data;
-      await wishlistsApi.toggleProperty(newList._id, propertyId);
-      setLists(prev => [...prev, { ...newList, propertyCount: 1, coverImage: null }]);
+      await wishlistsApi.toggleUnit(newList._id, wishlistId);
+      setLists(prev => [...prev, { ...newList, unitCount: 1, coverImage: null }]);
       setMemberListIds(prev => new Set([...prev, newList._id]));
       setIsWishlisted(true);
       setNewListName('');
@@ -273,11 +273,11 @@ function UnitDetailContent() {
   };
 
   const handleClearAll = async () => {
-    if (!propertyId || memberListIds.size === 0) return;
+    if (!wishlistId || memberListIds.size === 0) return;
     setClearingAll(true);
     try {
       await Promise.all(
-        [...memberListIds].map((lid) => wishlistsApi.toggleProperty(lid, propertyId))
+        [...memberListIds].map((lid) => wishlistsApi.toggleUnit(lid, wishlistId))
       );
       setMemberListIds(new Set());
       setIsWishlisted(false);
@@ -797,7 +797,7 @@ function UnitDetailContent() {
                       {getListDisplayName(list)}
                     </span>
                     <span className="text-[10px] text-gray-400">
-                      {list.propertyCount}
+                      {list.unitCount}
                     </span>
                   </button>
                 );

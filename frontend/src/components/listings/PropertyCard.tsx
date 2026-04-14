@@ -173,7 +173,7 @@ export default function PropertyCard({ property, checkIn, checkOut }: PropertyCa
     try {
       const [listsRes, memberRes] = await Promise.all([
         wishlistsApi.getLists(),
-        wishlistsApi.getPropertyMembership(property._id),
+        wishlistsApi.getUnitMembership(property._id),
       ]);
       setLists(listsRes.data.data || []);
       setMemberListIds(new Set(memberRes.data.data || []));
@@ -190,7 +190,7 @@ export default function PropertyCard({ property, checkIn, checkOut }: PropertyCa
     setTogglingList(listId);
     const wasIn = memberListIds.has(listId);
     try {
-      await wishlistsApi.toggleProperty(listId, property._id);
+      await wishlistsApi.toggleUnit(listId, property._id);
       setMemberListIds(prev => {
         const next = new Set(prev);
         if (wasIn) next.delete(listId);
@@ -223,8 +223,8 @@ export default function PropertyCard({ property, checkIn, checkOut }: PropertyCa
     try {
       const res = await wishlistsApi.createList(newListName.trim());
       const newList = res.data.data;
-      await wishlistsApi.toggleProperty(newList._id, property._id);
-      setLists(prev => [...prev, { ...newList, propertyCount: 1, coverImage: null }]);
+      await wishlistsApi.toggleUnit(newList._id, property._id);
+      setLists(prev => [...prev, { ...newList, unitCount: 1, coverImage: null }]);
       setMemberListIds(prev => new Set([...prev, newList._id]));
       setNewListName('');
       setShowNewList(false);
@@ -243,7 +243,7 @@ export default function PropertyCard({ property, checkIn, checkOut }: PropertyCa
     setClearingAll(true);
     try {
       await Promise.all(
-        [...memberListIds].map((listId) => wishlistsApi.toggleProperty(listId, property._id))
+        [...memberListIds].map((listId) => wishlistsApi.toggleUnit(listId, property._id))
       );
       setMemberListIds(new Set());
       setIsWishlisted(false);
@@ -476,7 +476,7 @@ export default function PropertyCard({ property, checkIn, checkOut }: PropertyCa
                     {getListDisplayName(list)}
                   </span>
                   <span className="text-[10px] text-gray-400">
-                    {list.propertyCount}
+                    {list.unitCount}
                   </span>
                 </button>
               );

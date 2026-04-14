@@ -13,7 +13,7 @@ interface AuthContextType {
   register: (data: RegisterData) => Promise<void>;
   logout: () => void;
   updateUser: (user: User) => void;
-  toggleWishlist: (propertyId: string) => Promise<void>;
+  toggleWishlist: (unitId: string) => Promise<void>;
   upgradeToHost: () => Promise<void>;
 }
 
@@ -122,20 +122,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('hostn_user', JSON.stringify(updatedUser));
   };
 
-  const toggleWishlist = async (propertyId: string) => {
+  const toggleWishlist = async (unitId: string) => {
     if (!user) return;
     // Optimistic: update local state immediately
     const currentWishlist = user.wishlist || [];
-    const isInWishlist = currentWishlist.includes(propertyId);
+    const isInWishlist = currentWishlist.includes(unitId);
     const newWishlist = isInWishlist
-      ? currentWishlist.filter(id => id !== propertyId)
-      : [...currentWishlist, propertyId];
+      ? currentWishlist.filter(id => id !== unitId)
+      : [...currentWishlist, unitId];
     updateUser({ ...user, wishlist: newWishlist });
 
     // Fire API call — Vercel proxy may throw even on success, so don't revert.
     // Next page load getMe will sync with server truth.
     try {
-      await authApi.toggleWishlist(propertyId);
+      await authApi.toggleWishlist(unitId);
     } catch {
       // Silently ignore — backend likely processed it (known Vercel proxy issue)
     }
