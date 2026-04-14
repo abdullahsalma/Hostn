@@ -188,6 +188,18 @@ export const hostApi = {
     }),
   removePropertyImage: (id: string, imageUrl: string) =>
     api.delete(`/host/properties/${id}/images`, { data: { imageUrl } }),
+
+  // Unit Points
+  getPropertiesWithUnits: () => api.get('/host/properties-units'),
+  getUnitPoints: (unitId: string) => api.get(`/host/units/${unitId}/points`),
+
+  // Tourism License
+  getLicenseOverview: () => api.get('/host/tourism-license'),
+  upsertLicense: (unitId: string, data: {
+    licenseNumber: string; licenseType?: string;
+    issueDate: string; expiryDate: string;
+  }) => api.put(`/host/units/${unitId}/tourism-license`, data),
+  deleteLicense: (unitId: string) => api.delete(`/host/units/${unitId}/tourism-license`),
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════

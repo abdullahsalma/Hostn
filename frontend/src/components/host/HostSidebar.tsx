@@ -20,6 +20,8 @@ import {
   X,
   Globe,
   Tag,
+  Trophy,
+  ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -39,6 +41,8 @@ function getNavItems(isAr: boolean) {
     { href: '/host/pricing', label: isAr ? '\u0627\u0644\u0623\u0633\u0639\u0627\u0631' : 'Pricing', icon: Tag },
     { href: '/host/finance', label: isAr ? '\u0627\u0644\u0645\u0639\u0627\u0645\u0644\u0627\u062A \u0627\u0644\u0645\u0627\u0644\u064A\u0629' : 'Finance', icon: DollarSign },
     { href: '/host/reviews', label: isAr ? '\u0627\u0644\u062A\u0642\u064A\u064A\u0645\u0627\u062A' : 'Reviews', icon: Star },
+    { href: '/host/unit-points', label: isAr ? 'نقاط الوحدات' : 'Unit Points', icon: Trophy },
+    { href: '/host/tourism-license', label: isAr ? 'رخصة السياحة' : 'MOT License', icon: ShieldCheck },
     { href: '/host/messages', label: isAr ? '\u0627\u0644\u0631\u0633\u0627\u0626\u0644' : 'Messages', icon: MessageSquare },
   ];
 }
