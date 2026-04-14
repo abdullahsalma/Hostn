@@ -212,6 +212,31 @@ const unitSchema = new mongoose.Schema(
       },
     ],
 
+    // ── O. Video ─────────────────────────────────────────────────
+    video: {
+      url: { type: String },
+      thumbnail: { type: String },
+    },
+
+    // ── P. Arrival Instructions ──────────────────────────────────
+    arrivalInstructions: {
+      type: String,
+      maxlength: [3000, 'Arrival instructions cannot exceed 3000 characters'],
+    },
+
+    // ── Q. Tourism License (MOT) ─────────────────────────────────
+    tourismLicense: {
+      licenseNumber: { type: String, trim: true },
+      licenseType: { type: String },
+      issueDate: { type: Date },
+      expiryDate: { type: Date },
+      status: {
+        type: String,
+        enum: ['pending', 'active', 'expired', 'rejected'],
+        default: 'pending',
+      },
+    },
+
     // ── B. Photos ────────────────────────────────────────────────
     images: [
       {

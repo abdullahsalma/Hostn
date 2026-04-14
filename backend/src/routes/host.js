@@ -31,6 +31,15 @@ const {
   deleteBankAccount,
   updateTransferDuration,
 } = require('../controllers/hostFinanceController');
+const {
+  getPropertiesWithUnits,
+  getUnitPoints,
+} = require('../controllers/unitPointsController');
+const {
+  getLicenseOverview,
+  upsertLicense,
+  deleteLicense,
+} = require('../controllers/tourismLicenseController');
 const { protect, authorize } = require('../middleware/auth');
 const { blockDatesRules, mongoIdParam } = require('../middleware/validate');
 const { uploadSingle } = require('../middleware/upload');
@@ -76,6 +85,15 @@ router.put('/calendar/:propertyId/block', mongoIdParam('propertyId'), blockDates
 
 // Reviews
 router.get('/reviews', getHostReviews);
+
+// Unit Points
+router.get('/properties-units', getPropertiesWithUnits);
+router.get('/units/:unitId/points', mongoIdParam('unitId'), getUnitPoints);
+
+// Tourism License
+router.get('/tourism-license', getLicenseOverview);
+router.put('/units/:unitId/tourism-license', mongoIdParam('unitId'), upsertLicense);
+router.delete('/units/:unitId/tourism-license', mongoIdParam('unitId'), deleteLicense);
 
 // Profile
 router.get('/profile', getHostProfile);
