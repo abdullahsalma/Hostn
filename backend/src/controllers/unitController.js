@@ -185,13 +185,24 @@ exports.searchUnits = async (req, res, next) => {
           },
         },
       },
+      // Apply discount to avgPrice so price filter matches what the guest actually pays
+      {
+        $addFields: {
+          effectivePrice: {
+            $multiply: [
+              '$avgPrice',
+              { $subtract: [1, { $divide: [{ $ifNull: ['$pricing.discountPercent', 0] }, 100] }] },
+            ],
+          },
+        },
+      },
     ];
 
     if (priceFilter) {
       const priceMatch = {};
       if (priceFilter.$gte) priceMatch.$gte = priceFilter.$gte;
       if (priceFilter.$lte) priceMatch.$lte = priceFilter.$lte;
-      pipeline.push({ $match: { avgPrice: priceMatch } });
+      pipeline.push({ $match: { effectivePrice: priceMatch } });
     }
 
     // Count total before pagination
