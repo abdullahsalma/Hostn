@@ -540,7 +540,7 @@ function UnitDetailContent() {
                         <StarRating rating={hostStats.averageRating} count={hostStats.totalReviews} size="sm" />
                       )}
                       {hostStats && (
-                        <span>{isAr ? `${hostStats.propertyCount} عقارات` : `${hostStats.propertyCount} properties`}</span>
+                        <span>{isAr ? `${hostStats.propertyCount} ${hostStats.propertyCount === 1 ? 'عقار' : 'عقارات'}` : `${hostStats.propertyCount} ${hostStats.propertyCount === 1 ? 'property' : 'properties'}`}</span>
                       )}
                     </div>
                   </div>

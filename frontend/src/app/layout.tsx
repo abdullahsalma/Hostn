@@ -6,13 +6,13 @@ import SocketProvider from '@/components/SocketProvider';
 import { Toaster } from 'react-hot-toast';
 
 export const metadata: Metadata = {
-  title: 'Hostn — إيجارات عطلات فاخرة في السعودية',
+  title: 'Hostn — Vacation Rentals in Saudi Arabia | إيجارات عطلات في السعودية',
   description:
-    'اكتشف شاليهات، فلل، واستراحات مميزة في جميع أنحاء المملكة العربية السعودية. احجز إقامتك المثالية مع هوستن.',
-  keywords: 'إيجار عطلات, شاليهات, فلل, استراحات, السعودية, hostn, حجز, vacation rental, Saudi Arabia, chalet, villa',
+    'Discover premium chalets, villas, and vacation rentals across Saudi Arabia. Book your perfect stay with Hostn. | اكتشف شاليهات، فلل، واستراحات مميزة في السعودية.',
+  keywords: 'hostn, vacation rental, Saudi Arabia, chalet, villa, إيجار عطلات, شاليهات, فلل, استراحات, السعودية, حجز',
   openGraph: {
-    title: 'Hostn — إيجارات عطلات فاخرة في السعودية',
-    description: 'احجز شاليهات، فلل، واستراحات مختارة بعناية في السعودية',
+    title: 'Hostn — Vacation Rentals in Saudi Arabia | إيجارات عطلات في السعودية',
+    description: 'Book premium chalets, villas, and vacation stays in Saudi Arabia | احجز شاليهات، فلل، واستراحات في السعودية',
     type: 'website',
   },
 };
