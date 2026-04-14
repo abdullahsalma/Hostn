@@ -440,13 +440,13 @@ exports.toggleWishlist = async (req, res, next) => {
   try {
     const Wishlist = require('../models/Wishlist');
     const user = await User.findById(req.user._id);
-    const propertyId = req.params.propertyId;
+    const unitId = req.params.propertyId; // Route still uses :propertyId but now stores unit IDs
 
-    // Toggle in user.wishlist (backward compat for mobile)
-    const index = user.wishlist.indexOf(propertyId);
+    // Toggle in user.wishlist
+    const index = user.wishlist.indexOf(unitId);
     const adding = index === -1;
     if (adding) {
-      user.wishlist.push(propertyId);
+      user.wishlist.push(unitId);
     } else {
       user.wishlist.splice(index, 1);
     }
@@ -454,11 +454,11 @@ exports.toggleWishlist = async (req, res, next) => {
 
     // Also toggle in the default Wishlist list
     const defaultList = await Wishlist.getOrCreateDefault(req.user._id);
-    const listIdx = defaultList.properties.indexOf(propertyId);
+    const listIdx = defaultList.units.indexOf(unitId);
     if (adding && listIdx === -1) {
-      defaultList.properties.push(propertyId);
+      defaultList.units.push(unitId);
     } else if (!adding && listIdx > -1) {
-      defaultList.properties.splice(listIdx, 1);
+      defaultList.units.splice(listIdx, 1);
     }
     await defaultList.save();
 

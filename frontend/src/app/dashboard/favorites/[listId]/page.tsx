@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
-import { wishlistsApi, unitsApi } from '@/lib/api';
+import { wishlistsApi } from '@/lib/api';
 import { WishlistList, Property, Unit } from '@/types';
 import UnitCard from '@/components/listings/UnitCard';
 import {
@@ -13,11 +13,9 @@ import {
   AlertCircle, Calendar, Minus, Plus,
 } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
 import toast from 'react-hot-toast';
-import { formatPriceNumber, getPropertyTypeLabel, getDiscountedPrice, getGuestLabel, calculateNights, getNightLabel, getAdultLabel, getChildLabel } from '@/lib/utils';
+import { getPropertyTypeLabel, calculateNights, getNightLabel, getAdultLabel, getChildLabel } from '@/lib/utils';
 import SarSymbol from '@/components/ui/SarSymbol';
-import StarRating from '@/components/ui/StarRating';
 import MiniCalendar from '@/components/ui/MiniCalendar';
 import { CITIES, DISTRICTS, DIRECTIONS } from '@/lib/constants';
 import { getSearchCookies, saveSearchCookies } from '@/lib/searchCookies';
@@ -54,6 +52,8 @@ const RATING_OPTIONS = [
   { value: '9', label: { en: '9+', ar: '9+' } },
 ];
 
+const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
 // ─── FilterBubble ───────────────────────────────────────────────────────────
 function FilterBubble({ icon: Icon, label, active, onClick, onClear, hasDropdown }: {
   icon: React.ElementType; label: React.ReactNode; active: boolean;
@@ -81,10 +81,16 @@ function formatDateDisplay(dateStr: string, locale: string = 'en'): string {
   return d.toLocaleDateString(locale === 'ar' ? 'ar-SA' : 'en', { month: 'short', day: 'numeric' });
 }
 
-// ─── Mismatch reasons ───────────────────────────────────────────────────────
+// ─── Unit nightly price helper ──────────────────────────────────────────────
+function getUnitNightlyPrice(unit: Unit): number {
+  if (!unit.pricing) return 0;
+  const todayKey = DAY_KEYS[new Date().getDay()];
+  return (unit.pricing as Record<string, number>)[todayKey] || 0;
+}
+
+// ─── Mismatch reasons (unit-based) ─────────────────────────────────────────
 function getMismatchReasons(
-  property: Property,
-  units: { capacity?: { maxGuests?: number } }[],
+  unit: Unit,
   filters: {
     selectedTypes: string[]; minBedrooms: string; minRating: string;
     hasPool: boolean; hasDiscount: boolean; priceRange: number;
@@ -95,41 +101,28 @@ function getMismatchReasons(
 ): string[] {
   const reasons: string[] = [];
   const isAr = lang === 'ar';
+  const property = typeof unit.property === 'object' ? unit.property as Property : null;
 
   // City
-  if (filters.searchCity && property.location.city?.toLowerCase() !== filters.searchCity.toLowerCase()) {
-    const cityObj = CITIES.find(c => c.value.toLowerCase() === property.location.city?.toLowerCase());
-    const cityName = cityObj ? (isAr ? cityObj.ar : cityObj.en) : property.location.city;
+  if (filters.searchCity && property?.location?.city?.toLowerCase() !== filters.searchCity.toLowerCase()) {
+    const cityObj = CITIES.find(c => c.value.toLowerCase() === property?.location?.city?.toLowerCase());
+    const cityName = cityObj ? (isAr ? cityObj.ar : cityObj.en) : property?.location?.city || '';
     reasons.push(isAr ? `المدينة: ${cityName}` : `City: ${cityName}`);
   }
 
   // Guests
   if (filters.totalGuests > 0) {
-    const maxCapacity = units.length > 0
-      ? Math.max(...units.map(u => u.capacity?.maxGuests ?? 0))
-      : (property.capacity?.maxGuests ?? 0);
+    const maxCapacity = unit.capacity?.maxGuests ?? 0;
     if (maxCapacity < filters.totalGuests) {
-      reasons.push(isAr
-        ? `أقصى عدد ${maxCapacity} ضيوف`
-        : `Max ${maxCapacity} guests`);
+      reasons.push(isAr ? `أقصى عدد ${maxCapacity} ضيوف` : `Max ${maxCapacity} guests`);
     }
   }
 
-  // Min nights
-  if (filters.checkIn && filters.checkOut) {
-    const nights = calculateNights(filters.checkIn, filters.checkOut);
-    if (nights > 0 && property.rules?.minNights && property.rules.minNights > nights) {
-      reasons.push(isAr
-        ? `الحد الأدنى ${property.rules.minNights} ليالي`
-        : `Min stay ${property.rules.minNights} nights`);
-    }
-  }
-
-  // Booked / reserved dates overlap
-  if (filters.checkIn && filters.checkOut && property.bookedDates?.length) {
+  // Booked dates overlap
+  if (filters.checkIn && filters.checkOut && (unit as any).bookedDates?.length) {
     const ci = new Date(filters.checkIn);
     const co = new Date(filters.checkOut);
-    const hasOverlap = property.bookedDates.some(bd => {
+    const hasOverlap = (unit as any).bookedDates.some((bd: { start: string; end: string }) => {
       const s = new Date(bd.start);
       const e = new Date(bd.end);
       return ci < e && co > s;
@@ -139,49 +132,52 @@ function getMismatchReasons(
     }
   }
 
-  // Type
-  if (filters.selectedTypes.length > 0 && !filters.selectedTypes.includes(property.type)) {
+  // Type (from property)
+  if (filters.selectedTypes.length > 0 && property?.type && !filters.selectedTypes.includes(property.type)) {
     reasons.push(isAr ? `النوع: ${getPropertyTypeLabel(property.type, lang)}` : `Type: ${getPropertyTypeLabel(property.type, lang)}`);
   }
 
   // Bedrooms
-  if (filters.minBedrooms && (property.capacity?.bedrooms ?? 0) < Number(filters.minBedrooms)) {
-    reasons.push(isAr ? `${property.capacity?.bedrooms ?? 0} غرف نوم فقط` : `Only ${property.capacity?.bedrooms ?? 0} bedroom${(property.capacity?.bedrooms ?? 0) !== 1 ? 's' : ''}`);
+  if (filters.minBedrooms && (unit.bedrooms?.count ?? 0) < Number(filters.minBedrooms)) {
+    reasons.push(isAr ? `${unit.bedrooms?.count ?? 0} غرف نوم فقط` : `Only ${unit.bedrooms?.count ?? 0} bedroom${(unit.bedrooms?.count ?? 0) !== 1 ? 's' : ''}`);
   }
 
   // Rating
-  if (filters.minRating && (property.ratings?.average ?? 0) < Number(filters.minRating)) {
-    reasons.push(isAr ? `التقييم ${property.ratings?.average ?? 0}` : `Rating ${property.ratings?.average ?? 0}`);
+  const ratings = unit.ratings?.count ? unit.ratings : property?.ratings;
+  if (filters.minRating && (ratings?.average ?? 0) < Number(filters.minRating)) {
+    reasons.push(isAr ? `التقييم ${ratings?.average ?? 0}` : `Rating ${ratings?.average ?? 0}`);
   }
 
   // Pool
-  if (filters.hasPool && !property.amenities?.includes('pool')) {
+  if (filters.hasPool && !unit.hasPool) {
     reasons.push(isAr ? 'بدون مسبح' : 'No pool');
   }
 
   // Discount
-  if (filters.hasDiscount && (property.pricing?.discountPercent ?? 0) <= 0) {
+  const discountPct = (unit.pricing as any)?.discountPercent ?? 0;
+  if (filters.hasDiscount && discountPct <= 0) {
     reasons.push(isAr ? 'بدون خصم' : 'No discount');
   }
 
   // Price
-  if (filters.priceRange < 4000 && (property.pricing?.perNight ?? 0) > filters.priceRange) {
-    reasons.push(isAr ? `السعر ﷼${property.pricing?.perNight ?? 0}` : `Price SAR ${property.pricing?.perNight ?? 0}`);
+  const nightlyPrice = getUnitNightlyPrice(unit);
+  if (filters.priceRange < 4000 && nightlyPrice > filters.priceRange) {
+    reasons.push(isAr ? `السعر ﷼${nightlyPrice}` : `Price SAR ${nightlyPrice}`);
   }
 
   // Area
-  if (filters.areaRange < 1500 && property.area && property.area > filters.areaRange) {
-    reasons.push(isAr ? `المساحة ${property.area} م²` : `Area ${property.area} m²`);
+  if (filters.areaRange < 1500 && unit.area && unit.area > filters.areaRange) {
+    reasons.push(isAr ? `المساحة ${unit.area} م²` : `Area ${unit.area} m²`);
   }
 
-  // Direction
-  if (filters.direction && property.direction && property.direction !== filters.direction) {
+  // Direction (from property)
+  if (filters.direction && property?.direction && property.direction !== filters.direction) {
     const dirLabel = DIRECTIONS.find(d => d.value === property.direction)?.[lang] || property.direction;
     reasons.push(isAr ? `الاتجاه: ${dirLabel}` : `Direction: ${dirLabel}`);
   }
 
-  // District
-  if (filters.district && property.location.district?.toLowerCase() !== filters.district.toLowerCase()) {
+  // District (from property)
+  if (filters.district && property?.location?.district?.toLowerCase() !== filters.district.toLowerCase()) {
     reasons.push(isAr ? 'حي مختلف' : 'Different district');
   }
 
@@ -202,8 +198,6 @@ export default function WishlistDetailPage() {
   const [list, setList] = useState<WishlistList | null>(null);
   const [loading, setLoading] = useState(true);
   const [removingId, setRemovingId] = useState<string | null>(null);
-  const [unitsByProperty, setUnitsByProperty] = useState<Record<string, Unit[]>>({});
-  const [unitsLoading, setUnitsLoading] = useState(false);
 
   // ── Search state (city, dates, guests) ──
   const [searchCity, setSearchCity] = useState('');
@@ -243,13 +237,6 @@ export default function WishlistDetailPage() {
     if (!isAr) return city;
     const found = CITIES.find(c => c.value.toLowerCase() === city.toLowerCase() || c.en.toLowerCase() === city.toLowerCase());
     return found?.ar || city;
-  };
-
-  const translateDistrict = (district: string, city: string) => {
-    if (!isAr) return district;
-    const cityDistricts = DISTRICTS[city] || [];
-    const found = cityDistricts.find(d => d.value.toLowerCase() === district.toLowerCase() || d.en.toLowerCase() === district.toLowerCase());
-    return found?.ar || district;
   };
 
   const toggleType = (key: string) => {
@@ -315,7 +302,7 @@ export default function WishlistDetailPage() {
     if (!authLoading && !isAuthenticated) router.push('/auth');
   }, [authLoading, isAuthenticated, router]);
 
-  // Restore search state from cookies (same pattern as /listings)
+  // Restore search state from cookies
   useEffect(() => {
     const saved = getSearchCookies();
     if (saved) {
@@ -357,6 +344,7 @@ export default function WishlistDetailPage() {
     prevShowGuestRef.current = showGuestPicker;
   }, [showGuestPicker]);
 
+  // Fetch list (now contains units directly, populated with property)
   useEffect(() => {
     if (!isAuthenticated || !listId) return;
     const fetchList = async () => {
@@ -373,35 +361,19 @@ export default function WishlistDetailPage() {
     fetchList();
   }, [isAuthenticated, listId, router, isAr]);
 
-  // Fetch units for each wishlisted property
-  useEffect(() => {
-    if (!list?.properties?.length) return;
-    setUnitsLoading(true);
-    Promise.all(
-      list.properties.map(p =>
-        unitsApi.getForProperty(p._id)
-          .then(res => ({ propertyId: p._id, units: (res.data.data || []) as Unit[] }))
-          .catch(() => ({ propertyId: p._id, units: [] as Unit[] }))
-      )
-    ).then(results => {
-      const map: Record<string, Unit[]> = {};
-      for (const r of results) map[r.propertyId] = r.units;
-      setUnitsByProperty(map);
-    }).finally(() => setUnitsLoading(false));
-  }, [list?.properties]);
-
-  const handleRemoveProperty = async (propertyId: string) => {
+  // Remove unit from list
+  const handleRemoveUnit = async (unitId: string) => {
     if (!list) return;
-    setRemovingId(propertyId);
+    setRemovingId(unitId);
     try {
-      await wishlistsApi.toggleProperty(listId, propertyId);
+      await wishlistsApi.toggleUnit(listId, unitId);
       setList(prev => {
         if (!prev) return prev;
-        return { ...prev, properties: prev.properties?.filter(p => p._id !== propertyId), propertyCount: prev.propertyCount - 1 };
+        return { ...prev, units: prev.units?.filter(u => u._id !== unitId), unitCount: prev.unitCount - 1 };
       });
-      toast.success(isAr ? 'تمت إزالة العقار من القائمة' : 'Property removed from list');
+      toast.success(isAr ? 'تمت إزالة الوحدة من القائمة' : 'Unit removed from list');
     } catch {
-      toast.error(isAr ? 'فشل في إزالة العقار' : 'Failed to remove property');
+      toast.error(isAr ? 'فشل في إزالة الوحدة' : 'Failed to remove unit');
     } finally {
       setRemovingId(null);
     }
@@ -417,27 +389,31 @@ export default function WishlistDetailPage() {
     return <div className="text-center py-12"><p className="text-gray-500">{isAr ? 'القائمة غير موجودة' : 'List not found'}</p></div>;
   }
 
-  const properties = list.properties || [];
+  const units = list.units || [];
   const filters = { selectedTypes, minBedrooms, minRating, hasPool, hasDiscount, priceRange, areaRange, direction, district, searchCity, checkIn, checkOut, totalGuests };
 
   // Separate matching / non-matching
-  const matched: Property[] = [];
-  const mismatched: { property: Property; reasons: string[] }[] = [];
+  const matched: Unit[] = [];
+  const mismatched: { unit: Unit; reasons: string[] }[] = [];
 
   if (hasActiveFilters) {
-    for (const p of properties) {
-      const reasons = getMismatchReasons(p, unitsByProperty[p._id] || [], filters, lang);
-      if (reasons.length === 0) matched.push(p);
-      else mismatched.push({ property: p, reasons });
+    for (const u of units) {
+      const reasons = getMismatchReasons(u, filters, lang);
+      if (reasons.length === 0) matched.push(u);
+      else mismatched.push({ unit: u, reasons });
     }
   }
 
-  const displayProperties = hasActiveFilters ? matched : properties;
+  const displayUnits = hasActiveFilters ? matched : units;
 
-  // District filter: only show when all properties share the same city
-  const propertyCities = [...new Set(properties.map(p => p.location.city?.toLowerCase()))];
-  const availableDistricts = propertyCities.length === 1 && DISTRICTS[properties[0]?.location.city]
-    ? DISTRICTS[properties[0].location.city] : [];
+  // District filter: only show when all units share the same city (via their property)
+  const unitCities = [...new Set(units.map(u => {
+    const prop = typeof u.property === 'object' ? (u.property as Property) : null;
+    return prop?.location?.city?.toLowerCase() || '';
+  }).filter(Boolean))];
+  const firstPropCity = units[0] && typeof units[0].property === 'object' ? (units[0].property as Property)?.location?.city : '';
+  const availableDistricts = unitCities.length === 1 && firstPropCity && DISTRICTS[firstPropCity]
+    ? DISTRICTS[firstPropCity] : [];
 
   return (
     <div className="space-y-5">
@@ -451,14 +427,14 @@ export default function WishlistDetailPage() {
             {list.isDefault ? (isAr ? 'مفضلتي' : 'My Favorites') : list.name}
           </h1>
           <p className="text-gray-500 text-sm mt-0.5">
-            {properties.length} {isAr ? 'عقار' : properties.length === 1 ? 'property' : 'properties'}
+            {units.length} {isAr ? 'وحدة' : units.length === 1 ? 'unit' : 'units'}
             {hasActiveFilters && ` · ${matched.length} ${isAr ? 'مطابق' : 'matching'}`}
           </p>
         </div>
       </div>
 
       {/* ═══ Search Bar (city, dates, guests) ═══ */}
-      {properties.length > 0 && (
+      {units.length > 0 && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {/* City */}
@@ -597,7 +573,7 @@ export default function WishlistDetailPage() {
       )}
 
       {/* ═══ Filter Bubbles ═══ */}
-      {properties.length > 0 && (
+      {units.length > 0 && (
         <div className="flex flex-wrap items-center gap-2" ref={filterRowRef}>
           {/* Type */}
           <div className="relative">
@@ -748,61 +724,35 @@ export default function WishlistDetailPage() {
         </div>
       )}
 
-      {/* ═══ Properties ═══ */}
-      {properties.length === 0 ? (
+      {/* ═══ Units Grid ═══ */}
+      {units.length === 0 ? (
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
           <Heart className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 mb-4">{isAr ? 'لا توجد عقارات في هذه القائمة بعد' : 'No properties in this list yet'}</p>
+          <p className="text-gray-500 mb-4">{isAr ? 'لا توجد وحدات في هذه القائمة بعد' : 'No units in this list yet'}</p>
           <Link href="/search" className="inline-block bg-primary-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-primary-700 transition-colors">
-            {isAr ? 'تصفح العقارات' : 'Browse Properties'}
+            {isAr ? 'تصفح الوحدات' : 'Browse Units'}
           </Link>
         </div>
       ) : (
         <>
-          {displayProperties.length === 0 && hasActiveFilters ? (
+          {displayUnits.length === 0 && hasActiveFilters ? (
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
               <AlertCircle className="w-8 h-8 text-amber-500 mx-auto mb-2" />
-              <p className="text-amber-800 text-sm font-medium">{isAr ? 'لا توجد عقارات مطابقة للبحث' : 'No properties match your search'}</p>
-            </div>
-          ) : unitsLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+              <p className="text-amber-800 text-sm font-medium">{isAr ? 'لا توجد وحدات مطابقة للبحث' : 'No units match your search'}</p>
             </div>
           ) : (
-            <div className="space-y-6">
-              {displayProperties.map(property => {
-                const propUnits = unitsByProperty[property._id] || [];
-                return (
-                  <div key={property._id} className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-gray-900 text-sm">
-                          {isAr ? (property.titleAr || property.title) : property.title}
-                        </h3>
-                        {propUnits.length > 1 && (
-                          <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                            {propUnits.length} {isAr ? 'وحدات' : 'units'}
-                          </span>
-                        )}
-                      </div>
-                      <button onClick={() => handleRemoveProperty(property._id)}
-                        disabled={removingId === property._id}
-                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50">
-                        {removingId === property._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                      </button>
-                    </div>
-                    {propUnits.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {propUnits.map(unit => (
-                          <UnitCard key={unit._id} unit={unit} checkIn={checkIn || undefined} checkOut={checkOut || undefined} />
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-400 py-2">{isAr ? 'لا توجد وحدات متاحة' : 'No units available'}</p>
-                    )}
-                  </div>
-                );
-              })}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {displayUnits.map(unit => (
+                <div key={unit._id} className="relative group/card">
+                  <UnitCard unit={unit} checkIn={checkIn || undefined} checkOut={checkOut || undefined} />
+                  {/* Remove button */}
+                  <button onClick={() => handleRemoveUnit(unit._id)}
+                    disabled={removingId === unit._id}
+                    className="absolute top-3 ltr:left-3 rtl:right-3 p-1.5 bg-white/90 rounded-full shadow-sm opacity-0 group-hover/card:opacity-100 transition-all hover:bg-red-50 disabled:opacity-50 z-10">
+                    {removingId === unit._id ? <Loader2 className="w-3.5 h-3.5 animate-spin text-red-500" /> : <Trash2 className="w-3.5 h-3.5 text-red-500" />}
+                  </button>
+                </div>
+              ))}
             </div>
           )}
 
@@ -811,151 +761,30 @@ export default function WishlistDetailPage() {
               <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">
                 {isAr ? 'لا تطابق البحث' : 'Doesn\'t match search'}
               </p>
-              <div className="space-y-6">
-                {mismatched.map(({ property, reasons }) => {
-                  const propUnits = unitsByProperty[property._id] || [];
-                  return (
-                    <div key={property._id} className="relative opacity-40">
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-semibold text-gray-900 text-sm">
-                              {isAr ? (property.titleAr || property.title) : property.title}
-                            </h3>
-                            {propUnits.length > 1 && (
-                              <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                                {propUnits.length} {isAr ? 'وحدات' : 'units'}
-                              </span>
-                            )}
-                          </div>
-                          <button onClick={() => handleRemoveProperty(property._id)}
-                            disabled={removingId === property._id}
-                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50">
-                            {removingId === property._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                          </button>
-                        </div>
-                        {propUnits.length > 0 ? (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {propUnits.map(unit => (
-                              <UnitCard key={unit._id} unit={unit} checkIn={checkIn || undefined} checkOut={checkOut || undefined} />
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-sm text-gray-400 py-2">{isAr ? 'لا توجد وحدات متاحة' : 'No units available'}</p>
-                        )}
-                      </div>
-                      <div className="mt-2 bg-amber-500 rounded-xl px-3 py-2.5 shadow-md">
-                        <div className="flex items-start gap-2">
-                          <AlertCircle className="w-4 h-4 text-white flex-shrink-0 mt-0.5" />
-                          <p className="text-xs text-white font-semibold leading-snug">{reasons.join(' · ')}</p>
-                        </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {mismatched.map(({ unit, reasons }) => (
+                  <div key={unit._id} className="relative opacity-40 group/card">
+                    <UnitCard unit={unit} checkIn={checkIn || undefined} checkOut={checkOut || undefined} />
+                    {/* Remove button */}
+                    <button onClick={() => handleRemoveUnit(unit._id)}
+                      disabled={removingId === unit._id}
+                      className="absolute top-3 ltr:left-3 rtl:right-3 p-1.5 bg-white/90 rounded-full shadow-sm opacity-0 group-hover/card:opacity-100 transition-all hover:bg-red-50 disabled:opacity-50 z-10">
+                      {removingId === unit._id ? <Loader2 className="w-3.5 h-3.5 animate-spin text-red-500" /> : <Trash2 className="w-3.5 h-3.5 text-red-500" />}
+                    </button>
+                    {/* Mismatch reasons */}
+                    <div className="mt-2 bg-amber-500 rounded-xl px-3 py-2.5 shadow-md">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 text-white flex-shrink-0 mt-0.5" />
+                        <p className="text-xs text-white font-semibold leading-snug">{reasons.join(' · ')}</p>
                       </div>
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
               </div>
             </div>
           )}
         </>
       )}
-    </div>
-  );
-}
-
-// ─── Property card sub-component ────────────────────────────────────────────
-function PropertyListCard({ property, isAr, lang, removingId, onRemove, translateCity, translateDistrict, checkIn, checkOut }: {
-  property: Property; isAr: boolean; lang: 'en' | 'ar'; removingId: string | null;
-  onRemove: (id: string) => void; translateCity: (city: string) => string;
-  translateDistrict: (district: string, city: string) => string;
-  checkIn?: string; checkOut?: string;
-}) {
-  const primaryImage = property.images?.find(img => img.isPrimary)?.url || property.images?.[0]?.url || 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800';
-  const discountedPrice = (property.pricing?.discountPercent ?? 0) > 0 ? getDiscountedPrice(property.pricing?.perNight ?? 0, property.pricing?.discountPercent ?? 0) : null;
-
-  // Pricing: total, weekly, monthly
-  const effectivePrice = discountedPrice || (property.pricing?.perNight ?? 0);
-  const nights = (checkIn && checkOut) ? calculateNights(checkIn, checkOut) : 0;
-  const totalPrice = nights > 0 ? effectivePrice * nights : 0;
-
-  let displayPrice = effectivePrice;
-  let originalDisplayPrice = property.pricing?.perNight ?? 0;
-  let priceUnitLabel: string;
-  if (nights >= 30) {
-    displayPrice = effectivePrice * 30;
-    originalDisplayPrice = (property.pricing?.perNight ?? 0) * 30;
-    priceUnitLabel = isAr ? '/ شهر' : '/ month';
-  } else if (nights >= 7) {
-    displayPrice = effectivePrice * 7;
-    originalDisplayPrice = (property.pricing?.perNight ?? 0) * 7;
-    priceUnitLabel = isAr ? '/ أسبوع' : '/ week';
-  } else {
-    priceUnitLabel = isAr ? '/ ليلة' : '/ night';
-  }
-
-  return (
-    <div className="relative group">
-      <button onClick={() => onRemove(property._id)} disabled={removingId === property._id}
-        className="absolute top-3 ltr:right-3 rtl:left-3 z-10 p-2 bg-white/90 rounded-full shadow-sm hover:bg-red-50 transition-colors disabled:opacity-50"
-        title={isAr ? 'إزالة من القائمة' : 'Remove from list'}>
-        {removingId === property._id ? <Loader2 className="w-4 h-4 animate-spin text-gray-400" /> : <Trash2 className="w-4 h-4 text-red-500" />}
-      </button>
-      <Link href={`/search/${property._id}`}>
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
-          <div className="relative aspect-[4/3] bg-gray-100">
-            <Image src={primaryImage} alt={isAr && property.titleAr ? property.titleAr : property.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" unoptimized />
-            <div className="absolute bottom-3 ltr:left-3 rtl:right-3">
-              <span className="bg-black/60 text-white text-xs px-2 py-1 rounded-full backdrop-blur-sm">{getPropertyTypeLabel(property.type, lang)}</span>
-            </div>
-            {(property.pricing?.discountPercent ?? 0) > 0 && (
-              <div className="absolute top-3 ltr:left-3 rtl:right-3">
-                <span className="bg-orange-500 text-white text-xs font-bold px-2.5 py-1 rounded-full">{isAr ? `خصم ${property.pricing?.discountPercent ?? 0}%` : `${property.pricing?.discountPercent ?? 0}% OFF`}</span>
-              </div>
-            )}
-          </div>
-          <div className="p-4">
-            <h3 className="font-semibold text-gray-900 text-sm leading-snug mb-1 line-clamp-2">{isAr && property.titleAr ? property.titleAr : property.title}</h3>
-            <div className="flex items-center gap-1 text-gray-500 text-xs mb-2">
-              <MapPin className="w-3 h-3 flex-shrink-0" />
-              <span>{property.location.district ? `${translateDistrict(property.location.district, property.location.city)}, ` : ''}{translateCity(property.location.city)}</span>
-            </div>
-            <div className="flex items-center gap-2.5 text-gray-500 text-xs mb-3">
-              <span className="flex items-center gap-1" title={isAr ? 'ضيوف' : 'Guests'}><Users className="w-3 h-3" />{property.capacity?.maxGuests ?? 0}</span>
-              <span className="flex items-center gap-1" title={isAr ? 'غرف نوم' : 'Bedrooms'}><BedDouble className="w-3 h-3" />{property.capacity?.bedrooms ?? 0}</span>
-              <span className="flex items-center gap-1" title={isAr ? 'حمامات' : 'Bathrooms'}><Bath className="w-3 h-3" />{property.capacity?.bathrooms ?? 0}</span>
-              {property.area ? (
-                <span className="flex items-center gap-1" title={isAr ? 'المساحة' : 'Area'}><Ruler className="w-3 h-3" />{property.area} {isAr ? 'م²' : 'm²'}</span>
-              ) : null}
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                {discountedPrice ? (
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-base font-bold text-primary-600" dir="ltr"><SarSymbol /> {formatPriceNumber(displayPrice)}</span>
-                    <span className="text-xs text-gray-400 line-through" dir="ltr"><SarSymbol /> {formatPriceNumber(originalDisplayPrice)}</span>
-                    <span className="text-xs text-gray-500">{priceUnitLabel}</span>
-                  </div>
-                ) : (
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-base font-bold text-primary-600" dir="ltr"><SarSymbol /> {formatPriceNumber(displayPrice)}</span>
-                    <span className="text-xs text-gray-500">{priceUnitLabel}</span>
-                  </div>
-                )}
-                {nights > 0 && (
-                  <p className="text-[11px] text-gray-400 mt-0.5">
-                    {isAr
-                      ? <><span>إجمالي{getNightLabel(nights, 'ar')}:</span> <span dir="ltr"><SarSymbol /> {formatPriceNumber(totalPrice)}</span></>
-                      : <>Total for {getNightLabel(nights, 'en')}: <span dir="ltr"><SarSymbol /> {formatPriceNumber(totalPrice)}</span></>
-                    }
-                  </p>
-                )}
-              </div>
-              {(property.ratings?.count ?? 0) > 0 && (
-                <StarRating rating={property.ratings?.average ?? 0} count={property.ratings?.count ?? 0} />
-              )}
-            </div>
-          </div>
-        </div>
-      </Link>
     </div>
   );
 }

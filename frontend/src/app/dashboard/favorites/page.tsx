@@ -75,7 +75,7 @@ export default function FavoritesPage() {
     setCreating(true);
     try {
       const res = await wishlistsApi.createList(newListName.trim());
-      setLists((prev) => [...prev, { ...res.data.data, propertyCount: 0, coverImage: null }]);
+      setLists((prev) => [...prev, { ...res.data.data, unitCount: 0, coverImage: null }]);
       setNewListName('');
       setShowCreate(false);
       toast.success(isAr ? 'تم إنشاء القائمة' : 'List created');
@@ -127,7 +127,7 @@ export default function FavoritesPage() {
             {isAr ? 'قوائم المفضلة' : 'Favorites'}
           </h1>
           <p className="text-gray-500 mt-1">
-            {isAr ? 'نظّم عقاراتك المفضلة في قوائم' : 'Organize your favorite properties into lists'}
+            {isAr ? 'نظّم وحداتك المفضلة في قوائم' : 'Organize your favorite units into lists'}
           </p>
         </div>
         <button
@@ -175,13 +175,13 @@ export default function FavoritesPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
           <Heart className="w-12 h-12 text-gray-300 mx-auto mb-3" />
           <p className="text-gray-500 mb-4">
-            {isAr ? 'لم تحفظ أي عقارات بعد' : 'You haven\'t saved any properties yet'}
+            {isAr ? 'لم تحفظ أي وحدات بعد' : 'You haven\'t saved any units yet'}
           </p>
           <Link
             href="/search"
             className="inline-block bg-primary-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-primary-700 transition-colors"
           >
-            {isAr ? 'تصفح العقارات' : 'Browse Properties'}
+            {isAr ? 'تصفح الوحدات' : 'Browse Units'}
           </Link>
         </div>
       ) : (
@@ -261,7 +261,7 @@ export default function FavoritesPage() {
                       <>
                         <h3 className="font-semibold text-gray-900">{getDisplayName(list)}</h3>
                         <p className="text-sm text-gray-500 mt-0.5">
-                          {list.propertyCount} {isAr ? 'عقار' : list.propertyCount === 1 ? 'property' : 'properties'}
+                          {list.unitCount} {isAr ? 'وحدة' : list.unitCount === 1 ? 'unit' : 'units'}
                         </p>
                       </>
                     )}

@@ -70,16 +70,16 @@ export default function UnitCard({ unit, checkIn, checkOut }: UnitCardProps) {
     return found?.ar || district;
   };
 
-  // Property ID for wishlisting (wishlists use property IDs, not unit IDs)
-  const propertyId = property?._id || (typeof unit.property === 'string' ? unit.property : '');
+  // Unit ID for wishlisting (wishlists now use unit IDs)
+  const unitId = unit._id;
 
   // Wishlist state
   const [isWishlisted, setIsWishlisted] = useState(
-    user?.wishlist?.includes(propertyId) ?? false
+    user?.wishlist?.includes(unitId) ?? false
   );
   useEffect(() => {
-    setIsWishlisted(user?.wishlist?.includes(propertyId) ?? false);
-  }, [user?.wishlist, propertyId]);
+    setIsWishlisted(user?.wishlist?.includes(unitId) ?? false);
+  }, [user?.wishlist, unitId]);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
@@ -142,7 +142,7 @@ export default function UnitCard({ unit, checkIn, checkOut }: UnitCardProps) {
     e.preventDefault();
     e.stopPropagation();
     if (!isAuthenticated) {
-      toast.error(isAr ? 'سجّل دخولك لحفظ العقارات' : 'Please sign in to save properties');
+      toast.error(isAr ? 'سجّل دخولك أولاً' : 'Please sign in to save');
       return;
     }
 
@@ -178,7 +178,7 @@ export default function UnitCard({ unit, checkIn, checkOut }: UnitCardProps) {
     try {
       const [listsRes, memberRes] = await Promise.all([
         wishlistsApi.getLists(),
-        wishlistsApi.getPropertyMembership(propertyId),
+        wishlistsApi.getUnitMembership(unitId),
       ]);
       setLists(listsRes.data.data || []);
       setMemberListIds(new Set(memberRes.data.data || []));
@@ -190,19 +190,19 @@ export default function UnitCard({ unit, checkIn, checkOut }: UnitCardProps) {
     }
   };
 
-  // Multi-select: toggle property in a list (check/uncheck)
+  // Multi-select: toggle unit in a list (check/uncheck)
   const handleToggleInList = async (listId: string) => {
     setTogglingList(listId);
     const wasIn = memberListIds.has(listId);
     try {
-      await wishlistsApi.toggleProperty(listId, propertyId);
+      await wishlistsApi.toggleUnit(listId, unitId);
       setMemberListIds(prev => {
         const next = new Set(prev);
         if (wasIn) next.delete(listId);
         else next.add(listId);
         return next;
       });
-      // Update wishlisted state: property is wishlisted if it's in ANY list
+      // Update wishlisted state: unit is wishlisted if it's in ANY list
       const stillInAny = wasIn
         ? memberListIds.size > 1 // removing from one, but still in others
         : true; // just added
@@ -210,14 +210,14 @@ export default function UnitCard({ unit, checkIn, checkOut }: UnitCardProps) {
       // Sync AuthContext so sibling UnitCards update their hearts
       if (user) {
         const currentWishlist = user.wishlist || [];
-        if (stillInAny && !currentWishlist.includes(propertyId)) {
-          updateUser({ ...user, wishlist: [...currentWishlist, propertyId] });
+        if (stillInAny && !currentWishlist.includes(unitId)) {
+          updateUser({ ...user, wishlist: [...currentWishlist, unitId] });
         } else if (!stillInAny) {
-          updateUser({ ...user, wishlist: currentWishlist.filter(id => id !== propertyId) });
+          updateUser({ ...user, wishlist: currentWishlist.filter(id => id !== unitId) });
         }
       }
       // Update picker list count
-      setLists(prev => prev.map(l => l._id === listId ? { ...l, propertyCount: l.propertyCount + (wasIn ? -1 : 1) } : l));
+      setLists(prev => prev.map(l => l._id === listId ? { ...l, unitCount: l.unitCount + (wasIn ? -1 : 1) } : l));
       // Show feedback toast
       const listName = getListDisplayName(lists.find(l => l._id === listId));
       if (wasIn) {
@@ -232,22 +232,22 @@ export default function UnitCard({ unit, checkIn, checkOut }: UnitCardProps) {
     }
   };
 
-  // Create new list and add property to it
+  // Create new list and add unit to it
   const handleCreateAndAdd = async () => {
     if (!newListName.trim()) return;
     setCreatingList(true);
     try {
       const res = await wishlistsApi.createList(newListName.trim());
       const newList = res.data.data;
-      await wishlistsApi.toggleProperty(newList._id, propertyId);
-      setLists(prev => [...prev, { ...newList, propertyCount: 1, coverImage: null }]);
+      await wishlistsApi.toggleUnit(newList._id, unitId);
+      setLists(prev => [...prev, { ...newList, unitCount: 1, coverImage: null }]);
       setMemberListIds(prev => new Set([...prev, newList._id]));
       setNewListName('');
       setShowNewList(false);
       setIsWishlisted(true);
       // Sync AuthContext
-      if (user && !user.wishlist?.includes(propertyId)) {
-        updateUser({ ...user, wishlist: [...(user.wishlist || []), propertyId] });
+      if (user && !user.wishlist?.includes(unitId)) {
+        updateUser({ ...user, wishlist: [...(user.wishlist || []), unitId] });
       }
       toast.success(isAr ? `تم الحفظ في "${newListName.trim()}"` : `Saved to "${newListName.trim()}"`);
     } catch {
@@ -263,7 +263,7 @@ export default function UnitCard({ unit, checkIn, checkOut }: UnitCardProps) {
     setClearingAll(true);
     try {
       await Promise.all(
-        [...memberListIds].map((listId) => wishlistsApi.toggleProperty(listId, propertyId))
+        [...memberListIds].map((listId) => wishlistsApi.toggleUnit(listId, unitId))
       );
       setMemberListIds(new Set());
       setIsWishlisted(false);
@@ -272,7 +272,7 @@ export default function UnitCard({ unit, checkIn, checkOut }: UnitCardProps) {
       setNewListName('');
       // Sync AuthContext
       if (user) {
-        updateUser({ ...user, wishlist: (user.wishlist || []).filter(id => id !== propertyId) });
+        updateUser({ ...user, wishlist: (user.wishlist || []).filter(id => id !== unitId) });
       }
       toast.success(isAr ? 'تم الإزالة من جميع القوائم' : 'Removed from all wishlists');
     } catch {
@@ -287,7 +287,7 @@ export default function UnitCard({ unit, checkIn, checkOut }: UnitCardProps) {
     e.preventDefault();
     e.stopPropagation();
     if (!isAuthenticated) {
-      toast.error(isAr ? 'سجّل دخولك لحفظ العقارات' : 'Please sign in to save properties');
+      toast.error(isAr ? 'سجّل دخولك أولاً' : 'Please sign in to save');
       return;
     }
     openListPicker(e);
@@ -558,7 +558,7 @@ export default function UnitCard({ unit, checkIn, checkOut }: UnitCardProps) {
                     {getListDisplayName(list)}
                   </span>
                   <span className="text-[10px] text-gray-400">
-                    {list.propertyCount}
+                    {list.unitCount}
                   </span>
                 </button>
               );
