@@ -18,9 +18,9 @@
 
 | # | Page / File | Issue | Status |
 |---|-------------|-------|--------|
-| A1 | `/contact` page (`app/contact/page.tsx` line 29-33) | **Contact form doesn't send data** — `setTimeout` simulates success, form data is discarded. No backend API call. | Open |
-| A2 | `/host/bookings` page | **"held" bookings missing** — Host dashboard shows 2 bookings but bookings page only shows 1 (the "held" booking is filtered out) | Open |
-| A3 | `/host/bookings` page | **Amount column shows "-"** — No amount displayed for confirmed booking (SAR 1,898 visible on dashboard) | Open |
+| A1 | `/contact` page (`app/contact/page.tsx` line 29-33) | **Contact form doesn't send data** — `setTimeout` simulates success, form data is discarded. No backend API call. | Fixed — F181 |
+| A2 | `/host/bookings` page | **"held" bookings missing** — Host dashboard shows 2 bookings but bookings page only shows 1 (the "held" booking is filtered out) | Fixed — F182 |
+| A3 | `/host/bookings` page | **Amount column shows "-"** — No amount displayed for confirmed booking (SAR 1,898 visible on dashboard) | Fixed — F183 |
 
 ---
 
@@ -28,15 +28,15 @@
 
 | # | Page / File | Issue | Status |
 |---|-------------|-------|--------|
-| A4 | `/search/[id]` detail page | **BookingWidget doesn't show discount** — Shows SAR 2,000/night (original) even though card shows "50% OFF → SAR 1,000". Discount not applied in widget price header | Open |
-| A5 | `/search/[id]` detail page | **"1 properties" grammar** — Host info section says "1 properties" instead of "1 property" | Open |
-| A6 | `/host` dashboard | **"held" status unstyled** — Plain lowercase text with no badge styling, unlike "Confirmed" which has a green badge | Open |
-| A7 | `/host/earnings` page | **"1 Bookings" grammar** — Should be "1 Booking" (singular) | Open |
-| A8 | `/host/earnings` page | **Monthly amounts not shown** — SAR icon visible but no actual number next to it | Open |
-| A9 | `/host` dashboard | **Average Rating shows "0.0"** — Looks like broken data. Should show "No ratings yet" or be hidden when no reviews exist | Open |
-| A10 | `/host/bookings` page | **Actions column empty** — Shows "-" with no available actions for any booking | Open |
-| A11 | `/` home page | **Massive blank whitespace** — Enormous vertical gap between hero section and "Browse by Type" / "Featured Stays" sections | Open |
-| A12 | `/search/[id]` detail page | **Image gallery layout gap** — ~300px empty space on the left between title area and images; gallery appears right-aligned | Open |
+| A4 | `/search/[id]` detail page | **BookingWidget doesn't show discount** — Shows SAR 2,000/night (original) even though card shows "50% OFF → SAR 1,000". Discount not applied in widget price header | Fixed — F184 |
+| A5 | `/search/[id]` detail page | **"1 properties" grammar** — Host info section says "1 properties" instead of "1 property" | Fixed — F185 |
+| A6 | `/host` dashboard | **"held" status unstyled** — Plain lowercase text with no badge styling, unlike "Confirmed" which has a green badge | Fixed — F186 |
+| A7 | `/host/earnings` page | **"1 Bookings" grammar** — Should be "1 Booking" (singular) | Fixed — F187 |
+| A8 | `/host/earnings` page | **Monthly amounts not shown** — SAR icon visible but no actual number next to it | Fixed — F188 |
+| A9 | `/host` dashboard | **Average Rating shows "0.0"** — Looks like broken data. Should show "No ratings yet" or be hidden when no reviews exist | Fixed — F189 |
+| A10 | `/host/bookings` page | **Actions column empty** — Shows "-" with no available actions for any booking | Fixed — F190 |
+| A11 | `/` home page | **Massive blank whitespace** — Enormous vertical gap between hero section and "Browse by Type" / "Featured Stays" sections | Fixed — I147 |
+| A12 | `/search/[id]` detail page | **Image gallery layout gap** — ~300px empty space on the left between title area and images; gallery appears right-aligned | Fixed — F191 |
 
 ---
 
@@ -44,12 +44,12 @@
 
 | # | Page / File | Issue | Status |
 |---|-------------|-------|--------|
-| A13 | All pages | **Browser tab title is Arabic** when page content is displayed in English mode | Open |
-| A14 | All pages | **Username always Arabic** — "عبقور" shows in Arabic in English-mode header and sidebar | Open |
-| A15 | `/dashboard/bookings` | **Property names in Arabic** while page UI is English (e.g. "فندق كراون انمارآ") | Open |
-| A16 | `/host` dashboard | **Guest names in Arabic** — "ضيف", "مشرف" shown in Arabic while table is English | Open |
-| A17 | `/host` dashboard | **Date format inconsistent** — Uses M/DD/YYYY (4/18/2026) vs "Apr 18, 2026" format used elsewhere | Open |
-| A18 | `/search/[id]` detail page | **"Hosted by" mixed language** — English label followed by Arabic name while in English mode | Open |
+| A13 | All pages | **Browser tab title is Arabic** when page content is displayed in English mode | Fixed — F192. Root layout metadata now bilingual; all pages use `usePageTitle` with `isAr` |
+| A14 | All pages | **Username always Arabic** — "عبقور" shows in Arabic in English-mode header and sidebar | Won't fix — Data limitation. User `name` is a single field stored as registered. Requires bilingual `nameEn`/`nameAr` fields in User model |
+| A15 | `/dashboard/bookings` | **Property names in Arabic** while page UI is English (e.g. "فندق كراون انمارآ") | Won't fix — Data limitation. Property `title` stores the original name. Host bookings page already uses `titleAr \|\| title` for AR and `title` for EN, but some properties only have Arabic titles |
+| A16 | `/host` dashboard | **Guest names in Arabic** — "ضيف", "مشرف" shown in Arabic while table is English | Won't fix — Data limitation. Same as A14 — guest names stored as registered |
+| A17 | `/host` dashboard | **Date format inconsistent** — Uses M/DD/YYYY (4/18/2026) vs "Apr 18, 2026" format used elsewhere | Fixed — I148. Host pages now use `{ month: 'short', day: 'numeric' }` matching dashboard format |
+| A18 | `/search/[id]` detail page | **"Hosted by" mixed language** — English label followed by Arabic name while in English mode | Won't fix — Data limitation. Same as A14 — host name stored as registered |
 
 ---
 

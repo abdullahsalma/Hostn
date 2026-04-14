@@ -11,7 +11,8 @@ import { usePageTitle } from '@/lib/usePageTitle';
 interface MonthlyEarning {
   month: string;
   year: number;
-  total: number;
+  earnings: number;
+  total?: number;
   bookings: number;
 }
 
@@ -109,10 +110,10 @@ export default function HostEarningsPage() {
                       {monthLabel} {item.year}
                     </p>
                     <p className="text-sm text-gray-500">
-                      {item.bookings} {t.bookingsCount[lang]}
+                      {item.bookings} {lang === 'ar' ? (item.bookings === 1 ? 'حجز' : 'حجوزات') : (item.bookings === 1 ? 'Booking' : 'Bookings')}
                     </p>
                   </div>
-                  <p className="text-lg font-bold text-emerald-600"><span dir="ltr"><SarSymbol /> {item.total?.toLocaleString('en')}</span></p>
+                  <p className="text-lg font-bold text-emerald-600"><span dir="ltr"><SarSymbol /> {(item.earnings ?? item.total ?? 0).toLocaleString('en')}</span></p>
                 </div>
               );
             })}

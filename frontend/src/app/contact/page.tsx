@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { Mail, Phone, MapPin, Send, ArrowLeft } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import toast from 'react-hot-toast';
+import { contactApi } from '@/lib/api';
 
 export default function ContactPage() {
   const { language } = useLanguage();
@@ -26,11 +27,15 @@ export default function ContactPage() {
       return;
     }
     setSending(true);
-    // Simulate sending
-    await new Promise((r) => setTimeout(r, 1000));
-    toast.success(language === 'ar' ? 'تم إرسال رسالتك بنجاح! سنرد عليك قريباً.' : 'Message sent successfully! We will get back to you soon.');
-    setForm({ name: '', email: '', subject: '', message: '' });
-    setSending(false);
+    try {
+      await contactApi.send(form);
+      toast.success(language === 'ar' ? 'تم إرسال رسالتك بنجاح! سنرد عليك قريباً.' : 'Message sent successfully! We will get back to you soon.');
+      setForm({ name: '', email: '', subject: '', message: '' });
+    } catch {
+      toast.error(language === 'ar' ? 'فشل في إرسال الرسالة. حاول مرة أخرى.' : 'Failed to send message. Please try again.');
+    } finally {
+      setSending(false);
+    }
   };
 
   return (

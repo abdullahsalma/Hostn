@@ -510,7 +510,7 @@ exports.getHostBookings = async (req, res, next) => {
     const hostProperties = await Property.find({ host: req.user._id }).select('_id');
     const propertyIds = hostProperties.map((p) => p._id);
 
-    const bookings = await Booking.find({ property: { $in: propertyIds }, status: { $ne: 'held' } })
+    const bookings = await Booking.find({ property: { $in: propertyIds } })
       .populate('property', 'title titleAr images location')
       .populate('unit', 'nameEn nameAr images')
       .populate('guest', 'name email phone avatar')
