@@ -37,7 +37,7 @@ const hostNav: NavItem[] = [
   { href: '/host/listings', icon: Building, label: { en: 'My Listings', ar: 'عقاراتي' } },
   { href: '/host/bookings', icon: BookOpen, label: { en: 'Bookings', ar: 'الحجوزات' }, badgeKey: 'bookings' },
   { href: '/host/calendar', icon: Calendar, label: { en: 'Calendar', ar: 'التقويم' } },
-  { href: '/host/earnings', icon: CreditCard, label: { en: 'Earnings', ar: 'الأرباح' } },
+  { href: '/host/finance', icon: CreditCard, label: { en: 'Finance', ar: 'المعاملات المالية' } },
   { href: '/host/reviews', icon: Star, label: { en: 'Reviews', ar: 'التقييمات' } },
   { href: '/host/messages', icon: MessageSquare, label: { en: 'Messages', ar: 'الرسائل' }, badgeKey: 'messages' },
   { href: '/host/settings', icon: Settings, label: { en: 'Settings', ar: 'الإعدادات' } },
