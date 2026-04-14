@@ -18,10 +18,10 @@ const wishlistSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    properties: [
+    units: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Property',
+        ref: 'Unit',
       },
     ],
   },
@@ -50,7 +50,7 @@ wishlistSchema.statics.getOrCreateDefault = async function (userId) {
       user: userId,
       name: 'مفضلاتي',
       isDefault: true,
-      properties: existingIds,
+      units: existingIds,
     });
   } catch (err) {
     // Race condition: another request created it — just fetch it

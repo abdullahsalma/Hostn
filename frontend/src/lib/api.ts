@@ -254,12 +254,12 @@ export const wishlistsApi = {
   createList: (name: string) => api.post('/wishlists', { name }),
   updateList: (id: string, name: string) => api.put(`/wishlists/${id}`, { name }),
   deleteList: (id: string) => api.delete(`/wishlists/${id}`),
-  toggleProperty: (listId: string, propertyId: string) =>
-    api.post(`/wishlists/${listId}/properties/${propertyId}`),
-  moveProperty: (data: { propertyId: string; fromListId: string; toListId: string }) =>
+  toggleUnit: (listId: string, unitId: string) =>
+    api.post(`/wishlists/${listId}/units/${unitId}`),
+  moveUnit: (data: { unitId: string; fromListId: string; toListId: string }) =>
     api.put('/wishlists/move', data),
-  getPropertyMembership: (propertyId: string) =>
-    api.get(`/wishlists/property/${propertyId}/membership`),
+  getUnitMembership: (unitId: string) =>
+    api.get(`/wishlists/unit/${unitId}/membership`),
 };
 
 export const supportApi = {

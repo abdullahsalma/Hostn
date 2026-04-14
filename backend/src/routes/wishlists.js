@@ -7,20 +7,20 @@ const {
   createList,
   updateList,
   deleteList,
-  toggleProperty,
-  moveProperty,
-  getPropertyMembership,
+  toggleUnit,
+  moveUnit,
+  getUnitMembership,
 } = require('../controllers/wishlistController');
 
 router.use(protect);
 
 router.get('/', getLists);
 router.post('/', createList);
-router.put('/move', moveProperty);
-router.get('/property/:propertyId/membership', getPropertyMembership);
+router.put('/move', moveUnit);
+router.get('/unit/:unitId/membership', getUnitMembership);
 router.get('/:listId', getList);
 router.put('/:listId', updateList);
 router.delete('/:listId', deleteList);
-router.post('/:listId/properties/:propertyId', toggleProperty);
+router.post('/:listId/units/:unitId', toggleUnit);
 
 module.exports = router;
