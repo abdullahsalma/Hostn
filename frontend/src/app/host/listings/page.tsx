@@ -6,7 +6,7 @@ import { propertiesApi, hostApi, unitsApi } from '@/lib/api';
 import {
   Plus, ToggleLeft, ToggleRight, Edit, Pencil, Loader2, Building, Layers,
   AlertTriangle, MapPin, ChevronDown, ChevronUp, Users, Bed, Droplets,
-  Calendar,
+  Calendar, Link2, ExternalLink, Compass, Map, Check,
 } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -19,7 +19,13 @@ interface Property {
   title: string;
   titleAr?: string;
   type: string;
-  location?: { city?: string; district?: string };
+  location?: {
+    city?: string;
+    district?: string;
+    address?: string;
+    coordinates?: { lat?: number; lng?: number };
+  };
+  direction?: string;
   images?: { url: string; isPrimary?: boolean }[];
   unitImage?: { url: string };
   isActive: boolean;
@@ -52,6 +58,23 @@ const t: Record<string, Record<string, string>> = {
   noUnitsYet: { en: 'No units yet', ar: '\u0644\u0627 \u062a\u0648\u062c\u062f \u0648\u062d\u062f\u0627\u062a' },
   night: { en: 'night', ar: '\u0644\u064a\u0644\u0629' },
   statusUpdated: { en: 'Status updated', ar: '\u062a\u0645 \u062a\u062d\u062f\u064a\u062b \u0627\u0644\u062d\u0627\u0644\u0629' },
+  copyLink: { en: 'Copy Link', ar: '\u0646\u0633\u062e \u0627\u0644\u0631\u0627\u0628\u0637' },
+  linkCopied: { en: 'Link copied!', ar: '\u062a\u0645 \u0646\u0633\u062e \u0627\u0644\u0631\u0627\u0628\u0637!' },
+  viewOnMap: { en: 'View on Map', ar: '\u0639\u0631\u0636 \u0639\u0644\u0649 \u0627\u0644\u062e\u0631\u064a\u0637\u0629' },
+  address: { en: 'Address', ar: '\u0627\u0644\u0639\u0646\u0648\u0627\u0646' },
+  district: { en: 'District', ar: '\u0627\u0644\u062d\u064a' },
+  direction: { en: 'Direction', ar: '\u0627\u0644\u0627\u062a\u062c\u0627\u0647' },
+};
+
+const DIRECTION_LABELS: Record<string, Record<string, string>> = {
+  north: { en: 'North', ar: '\u0634\u0645\u0627\u0644' },
+  south: { en: 'South', ar: '\u062c\u0646\u0648\u0628' },
+  east: { en: 'East', ar: '\u0634\u0631\u0642' },
+  west: { en: 'West', ar: '\u063a\u0631\u0628' },
+  northeast: { en: 'Northeast', ar: '\u0634\u0645\u0627\u0644 \u0634\u0631\u0642' },
+  northwest: { en: 'Northwest', ar: '\u0634\u0645\u0627\u0644 \u063a\u0631\u0628' },
+  southeast: { en: 'Southeast', ar: '\u062c\u0646\u0648\u0628 \u0634\u0631\u0642' },
+  southwest: { en: 'Southwest', ar: '\u062c\u0646\u0648\u0628 \u063a\u0631\u0628' },
 };
 
 const PROPERTY_TYPES: Record<string, Record<string, string>> = {
@@ -74,6 +97,7 @@ export default function HostListingsPage() {
   const [expandedPropertyId, setExpandedPropertyId] = useState<string | null>(null);
   const [propertyUnits, setPropertyUnits] = useState<Record<string, Unit[]>>({});
   const [unitsLoading, setUnitsLoading] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
     loadProperties();
@@ -168,6 +192,36 @@ export default function HostListingsPage() {
   const displayType = (p: Property) => PROPERTY_TYPES[p.type]?.[lang] || p.type;
   const displayCity = (p: Property) => p.location?.city || '';
 
+  const copyPropertyLink = async (propertyId: string) => {
+    const base = typeof window !== 'undefined' ? window.location.origin : '';
+    const url = `${base}/property/${propertyId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedId(propertyId);
+      toast.success(t.linkCopied[lang]);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      toast.error('Failed to copy');
+    }
+  };
+
+  const hasCoords = (p: Property) =>
+    p.location?.coordinates?.lat && p.location?.coordinates?.lng;
+
+  const googleMapsUrl = (p: Property) => {
+    const { lat, lng } = p.location?.coordinates || {};
+    return `https://www.google.com/maps?q=${lat},${lng}`;
+  };
+
+  const buildAddressParts = (p: Property): string[] => {
+    const parts: string[] = [];
+    if (p.location?.address) parts.push(p.location.address);
+    if (p.location?.district) parts.push(isAr ? `\u062d\u064a ${p.location.district}` : p.location.district);
+    if (p.location?.city) parts.push(p.location.city);
+    if (p.direction && DIRECTION_LABELS[p.direction]) parts.push(DIRECTION_LABELS[p.direction][lang]);
+    return parts;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -228,12 +282,24 @@ export default function HostListingsPage() {
                       <div className="flex items-start justify-between gap-2 mb-1">
                         <div className="min-w-0">
                           <h3 className="font-semibold text-gray-900 truncate">{displayName(property)}</h3>
-                          <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                          <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5 flex-wrap">
                             <span className="bg-gray-100 px-2 py-0.5 rounded-full">{displayType(property)}</span>
                             {displayCity(property) && (
                               <span className="flex items-center gap-0.5">
                                 <MapPin className="w-3 h-3" />
                                 {displayCity(property)}
+                              </span>
+                            )}
+                            {property.location?.district && (
+                              <span className="flex items-center gap-0.5">
+                                <span className="text-gray-300">|</span>
+                                {property.location.district}
+                              </span>
+                            )}
+                            {property.direction && DIRECTION_LABELS[property.direction] && (
+                              <span className="flex items-center gap-0.5">
+                                <Compass className="w-3 h-3" />
+                                {DIRECTION_LABELS[property.direction][lang]}
                               </span>
                             )}
                           </div>
@@ -247,6 +313,43 @@ export default function HostListingsPage() {
                           {effectiveActive ? t.active[lang] : t.inactive[lang]}
                         </span>
                       </div>
+
+                      {/* Full address row */}
+                      {(property.location?.address || (property.location?.district && property.location?.city)) && (
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <div className="flex items-start gap-1.5 text-xs text-gray-400 min-w-0 flex-1">
+                            <MapPin className="w-3 h-3 flex-shrink-0 mt-0.5" />
+                            <span className="truncate">{buildAddressParts(property).join(isAr ? '\u060c ' : ', ')}</span>
+                          </div>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            {/* Copy link */}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); copyPropertyLink(property._id); }}
+                              className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-colors"
+                              title={t.copyLink[lang]}
+                            >
+                              {copiedId === property._id ? (
+                                <Check className="w-3 h-3 text-emerald-500" />
+                              ) : (
+                                <Link2 className="w-3 h-3" />
+                              )}
+                            </button>
+                            {/* Map link */}
+                            {hasCoords(property) && (
+                              <a
+                                href={googleMapsUrl(property)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-colors"
+                                title={t.viewOnMap[lang]}
+                              >
+                                <Map className="w-3 h-3" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Unit count */}
                       <div className="mt-2">
@@ -300,6 +403,28 @@ export default function HostListingsPage() {
                           {hasUnits && <span className="text-xs text-gray-400">({totalUnits})</span>}
                           {!hasUnits && <Plus className="w-3 h-3" />}
                         </button>
+                        <button
+                          onClick={() => copyPropertyLink(property._id)}
+                          className="flex items-center gap-1 text-sm text-gray-600 hover:text-primary-600 transition-colors"
+                        >
+                          {copiedId === property._id ? (
+                            <Check className="w-4 h-4 text-emerald-500" />
+                          ) : (
+                            <Link2 className="w-4 h-4" />
+                          )}
+                          {t.copyLink[lang]}
+                        </button>
+                        {hasCoords(property) && (
+                          <a
+                            href={googleMapsUrl(property)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-sm text-gray-600 hover:text-primary-600 transition-colors"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            {t.viewOnMap[lang]}
+                          </a>
+                        )}
                       </div>
                       <button
                         onClick={() => canToggle && handleToggle(property._id)}
