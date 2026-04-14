@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react';
 import { useLanguage } from '@/context/LanguageContext';
 import { propertiesApi, hostApi, unitsApi } from '@/lib/api';
 import {
-  Plus, ToggleLeft, ToggleRight, Edit, Pencil, Loader2, Building, Layers,
+  Plus, ToggleLeft, ToggleRight, Pencil, Loader2, Building, Layers,
   AlertTriangle, MapPin, ChevronDown, ChevronUp, Users, Bed, Droplets,
-  Calendar, Link2, ExternalLink, Compass, Map, Check,
+  Calendar, Link2, Compass, ExternalLink, Check,
 } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -38,32 +38,23 @@ const t: Record<string, Record<string, string>> = {
   addNew: { en: 'Add New Property', ar: '\u0625\u0636\u0627\u0641\u0629 \u0639\u0642\u0627\u0631 \u062c\u062f\u064a\u062f' },
   active: { en: 'Active', ar: '\u0646\u0634\u0637' },
   inactive: { en: 'Inactive', ar: '\u063a\u064a\u0631 \u0646\u0634\u0637' },
-  noProperties: { en: 'No properties yet. Add your first property!', ar: '\u0644\u0627 \u062a\u0648\u062c\u062f \u0639\u0642\u0627\u0631\u0627\u062a \u0628\u0639\u062f. \u0623\u0636\u0641 \u0639\u0642\u0627\u0631\u0643 \u0627\u0644\u0623\u0648\u0644!' },
+  noProperties: { en: 'No properties yet', ar: '\u0644\u0627 \u062a\u0648\u062c\u062f \u0639\u0642\u0627\u0631\u0627\u062a \u0628\u0639\u062f' },
+  noPropertiesDesc: { en: 'Add your first property to start hosting', ar: '\u0623\u0636\u0641 \u0639\u0642\u0627\u0631\u0643 \u0627\u0644\u0623\u0648\u0644 \u0644\u0628\u062f\u0621 \u0627\u0644\u0627\u0633\u062a\u0636\u0627\u0641\u0629' },
   edit: { en: 'Edit', ar: '\u062a\u0639\u062f\u064a\u0644' },
-  units: { en: 'Units', ar: '\u0627\u0644\u0648\u062d\u062f\u0627\u062a' },
   toggled: { en: 'Status updated', ar: '\u062a\u0645 \u062a\u062d\u062f\u064a\u062b \u0627\u0644\u062d\u0627\u0644\u0629' },
-  noUnits: { en: 'Add at least one unit to activate this property', ar: '\u0623\u0636\u0641 \u0648\u062d\u062f\u0629 \u0648\u0627\u062d\u062f\u0629 \u0639\u0644\u0649 \u0627\u0644\u0623\u0642\u0644 \u0644\u062a\u0641\u0639\u064a\u0644 \u0627\u0644\u0639\u0642\u0627\u0631' },
-  activateUnit: { en: 'Activate at least one unit to enable this property', ar: '\u0641\u0639\u0651\u0644 \u0648\u062d\u062f\u0629 \u0648\u0627\u062d\u062f\u0629 \u0639\u0644\u0649 \u0627\u0644\u0623\u0642\u0644 \u0644\u062a\u0641\u0639\u064a\u0644 \u0627\u0644\u0639\u0642\u0627\u0631' },
+  noUnits: { en: 'Add at least one unit to activate', ar: '\u0623\u0636\u0641 \u0648\u062d\u062f\u0629 \u0648\u0627\u062d\u062f\u0629 \u0639\u0644\u0649 \u0627\u0644\u0623\u0642\u0644 \u0644\u0644\u062a\u0641\u0639\u064a\u0644' },
+  activateUnit: { en: 'Activate at least one unit', ar: '\u0641\u0639\u0651\u0644 \u0648\u062d\u062f\u0629 \u0648\u0627\u062d\u062f\u0629 \u0639\u0644\u0649 \u0627\u0644\u0623\u0642\u0644' },
   unitCount: { en: 'units', ar: '\u0648\u062d\u062f\u0627\u062a' },
   activeOf: { en: 'active of', ar: '\u0646\u0634\u0637\u0629 \u0645\u0646' },
   showUnits: { en: 'Units', ar: '\u0627\u0644\u0648\u062d\u062f\u0627\u062a' },
-  hideUnits: { en: 'Hide', ar: '\u0625\u062e\u0641\u0627\u0621' },
   manageAll: { en: 'Manage all units', ar: '\u0625\u062f\u0627\u0631\u0629 \u0643\u0644 \u0627\u0644\u0648\u062d\u062f\u0627\u062a' },
   addUnit: { en: 'Add Unit', ar: '\u0625\u0636\u0627\u0641\u0629 \u0648\u062d\u062f\u0629' },
   pricing: { en: 'Calendar', ar: '\u0627\u0644\u062a\u0642\u0648\u064a\u0645' },
-  avgPrice: { en: 'Avg price', ar: '\u0645\u062a\u0648\u0633\u0637 \u0627\u0644\u0633\u0639\u0631' },
-  guests: { en: 'Guests', ar: '\u0636\u064a\u0648\u0641' },
-  bedrooms: { en: 'Bedrooms', ar: '\u063a\u0631\u0641 \u0646\u0648\u0645' },
-  bathrooms: { en: 'Bathrooms', ar: '\u062d\u0645\u0627\u0645\u0627\u062a' },
   noUnitsYet: { en: 'No units yet', ar: '\u0644\u0627 \u062a\u0648\u062c\u062f \u0648\u062d\u062f\u0627\u062a' },
-  night: { en: 'night', ar: '\u0644\u064a\u0644\u0629' },
   statusUpdated: { en: 'Status updated', ar: '\u062a\u0645 \u062a\u062d\u062f\u064a\u062b \u0627\u0644\u062d\u0627\u0644\u0629' },
   copyLink: { en: 'Copy Link', ar: '\u0646\u0633\u062e \u0627\u0644\u0631\u0627\u0628\u0637' },
   linkCopied: { en: 'Link copied!', ar: '\u062a\u0645 \u0646\u0633\u062e \u0627\u0644\u0631\u0627\u0628\u0637!' },
-  viewOnMap: { en: 'View on Map', ar: '\u0639\u0631\u0636 \u0639\u0644\u0649 \u0627\u0644\u062e\u0631\u064a\u0637\u0629' },
-  address: { en: 'Address', ar: '\u0627\u0644\u0639\u0646\u0648\u0627\u0646' },
-  district: { en: 'District', ar: '\u0627\u0644\u062d\u064a' },
-  direction: { en: 'Direction', ar: '\u0627\u0644\u0627\u062a\u062c\u0627\u0647' },
+  viewOnMap: { en: 'Map', ar: '\u0627\u0644\u062e\u0631\u064a\u0637\u0629' },
 };
 
 const DIRECTION_LABELS: Record<string, Record<string, string>> = {
@@ -137,7 +128,7 @@ export default function HostListingsPage() {
       setUnitsLoading(propertyId);
       try {
         const res = await unitsApi.getManage(propertyId);
-        setPropertyUnits(prev => ({ ...prev, [propertyId]: res.data.data || [] }));
+        setPropertyUnits((prev) => ({ ...prev, [propertyId]: res.data.data || [] }));
       } catch {
         // silent fail
       } finally {
@@ -149,22 +140,20 @@ export default function HostListingsPage() {
   const handleUnitToggle = async (unitId: string, propertyId: string) => {
     try {
       await unitsApi.toggle(unitId);
-      const updatedUnits = (propertyUnits[propertyId] || []).map(u =>
+      const updatedUnits = (propertyUnits[propertyId] || []).map((u) =>
         u._id === unitId ? { ...u, isActive: !u.isActive } : u
       );
-      setPropertyUnits(prev => ({ ...prev, [propertyId]: updatedUnits }));
+      setPropertyUnits((prev) => ({ ...prev, [propertyId]: updatedUnits }));
 
-      // If all units are now inactive, auto-deactivate the property in local state
-      const allInactive = updatedUnits.length > 0 && updatedUnits.every(u => !u.isActive);
+      const allInactive = updatedUnits.length > 0 && updatedUnits.every((u) => !u.isActive);
       if (allInactive) {
-        setProperties(prev =>
-          prev.map(p => p._id === propertyId ? { ...p, isActive: false, activeUnitCount: 0 } : p)
+        setProperties((prev) =>
+          prev.map((p) => (p._id === propertyId ? { ...p, isActive: false, activeUnitCount: 0 } : p))
         );
       } else {
-        // Update activeUnitCount to stay in sync
-        const newActiveCount = updatedUnits.filter(u => u.isActive).length;
-        setProperties(prev =>
-          prev.map(p => p._id === propertyId ? { ...p, activeUnitCount: newActiveCount } : p)
+        const newActiveCount = updatedUnits.filter((u) => u.isActive).length;
+        setProperties((prev) =>
+          prev.map((p) => (p._id === propertyId ? { ...p, activeUnitCount: newActiveCount } : p))
         );
       }
 
@@ -175,6 +164,7 @@ export default function HostListingsPage() {
     }
   };
 
+  /* ── Helpers ── */
   const unitName = (unit: Unit) =>
     (isAr ? unit.nameAr || unit.nameEn : unit.nameEn || unit.nameAr) || (isAr ? '\u0628\u062f\u0648\u0646 \u0627\u0633\u0645' : 'Untitled');
 
@@ -188,9 +178,23 @@ export default function HostListingsPage() {
     return prices.length ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length) : 0;
   };
 
-  const displayName = (p: Property) => isAr && p.titleAr ? p.titleAr : p.title;
+  const displayName = (p: Property) => (isAr && p.titleAr ? p.titleAr : p.title);
   const displayType = (p: Property) => PROPERTY_TYPES[p.type]?.[lang] || p.type;
-  const displayCity = (p: Property) => p.location?.city || '';
+
+  const hasCoords = (p: Property) => p.location?.coordinates?.lat && p.location?.coordinates?.lng;
+
+  const googleMapsUrl = (p: Property) => {
+    const { lat, lng } = p.location?.coordinates || {};
+    return `https://www.google.com/maps?q=${lat},${lng}`;
+  };
+
+  /** Build a short location string: "City, District" */
+  const locationSummary = (p: Property): string => {
+    const parts: string[] = [];
+    if (p.location?.city) parts.push(p.location.city);
+    if (p.location?.district) parts.push(p.location.district);
+    return parts.join(isAr ? '\u060c ' : ', ');
+  };
 
   const copyPropertyLink = async (propertyId: string) => {
     const base = typeof window !== 'undefined' ? window.location.origin : '';
@@ -203,23 +207,6 @@ export default function HostListingsPage() {
     } catch {
       toast.error('Failed to copy');
     }
-  };
-
-  const hasCoords = (p: Property) =>
-    p.location?.coordinates?.lat && p.location?.coordinates?.lng;
-
-  const googleMapsUrl = (p: Property) => {
-    const { lat, lng } = p.location?.coordinates || {};
-    return `https://www.google.com/maps?q=${lat},${lng}`;
-  };
-
-  const buildAddressParts = (p: Property): string[] => {
-    const parts: string[] = [];
-    if (p.location?.address) parts.push(p.location.address);
-    if (p.location?.district) parts.push(isAr ? `\u062d\u064a ${p.location.district}` : p.location.district);
-    if (p.location?.city) parts.push(p.location.city);
-    if (p.direction && DIRECTION_LABELS[p.direction]) parts.push(DIRECTION_LABELS[p.direction][lang]);
-    return parts;
   };
 
   if (loading) {
@@ -236,7 +223,7 @@ export default function HostListingsPage() {
         <h1 className="text-2xl font-bold text-gray-900">{t.title[lang]}</h1>
         <Link
           href="/host/listings/new"
-          className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
+          className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2.5 rounded-xl hover:bg-primary-700 transition-colors text-sm font-medium shadow-sm"
         >
           <Plus className="w-4 h-4" />
           {t.addNew[lang]}
@@ -244,290 +231,288 @@ export default function HostListingsPage() {
       </div>
 
       {properties.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-          <Building className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500">{t.noProperties[lang]}</p>
+        <div className="bg-white rounded-2xl border border-gray-200 p-16 text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Building className="w-8 h-8 text-gray-300" />
+          </div>
+          <p className="text-gray-900 font-semibold mb-1">{t.noProperties[lang]}</p>
+          <p className="text-sm text-gray-400">{t.noPropertiesDesc[lang]}</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {properties.map((property) => {
             const hasUnits = (property.unitCount || 0) > 0;
             const activeUnits = property.activeUnitCount || 0;
             const totalUnits = property.unitCount || 0;
-            // Effective status: only truly active if has active units
             const effectiveActive = property.isActive && hasUnits && activeUnits > 0;
             const canToggle = hasUnits && activeUnits > 0;
-
             const isExpanded = expandedPropertyId === property._id;
             const units = propertyUnits[property._id] || [];
             const isLoadingUnits = unitsLoading === property._id;
+            const imgUrl = property.images?.[0]?.url || property.unitImage?.url;
+            const loc = locationSummary(property);
+            const dir = property.direction && DIRECTION_LABELS[property.direction]
+              ? DIRECTION_LABELS[property.direction][lang]
+              : null;
 
             return (
-              <div key={property._id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-                <div className="flex items-stretch">
-                  {/* Image / placeholder */}
-                  <div className="w-28 sm:w-36 flex-shrink-0 bg-gray-100 relative">
-                    {(property.images?.[0]?.url || property.unitImage?.url) ? (
-                      <img src={property.images?.[0]?.url || property.unitImage!.url} alt={displayName(property)} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center min-h-[100px]">
-                        <Building className="w-8 h-8 text-gray-300" />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 p-4 flex flex-col justify-between min-w-0">
-                    <div>
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <div className="min-w-0">
-                          <h3 className="font-semibold text-gray-900 truncate">{displayName(property)}</h3>
-                          <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5 flex-wrap">
-                            <span className="bg-gray-100 px-2 py-0.5 rounded-full">{displayType(property)}</span>
-                            {displayCity(property) && (
-                              <span className="flex items-center gap-0.5">
-                                <MapPin className="w-3 h-3" />
-                                {displayCity(property)}
-                              </span>
-                            )}
-                            {property.location?.district && (
-                              <span className="flex items-center gap-0.5">
-                                <span className="text-gray-300">|</span>
-                                {property.location.district}
-                              </span>
-                            )}
-                            {property.direction && DIRECTION_LABELS[property.direction] && (
-                              <span className="flex items-center gap-0.5">
-                                <Compass className="w-3 h-3" />
-                                {DIRECTION_LABELS[property.direction][lang]}
-                              </span>
-                            )}
-                          </div>
+              <div
+                key={property._id}
+                className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow"
+              >
+                {/* ── Property Header ── */}
+                <div className="p-5">
+                  <div className="flex gap-4">
+                    {/* Image */}
+                    <div className="w-24 h-24 sm:w-32 sm:h-32 flex-shrink-0 rounded-xl overflow-hidden bg-gray-100">
+                      {imgUrl ? (
+                        <img src={imgUrl} alt={displayName(property)} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Building className="w-8 h-8 text-gray-300" />
                         </div>
-                        {/* Status badge */}
-                        <span className={`flex-shrink-0 px-2 py-0.5 rounded-full text-xs font-medium ${
-                          effectiveActive
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : 'bg-gray-100 text-gray-600'
-                        }`}>
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0 flex flex-col">
+                      {/* Row 1: Title + Status */}
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="text-lg font-bold text-gray-900 truncate leading-tight">
+                          {displayName(property)}
+                        </h3>
+                        <span
+                          className={`flex-shrink-0 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                            effectiveActive
+                              ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
+                              : 'bg-gray-100 text-gray-500'
+                          }`}
+                        >
                           {effectiveActive ? t.active[lang] : t.inactive[lang]}
                         </span>
                       </div>
 
-                      {/* Full address row */}
-                      {(property.location?.address || (property.location?.district && property.location?.city)) && (
-                        <div className="flex items-center gap-2 mt-1.5">
-                          <div className="flex items-start gap-1.5 text-xs text-gray-400 min-w-0 flex-1">
-                            <MapPin className="w-3 h-3 flex-shrink-0 mt-0.5" />
-                            <span className="truncate">{buildAddressParts(property).join(isAr ? '\u060c ' : ', ')}</span>
-                          </div>
-                          <div className="flex items-center gap-1 flex-shrink-0">
-                            {/* Copy link */}
-                            <button
-                              onClick={(e) => { e.stopPropagation(); copyPropertyLink(property._id); }}
-                              className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-colors"
-                              title={t.copyLink[lang]}
-                            >
-                              {copiedId === property._id ? (
-                                <Check className="w-3 h-3 text-emerald-500" />
-                              ) : (
-                                <Link2 className="w-3 h-3" />
-                              )}
-                            </button>
-                            {/* Map link */}
-                            {hasCoords(property) && (
-                              <a
-                                href={googleMapsUrl(property)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-colors"
-                                title={t.viewOnMap[lang]}
-                              >
-                                <Map className="w-3 h-3" />
-                              </a>
-                            )}
-                          </div>
-                        </div>
+                      {/* Row 2: Type + Location + Direction */}
+                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                        <span className="bg-primary-50 text-primary-700 px-2 py-0.5 rounded-md text-xs font-medium">
+                          {displayType(property)}
+                        </span>
+                        {loc && (
+                          <span className="flex items-center gap-1 text-xs text-gray-500">
+                            <MapPin className="w-3 h-3 flex-shrink-0" />
+                            {loc}
+                          </span>
+                        )}
+                        {dir && (
+                          <span className="flex items-center gap-1 text-xs text-gray-400">
+                            <Compass className="w-3 h-3 flex-shrink-0" />
+                            {dir}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Row 3: Address (if exists, single truncated line) */}
+                      {property.location?.address && (
+                        <p className="text-xs text-gray-400 mt-1 truncate" title={property.location.address}>
+                          {property.location.address}
+                        </p>
                       )}
 
-                      {/* Unit count */}
-                      <div className="mt-2">
+                      {/* Row 4: Unit count + warnings */}
+                      <div className="mt-auto pt-2">
                         {hasUnits ? (
-                          <>
-                            <span className="inline-flex items-center gap-1.5 text-sm text-gray-700">
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center gap-1.5 text-sm">
                               <Layers className="w-3.5 h-3.5 text-primary-500" />
-                              <span className="font-medium">{activeUnits}</span>
+                              <span className="font-semibold text-gray-900">{activeUnits}</span>
                               <span className="text-gray-400">{t.activeOf[lang]}</span>
-                              <span>{totalUnits} {t.unitCount[lang]}</span>
+                              <span className="text-gray-600">{totalUnits} {t.unitCount[lang]}</span>
                             </span>
                             {activeUnits === 0 && (
-                              <div className="bg-amber-50 border border-amber-200 text-amber-700 rounded-lg p-2 text-xs flex items-center gap-1.5 mt-1.5">
-                                <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                              <span className="flex items-center gap-1 text-xs text-amber-600">
+                                <AlertTriangle className="w-3 h-3" />
                                 {t.activateUnit[lang]}
-                              </div>
+                              </span>
                             )}
-                          </>
-                        ) : (
-                          <div className="bg-amber-50 border border-amber-200 text-amber-700 rounded-lg p-2 text-xs flex items-center gap-1.5">
-                            <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
-                            {t.noUnits[lang]}
                           </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Actions row */}
-                    <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100">
-                      <div className="flex items-center gap-3">
-                        <Link href={`/host/listings/${property._id}/edit`}
-                          className="flex items-center gap-1 text-sm text-gray-600 hover:text-primary-600 transition-colors">
-                          <Edit className="w-4 h-4" />
-                          {t.edit[lang]}
-                        </Link>
-                        {/* Expand/collapse units toggle */}
-                        <button
-                          onClick={() => toggleExpand(property._id)}
-                          className={`flex items-center gap-1 text-sm transition-colors ${
-                            hasUnits
-                              ? 'text-gray-600 hover:text-primary-600'
-                              : 'text-primary-600 font-medium hover:text-primary-700'
-                          }`}
-                        >
-                          {isExpanded ? (
-                            <ChevronUp className="w-4 h-4" />
-                          ) : (
-                            <ChevronDown className="w-4 h-4" />
-                          )}
-                          {t.showUnits[lang]}
-                          {hasUnits && <span className="text-xs text-gray-400">({totalUnits})</span>}
-                          {!hasUnits && <Plus className="w-3 h-3" />}
-                        </button>
-                        <button
-                          onClick={() => copyPropertyLink(property._id)}
-                          className="flex items-center gap-1 text-sm text-gray-600 hover:text-primary-600 transition-colors"
-                        >
-                          {copiedId === property._id ? (
-                            <Check className="w-4 h-4 text-emerald-500" />
-                          ) : (
-                            <Link2 className="w-4 h-4" />
-                          )}
-                          {t.copyLink[lang]}
-                        </button>
-                        {hasCoords(property) && (
-                          <a
-                            href={googleMapsUrl(property)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 text-sm text-gray-600 hover:text-primary-600 transition-colors"
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                            {t.viewOnMap[lang]}
-                          </a>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => canToggle && handleToggle(property._id)}
-                        disabled={!canToggle}
-                        className={`flex items-center gap-1 text-sm transition-colors ${
-                          canToggle
-                            ? 'text-gray-600 hover:text-primary-600 cursor-pointer'
-                            : 'text-gray-300 cursor-not-allowed'
-                        }`}
-                        title={!canToggle ? (isAr ? '\u0623\u0636\u0641 \u0648\u062d\u062f\u0627\u062a \u0623\u0648\u0644\u0627\u064b' : 'Add units first') : ''}
-                      >
-                        {effectiveActive ? (
-                          <ToggleRight className="w-5 h-5 text-emerald-500" />
                         ) : (
-                          <ToggleLeft className="w-5 h-5 text-gray-400" />
+                          <span className="flex items-center gap-1.5 text-xs text-amber-600">
+                            <AlertTriangle className="w-3.5 h-3.5" />
+                            {t.noUnits[lang]}
+                          </span>
                         )}
-                      </button>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Expanded units section */}
+                {/* ── Actions Bar ── */}
+                <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100 bg-gray-50/50">
+                  <div className="flex items-center gap-1">
+                    {/* Edit */}
+                    <Link
+                      href={`/host/listings/${property._id}/edit`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-white hover:text-primary-600 hover:shadow-sm transition-all"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                      {t.edit[lang]}
+                    </Link>
+
+                    {/* Units toggle */}
+                    <button
+                      onClick={() => toggleExpand(property._id)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        isExpanded
+                          ? 'bg-primary-100 text-primary-700'
+                          : hasUnits
+                            ? 'text-gray-600 hover:bg-white hover:text-primary-600 hover:shadow-sm'
+                            : 'text-primary-600 hover:bg-primary-50'
+                      }`}
+                    >
+                      {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                      {t.showUnits[lang]}
+                      {hasUnits ? (
+                        <span className="bg-gray-200/80 text-gray-600 px-1.5 py-0.5 rounded text-[10px] font-semibold">
+                          {totalUnits}
+                        </span>
+                      ) : (
+                        <Plus className="w-3 h-3" />
+                      )}
+                    </button>
+
+                    {/* Divider */}
+                    <div className="w-px h-4 bg-gray-200 mx-1" />
+
+                    {/* Copy Link */}
+                    <button
+                      onClick={() => copyPropertyLink(property._id)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-white hover:text-primary-600 hover:shadow-sm transition-all"
+                    >
+                      {copiedId === property._id ? (
+                        <Check className="w-3.5 h-3.5 text-emerald-500" />
+                      ) : (
+                        <Link2 className="w-3.5 h-3.5" />
+                      )}
+                      {t.copyLink[lang]}
+                    </button>
+
+                    {/* Map */}
+                    {hasCoords(property) && (
+                      <a
+                        href={googleMapsUrl(property)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-white hover:text-primary-600 hover:shadow-sm transition-all"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        {t.viewOnMap[lang]}
+                      </a>
+                    )}
+                  </div>
+
+                  {/* Toggle */}
+                  <button
+                    onClick={() => canToggle && handleToggle(property._id)}
+                    disabled={!canToggle}
+                    className={`p-1.5 rounded-lg transition-colors ${
+                      canToggle
+                        ? 'hover:bg-white cursor-pointer'
+                        : 'opacity-30 cursor-not-allowed'
+                    }`}
+                    title={!canToggle ? (isAr ? '\u0623\u0636\u0641 \u0648\u062d\u062f\u0627\u062a \u0623\u0648\u0644\u0627\u064b' : 'Add units first') : ''}
+                  >
+                    {effectiveActive ? (
+                      <ToggleRight className="w-6 h-6 text-emerald-500" />
+                    ) : (
+                      <ToggleLeft className="w-6 h-6 text-gray-400" />
+                    )}
+                  </button>
+                </div>
+
+                {/* ── Expanded Units ── */}
                 {isExpanded && (
-                  <div className="border-t border-gray-200 bg-gray-50/50">
+                  <div className="border-t border-gray-200">
                     {isLoadingUnits ? (
-                      <div className="flex items-center justify-center py-6">
+                      <div className="flex items-center justify-center py-8">
                         <Loader2 className="w-5 h-5 animate-spin text-primary-600" />
                       </div>
                     ) : units.length === 0 ? (
-                      <div className="px-4 py-5 text-center">
-                        <p className="text-sm text-gray-400 mb-2">{t.noUnitsYet[lang]}</p>
+                      <div className="px-5 py-8 text-center">
+                        <p className="text-sm text-gray-400 mb-3">{t.noUnitsYet[lang]}</p>
                         <Link
                           href={`/host/listings/${property._id}/units/new`}
-                          className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"
+                          className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors"
                         >
                           <Plus className="w-4 h-4" />
                           {t.addUnit[lang]}
                         </Link>
                       </div>
                     ) : (
-                      <div className="divide-y divide-gray-200 bg-gray-50/50 rounded-lg border border-gray-100">
-                        {units.map((unit) => {
-                          const avg = avgPrice(unit.pricing);
-                          const img = primaryImage(unit);
-                          return (
-                            <div
-                              key={unit._id}
-                              className={`flex items-start gap-3 px-4 py-3.5 hover:bg-white/80 transition-colors ${
-                                !unit.isActive ? 'opacity-60' : ''
-                              }`}
-                            >
-                              {/* Unit thumbnail */}
-                              <div className="w-14 h-14 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
-                                {img ? (
-                                  <img src={img} alt="" className="w-full h-full object-cover" />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center">
-                                    <Building className="w-5 h-5 text-gray-300" />
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Unit info */}
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-0.5">
-                                  <span className="font-medium text-sm text-gray-900 truncate">
-                                    {unitName(unit)}
-                                  </span>
-                                  <span className={`flex-shrink-0 px-1.5 py-0.5 rounded-full text-[10px] font-medium ${
-                                    unit.isActive
-                                      ? 'bg-emerald-100 text-emerald-700'
-                                      : 'bg-gray-100 text-gray-500'
-                                  }`}>
-                                    {unit.isActive ? t.active[lang] : t.inactive[lang]}
-                                  </span>
+                      <div>
+                        <div className="divide-y divide-gray-100">
+                          {units.map((unit) => {
+                            const avg = avgPrice(unit.pricing);
+                            const img = primaryImage(unit);
+                            return (
+                              <div
+                                key={unit._id}
+                                className={`flex items-center gap-4 px-5 py-4 hover:bg-gray-50/80 transition-colors ${
+                                  !unit.isActive ? 'opacity-50' : ''
+                                }`}
+                              >
+                                {/* Unit thumbnail */}
+                                <div className="w-14 h-14 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
+                                  {img ? (
+                                    <img src={img} alt="" className="w-full h-full object-cover" />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center">
+                                      <Building className="w-5 h-5 text-gray-300" />
+                                    </div>
+                                  )}
                                 </div>
 
-                                {/* Stats row */}
-                                <div className="flex items-center gap-3 text-xs text-gray-500 mb-1.5">
-                                  {(unit.capacity?.maxGuests ?? 0) > 0 && (
-                                    <span className="flex items-center gap-0.5">
-                                      <Users className="w-3 h-3" /> {unit.capacity!.maxGuests}
+                                {/* Unit info */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-semibold text-sm text-gray-900 truncate">
+                                      {unitName(unit)}
                                     </span>
-                                  )}
-                                  {(unit.bedrooms?.count ?? 0) > 0 && (
-                                    <span className="flex items-center gap-0.5">
-                                      <Bed className="w-3 h-3" /> {unit.bedrooms!.count}
+                                    <span
+                                      className={`flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                                        unit.isActive
+                                          ? 'bg-emerald-50 text-emerald-700'
+                                          : 'bg-gray-100 text-gray-500'
+                                      }`}
+                                    >
+                                      {unit.isActive ? t.active[lang] : t.inactive[lang]}
                                     </span>
-                                  )}
-                                  {(unit.bathroomCount ?? 0) > 0 && (
-                                    <span className="flex items-center gap-0.5">
-                                      <Droplets className="w-3 h-3" /> {unit.bathroomCount}
-                                    </span>
-                                  )}
-                                  {avg > 0 && (
-                                    <span className="font-semibold text-primary-600" dir="ltr">
-                                      <SarSymbol /> {avg.toLocaleString('en')}/{isAr ? '\u0644\u064a\u0644\u0629' : 'night'}
-                                    </span>
-                                  )}
+                                  </div>
+                                  <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
+                                    {(unit.capacity?.maxGuests ?? 0) > 0 && (
+                                      <span className="flex items-center gap-0.5">
+                                        <Users className="w-3 h-3" /> {unit.capacity!.maxGuests}
+                                      </span>
+                                    )}
+                                    {(unit.bedrooms?.count ?? 0) > 0 && (
+                                      <span className="flex items-center gap-0.5">
+                                        <Bed className="w-3 h-3" /> {unit.bedrooms!.count}
+                                      </span>
+                                    )}
+                                    {(unit.bathroomCount ?? 0) > 0 && (
+                                      <span className="flex items-center gap-0.5">
+                                        <Droplets className="w-3 h-3" /> {unit.bathroomCount}
+                                      </span>
+                                    )}
+                                    {avg > 0 && (
+                                      <span className="font-semibold text-primary-600" dir="ltr">
+                                        <SarSymbol /> {avg.toLocaleString('en')}/{isAr ? '\u0644\u064a\u0644\u0629' : 'night'}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
 
                                 {/* Unit actions */}
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 flex-shrink-0">
                                   <Link
                                     href={`/host/listings/${property._id}/units/${unit._id}/edit`}
                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 hover:border-primary-300 hover:bg-primary-50 rounded-lg text-xs font-medium text-gray-700 hover:text-primary-600 shadow-sm transition-colors"
@@ -544,7 +529,7 @@ export default function HostListingsPage() {
                                   </Link>
                                   <button
                                     onClick={() => handleUnitToggle(unit._id, property._id)}
-                                    className="flex items-center gap-1 text-sm text-gray-600 hover:text-primary-600 transition-colors"
+                                    className="p-1.5 rounded-lg hover:bg-white transition-colors"
                                   >
                                     {unit.isActive ? (
                                       <ToggleRight className="w-5 h-5 text-emerald-500" />
@@ -554,15 +539,15 @@ export default function HostListingsPage() {
                                   </button>
                                 </div>
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
 
-                        {/* Footer: Add Unit + Manage all */}
-                        <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50">
+                        {/* Footer */}
+                        <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100 bg-gray-50/50">
                           <Link
                             href={`/host/listings/${property._id}/units/new`}
-                            className="inline-flex items-center gap-1 text-xs font-medium text-primary-600 hover:text-primary-700 transition-colors"
+                            className="inline-flex items-center gap-1.5 text-xs font-medium text-primary-600 hover:text-primary-700 transition-colors"
                           >
                             <Plus className="w-3.5 h-3.5" />
                             {t.addUnit[lang]}
