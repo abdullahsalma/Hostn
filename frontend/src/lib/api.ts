@@ -191,6 +191,28 @@ export const hostApi = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// HOST FINANCE
+// ═══════════════════════════════════════════════════════════════════════════════
+export const hostFinanceApi = {
+  getSummary: () => api.get('/host/finance/summary'),
+  getPayouts: (params?: Record<string, unknown>) =>
+    api.get('/host/finance/payouts', { params }),
+  getPayoutDetail: (id: string) => api.get(`/host/finance/payouts/${id}`),
+  getInvoices: (params?: Record<string, unknown>) =>
+    api.get('/host/finance/invoices', { params }),
+  getInvoiceDetail: (id: string) => api.get(`/host/finance/invoices/${id}`),
+  getStatements: (params?: { year?: number }) =>
+    api.get('/host/finance/statements', { params }),
+  getStatementDetail: (id: string) => api.get(`/host/finance/statements/${id}`),
+  getBankAccount: () => api.get('/host/finance/bank-account'),
+  upsertBankAccount: (data: { bankName: string; bankNameAr?: string; iban: string; accountHolder: string }) =>
+    api.put('/host/finance/bank-account', data),
+  deleteBankAccount: () => api.delete('/host/finance/bank-account'),
+  updateTransferDuration: (data: { type: string; hours: number }) =>
+    api.put('/host/finance/transfer-duration', data),
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // REVIEWS
 // ═══════════════════════════════════════════════════════════════════════════════
 export const reviewsApi = {

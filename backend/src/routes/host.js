@@ -18,6 +18,19 @@ const {
   getHostCalendarAll,
   getHostDashboardStats,
 } = require('../controllers/hostController');
+const {
+  getFinanceSummary,
+  getPayouts,
+  getPayoutDetail,
+  getInvoices,
+  getInvoiceDetail,
+  getStatements,
+  getStatementDetail,
+  getBankAccount,
+  upsertBankAccount,
+  deleteBankAccount,
+  updateTransferDuration,
+} = require('../controllers/hostFinanceController');
 const { protect, authorize } = require('../middleware/auth');
 const { blockDatesRules, mongoIdParam } = require('../middleware/validate');
 const { uploadSingle } = require('../middleware/upload');
@@ -32,6 +45,19 @@ router.get('/dashboard/stats', getHostDashboardStats);
 router.get('/recent-bookings', getRecentBookings);
 router.get('/notifications', getNotifications);
 router.get('/earnings', getEarnings);
+
+// Finance
+router.get('/finance/summary', getFinanceSummary);
+router.get('/finance/payouts', getPayouts);
+router.get('/finance/payouts/:id', getPayoutDetail);
+router.get('/finance/invoices', getInvoices);
+router.get('/finance/invoices/:id', getInvoiceDetail);
+router.get('/finance/statements', getStatements);
+router.get('/finance/statements/:id', getStatementDetail);
+router.get('/finance/bank-account', getBankAccount);
+router.put('/finance/bank-account', upsertBankAccount);
+router.delete('/finance/bank-account', deleteBankAccount);
+router.put('/finance/transfer-duration', updateTransferDuration);
 
 // Properties (grouped as property → units for host app)
 router.get('/properties', getHostProperties);
