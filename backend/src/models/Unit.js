@@ -226,8 +226,15 @@ const unitSchema = new mongoose.Schema(
 
     // ── Q. Tourism License (MOT) ─────────────────────────────────
     tourismLicense: {
-      licenseNumber: { type: String, trim: true },
-      licenseType: { type: String },
+      workType: {
+        type: String,
+        enum: ['individual', 'company'],
+        default: 'individual',
+      },
+      licenseNumber: { type: String, trim: true },     // MOT permit number (individual) OR license number (company)
+      nationalId: { type: String, trim: true },         // National ID for individual
+      commercialRegister: { type: String, trim: true }, // Commercial register for company
+      documentUrl: { type: String },                    // PDF file URL
       issueDate: { type: Date },
       expiryDate: { type: Date },
       status: {
