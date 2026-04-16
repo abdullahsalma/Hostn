@@ -196,8 +196,13 @@ export const hostApi = {
   // Tourism License
   getLicenseOverview: () => api.get('/host/tourism-license'),
   upsertLicense: (unitId: string, data: {
-    licenseNumber: string; licenseType?: string;
-    issueDate: string; expiryDate: string;
+    workType: 'individual' | 'company';
+    licenseNumber: string;
+    nationalId?: string;
+    commercialRegister?: string;
+    documentUrl?: string;
+    issueDate?: string;
+    expiryDate?: string;
   }) => api.put(`/host/units/${unitId}/tourism-license`, data),
   deleteLicense: (unitId: string) => api.delete(`/host/units/${unitId}/tourism-license`),
 };
@@ -220,7 +225,7 @@ export const hostFinanceApi = {
   upsertBankAccount: (data: { bankName: string; bankNameAr?: string; iban: string; accountHolder: string }) =>
     api.put('/host/finance/bank-account', data),
   deleteBankAccount: () => api.delete('/host/finance/bank-account'),
-  updateTransferDuration: (data: { type: string; hours: number }) =>
+  updateTransferDuration: (data: { type: string; hours?: number; thresholdAmount?: number; weeklyDay?: number }) =>
     api.put('/host/finance/transfer-duration', data),
 };
 
@@ -367,6 +372,10 @@ export const uploadApi = {
     }),
   multiple: (formData: FormData) =>
     api.post('/upload/multiple', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  uploadDocument: (formData: FormData, folder?: string) =>
+    api.post(`/upload/document${folder ? `?folder=${folder}` : ''}`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
 };
