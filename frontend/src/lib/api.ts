@@ -193,6 +193,11 @@ export const hostApi = {
   getPropertiesWithUnits: () => api.get('/host/properties-units'),
   getUnitPoints: (unitId: string) => api.get(`/host/units/${unitId}/points`),
 
+  // Host Loyalty
+  getLoyaltyStatus: (params?: { quarter?: string }) =>
+    api.get('/host/loyalty', { params }),
+  getLoyaltySummary: () => api.get('/host/loyalty/summary'),
+
   // Tourism License
   getLicenseOverview: () => api.get('/host/tourism-license'),
   upsertLicense: (unitId: string, data: {

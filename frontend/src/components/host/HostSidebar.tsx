@@ -22,6 +22,7 @@ import {
   Tag,
   Trophy,
   ShieldCheck,
+  Award,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -43,6 +44,7 @@ function getNavItems(isAr: boolean) {
     { href: '/host/reviews', label: isAr ? '\u0627\u0644\u062A\u0642\u064A\u064A\u0645\u0627\u062A' : 'Reviews', icon: Star },
     { href: '/host/unit-points', label: isAr ? 'نقاط الوحدات' : 'Unit Points', icon: Trophy },
     { href: '/host/tourism-license', label: isAr ? 'رخصة السياحة' : 'MOT License', icon: ShieldCheck },
+    { href: '/host/loyalty', label: isAr ? 'برنامج الولاء' : 'Loyalty', icon: Award },
     { href: '/host/messages', label: isAr ? '\u0627\u0644\u0631\u0633\u0627\u0626\u0644' : 'Messages', icon: MessageSquare },
   ];
 }

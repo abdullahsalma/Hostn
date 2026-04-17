@@ -39,6 +39,8 @@ function overlapQuery(propertyId, checkInDate, checkOutDate, unitId) {
 // Helper: calculate pricing from a Unit's per-day rates (with per-date overrides)
 function calculateUnitPricing(unit, checkInDate, checkOutDate) {
   const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  // Weekday = Sun-Wed (indices 0-3), Weekend = Thu-Sat (indices 4-6)
+  const WEEKDAY_INDICES = new Set([0, 1, 2, 3]);
   let subtotal = 0;
   let nights = 0;
 
@@ -48,6 +50,14 @@ function calculateUnitPricing(unit, checkInDate, checkOutDate) {
     for (const dp of unit.datePricing) {
       const key = new Date(dp.date).toISOString().slice(0, 10);
       dateOverrides.set(key, dp);
+    }
+  }
+
+  // Build discount rules lookup (weekday/weekend)
+  const discountRuleMap = {};
+  if (unit.discountRules && unit.discountRules.length > 0) {
+    for (const rule of unit.discountRules) {
+      discountRuleMap[rule.type] = rule.percent || 0;
     }
   }
 
@@ -63,14 +73,25 @@ function calculateUnitPricing(unit, checkInDate, checkOutDate) {
       throw err;
     }
 
+    let nightPrice;
     if (override && override.price != null) {
       // Use the per-date override price
-      subtotal += override.price;
+      nightPrice = override.price;
     } else {
       // Fall back to day-of-week price
       const dayName = dayNames[current.getDay()];
-      subtotal += unit.pricing[dayName] || 0;
+      nightPrice = unit.pricing[dayName] || 0;
     }
+
+    // Apply discount rules per night (weekday/weekend)
+    const dayIndex = current.getDay();
+    const dayType = WEEKDAY_INDICES.has(dayIndex) ? 'weekday' : 'weekend';
+    const rulePercent = discountRuleMap[dayType] || 0;
+    if (rulePercent > 0) {
+      nightPrice = Math.round(nightPrice * (1 - rulePercent / 100));
+    }
+
+    subtotal += nightPrice;
     nights++;
     current.setDate(current.getDate() + 1);
   }
@@ -80,9 +101,16 @@ function calculateUnitPricing(unit, checkInDate, checkOutDate) {
   const serviceFee = Math.round(subtotal * 0.1);
 
   let discountPercent = unit.pricing.discountPercent || 0;
+  let discountType = discountPercent > 0 ? 'global' : '';
+  // Apply monthly discount if stay is 30+ nights and it's higher
+  if (nights >= 30 && (unit.pricing.monthlyDiscount || 0) > discountPercent) {
+    discountPercent = unit.pricing.monthlyDiscount;
+    discountType = 'monthly';
+  }
   // Apply weekly discount if stay is 7+ nights and it's higher
   if (nights >= 7 && (unit.pricing.weeklyDiscount || 0) > discountPercent) {
     discountPercent = unit.pricing.weeklyDiscount;
+    discountType = 'weekly';
   }
 
   const discount = discountPercent > 0 ? Math.round(subtotal * (discountPercent / 100)) : 0;
@@ -90,7 +118,7 @@ function calculateUnitPricing(unit, checkInDate, checkOutDate) {
   const vat = Math.round(taxableAmount * 0.15);
   const total = taxableAmount + vat;
 
-  return { perNight, nights, subtotal, cleaningFee, serviceFee, discount, vat, total };
+  return { perNight, nights, subtotal, cleaningFee, serviceFee, discount, discountPercent, discountType, vat, total };
 }
 
 // Detect once at startup whether the MongoDB deployment supports transactions

@@ -13,6 +13,7 @@ import toast from 'react-hot-toast';
 import { usePageTitle } from '@/lib/usePageTitle';
 import SarSymbol from '@/components/ui/SarSymbol';
 import type { Unit } from '@/types';
+import { CITIES, DISTRICTS } from '@/lib/constants';
 
 interface Property {
   _id: string;
@@ -55,6 +56,8 @@ const t: Record<string, Record<string, string>> = {
   copyLink: { en: 'Copy Link', ar: '\u0646\u0633\u062e \u0627\u0644\u0631\u0627\u0628\u0637' },
   linkCopied: { en: 'Link copied!', ar: '\u062a\u0645 \u0646\u0633\u062e \u0627\u0644\u0631\u0627\u0628\u0637!' },
   viewOnMap: { en: 'Map', ar: '\u0627\u0644\u062e\u0631\u064a\u0637\u0629' },
+  addNewUnit: { en: 'Add New Unit', ar: 'إضافة وحدة جديدة' },
+  selectProperty: { en: 'Select a property', ar: 'اختر عقاراً' },
 };
 
 const DIRECTION_LABELS: Record<string, Record<string, string>> = {
@@ -89,6 +92,7 @@ export default function HostListingsPage() {
   const [propertyUnits, setPropertyUnits] = useState<Record<string, Unit[]>>({});
   const [unitsLoading, setUnitsLoading] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [showUnitDropdown, setShowUnitDropdown] = useState(false);
 
   useEffect(() => {
     loadProperties();
@@ -188,11 +192,20 @@ export default function HostListingsPage() {
     return `https://www.google.com/maps?q=${lat},${lng}`;
   };
 
-  /** Build a short location string: "City, District" */
+  /** Build a short location string: "City, District" (bilingual) */
   const locationSummary = (p: Property): string => {
     const parts: string[] = [];
-    if (p.location?.city) parts.push(p.location.city);
-    if (p.location?.district) parts.push(p.location.district);
+    if (p.location?.city) {
+      const city = p.location.city;
+      const cityObj = CITIES.find(c => c.value.toLowerCase() === city.toLowerCase());
+      parts.push(cityObj ? cityObj[lang] : city);
+    }
+    if (p.location?.district) {
+      const district = p.location.district;
+      const allDistricts = Object.values(DISTRICTS).flat();
+      const distObj = allDistricts.find(d => d.value.toLowerCase() === district.toLowerCase());
+      parts.push(distObj ? distObj[lang] : district);
+    }
     return parts.join(isAr ? '\u060c ' : ', ');
   };
 
@@ -221,13 +234,48 @@ export default function HostListingsPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">{t.title[lang]}</h1>
-        <Link
-          href="/host/listings/new"
-          className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2.5 rounded-xl hover:bg-primary-700 transition-colors text-sm font-medium shadow-sm"
-        >
-          <Plus className="w-4 h-4" />
-          {t.addNew[lang]}
-        </Link>
+        <div className="flex items-center gap-2">
+          {/* Add New Unit */}
+          <div className="relative">
+            <button
+              onClick={() => setShowUnitDropdown(!showUnitDropdown)}
+              className="flex items-center gap-2 bg-white text-gray-700 border border-gray-200 px-4 py-2.5 rounded-xl hover:bg-gray-50 transition-colors text-sm font-medium"
+            >
+              <Plus className="w-4 h-4" />
+              {t.addNewUnit[lang]}
+              <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${showUnitDropdown ? 'rotate-180' : ''}`} />
+            </button>
+            {showUnitDropdown && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setShowUnitDropdown(false)} />
+                <div className="absolute top-full mt-1 z-20 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden min-w-[220px] end-0">
+                  {properties.length === 0 ? (
+                    <p className="px-4 py-3 text-sm text-gray-400">{t.noProperties[lang]}</p>
+                  ) : (
+                    properties.map((p) => (
+                      <Link
+                        key={p._id}
+                        href={`/host/listings/${p._id}/units/new`}
+                        onClick={() => setShowUnitDropdown(false)}
+                        className="block w-full px-4 py-2.5 text-sm text-start text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        {displayName(p)}
+                      </Link>
+                    ))
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+          {/* Add New Property */}
+          <Link
+            href="/host/listings/new"
+            className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2.5 rounded-xl hover:bg-primary-700 transition-colors text-sm font-medium shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            {t.addNew[lang]}
+          </Link>
+        </div>
       </div>
 
       {properties.length === 0 ? (

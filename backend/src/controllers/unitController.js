@@ -168,23 +168,40 @@ exports.searchUnits = async (req, res, next) => {
     const skip = (safePage - 1) * safeLimit;
 
     // ── Step 6: Aggregation pipeline ───────────────────────────────
+
+    // Build date-aware price computation when checkIn/checkOut are provided
+    let avgPriceExpr;
+    if (checkIn && checkOut) {
+      // Compute average price for only the specific days in the guest's date range
+      const ciDate = new Date(checkIn);
+      const coDate = new Date(checkOut);
+      const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const dayPrices = [];
+      const cur = new Date(ciDate);
+      while (cur < coDate) {
+        const dayField = `$pricing.${dayNames[cur.getDay()]}`;
+        dayPrices.push({ $ifNull: [dayField, 0] });
+        cur.setDate(cur.getDate() + 1);
+      }
+      avgPriceExpr = dayPrices.length > 0 ? { $avg: dayPrices } : { $literal: 0 };
+    } else {
+      // No dates selected — use 7-day average
+      avgPriceExpr = {
+        $avg: [
+          { $ifNull: ['$pricing.sunday', 0] },
+          { $ifNull: ['$pricing.monday', 0] },
+          { $ifNull: ['$pricing.tuesday', 0] },
+          { $ifNull: ['$pricing.wednesday', 0] },
+          { $ifNull: ['$pricing.thursday', 0] },
+          { $ifNull: ['$pricing.friday', 0] },
+          { $ifNull: ['$pricing.saturday', 0] },
+        ],
+      };
+    }
+
     const pipeline = [
       { $match: unitFilter },
-      {
-        $addFields: {
-          avgPrice: {
-            $avg: [
-              { $ifNull: ['$pricing.sunday', 0] },
-              { $ifNull: ['$pricing.monday', 0] },
-              { $ifNull: ['$pricing.tuesday', 0] },
-              { $ifNull: ['$pricing.wednesday', 0] },
-              { $ifNull: ['$pricing.thursday', 0] },
-              { $ifNull: ['$pricing.friday', 0] },
-              { $ifNull: ['$pricing.saturday', 0] },
-            ],
-          },
-        },
-      },
+      { $addFields: { avgPrice: avgPriceExpr } },
       // Apply discount to avgPrice so price filter matches what the guest actually pays
       {
         $addFields: {
