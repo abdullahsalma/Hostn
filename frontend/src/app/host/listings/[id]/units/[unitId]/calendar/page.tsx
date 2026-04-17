@@ -258,7 +258,9 @@ export default function UnitPricingPage() {
   const [globalDiscountInput, setGlobalDiscountInput] = useState('');
   const [weeklyDiscountInput, setWeeklyDiscountInput] = useState('');
   const [monthlyDiscountInput, setMonthlyDiscountInput] = useState('');
-  const [savingDiscount, setSavingDiscount] = useState(false);
+  const [savingGlobalDiscount, setSavingGlobalDiscount] = useState(false);
+  const [savingWeeklyDiscount, setSavingWeeklyDiscount] = useState(false);
+  const [savingMonthlyDiscount, setSavingMonthlyDiscount] = useState(false);
 
   // Range mode toggle (single-click vs range select)
   const [rangeMode, setRangeMode] = useState(false);
@@ -604,11 +606,11 @@ export default function UnitPricingPage() {
     }
   };
 
-  /* ── Save global / weekly discount (4F) ── */
+  /* ── Save global / weekly / monthly discount (4F) ── */
   const saveGlobalDiscount = async () => {
     const val = Number(globalDiscountInput);
     if (isNaN(val) || val < 0 || val > 100) return;
-    setSavingDiscount(true);
+    setSavingGlobalDiscount(true);
     try {
       await unitsApi.updatePricing(unitId, { pricing: { discountPercent: val } });
       toast.success(t.discountSaved[lang]);
@@ -616,14 +618,14 @@ export default function UnitPricingPage() {
     } catch {
       toast.error(t.error[lang]);
     } finally {
-      setSavingDiscount(false);
+      setSavingGlobalDiscount(false);
     }
   };
 
   const saveWeeklyDiscount = async () => {
     const val = Number(weeklyDiscountInput);
     if (isNaN(val) || val < 0 || val > 100) return;
-    setSavingDiscount(true);
+    setSavingWeeklyDiscount(true);
     try {
       await unitsApi.updatePricing(unitId, { pricing: { weeklyDiscount: val } });
       toast.success(t.discountSaved[lang]);
@@ -631,14 +633,14 @@ export default function UnitPricingPage() {
     } catch {
       toast.error(t.error[lang]);
     } finally {
-      setSavingDiscount(false);
+      setSavingWeeklyDiscount(false);
     }
   };
 
   const saveMonthlyDiscount = async () => {
     const val = Number(monthlyDiscountInput);
     if (isNaN(val) || val < 0 || val > 100) return;
-    setSavingDiscount(true);
+    setSavingMonthlyDiscount(true);
     try {
       await unitsApi.updatePricing(unitId, { pricing: { monthlyDiscount: val } });
       toast.success(t.discountSaved[lang]);
@@ -646,7 +648,7 @@ export default function UnitPricingPage() {
     } catch {
       toast.error(t.error[lang]);
     } finally {
-      setSavingDiscount(false);
+      setSavingMonthlyDiscount(false);
     }
   };
 
@@ -955,10 +957,10 @@ export default function UnitPricingPage() {
                 </div>
                 <button
                   onClick={saveWeeklyDiscount}
-                  disabled={savingDiscount}
+                  disabled={savingWeeklyDiscount}
                   className="px-3 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors disabled:opacity-50"
                 >
-                  {savingDiscount ? <Loader2 className="w-4 h-4 animate-spin" /> : t.save[lang]}
+                  {savingWeeklyDiscount ? <Loader2 className="w-4 h-4 animate-spin" /> : t.save[lang]}
                 </button>
               </div>
               {(unit?.pricing?.weeklyDiscount ?? 0) > 0 && (
@@ -989,10 +991,10 @@ export default function UnitPricingPage() {
                 </div>
                 <button
                   onClick={saveMonthlyDiscount}
-                  disabled={savingDiscount}
+                  disabled={savingMonthlyDiscount}
                   className="px-3 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors disabled:opacity-50"
                 >
-                  {savingDiscount ? <Loader2 className="w-4 h-4 animate-spin" /> : t.save[lang]}
+                  {savingMonthlyDiscount ? <Loader2 className="w-4 h-4 animate-spin" /> : t.save[lang]}
                 </button>
               </div>
               {(unit?.pricing?.monthlyDiscount ?? 0) > 0 && (
@@ -1056,10 +1058,10 @@ export default function UnitPricingPage() {
             </div>
             <button
               onClick={saveGlobalDiscount}
-              disabled={savingDiscount}
+              disabled={savingGlobalDiscount}
               className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors disabled:opacity-50"
             >
-              {savingDiscount ? <Loader2 className="w-4 h-4 animate-spin" /> : t.save[lang]}
+              {savingGlobalDiscount ? <Loader2 className="w-4 h-4 animate-spin" /> : t.save[lang]}
             </button>
           </div>
           {(unit?.pricing?.discountPercent ?? 0) > 0 && (

@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/context/LanguageContext';
 import { hostApi } from '@/lib/api';
-import { Building, CalendarCheck, DollarSign, Star, Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import { Building, CalendarCheck, DollarSign, Star, Loader2, ChevronRight } from 'lucide-react';
 import SarSymbol from '@/components/ui/SarSymbol';
 import toast from 'react-hot-toast';
 import { usePageTitle } from '@/lib/usePageTitle';
@@ -41,6 +42,9 @@ const t: Record<string, Record<string, string>> = {
   amount: { en: 'Amount', ar: '\u0627\u0644\u0645\u0628\u0644\u063a' },
   noBookings: { en: 'No recent bookings', ar: '\u0644\u0627 \u062a\u0648\u062c\u062f \u062d\u062c\u0648\u0632\u0627\u062a \u062d\u062f\u064a\u062b\u0629' },
   loading: { en: 'Loading...', ar: '\u062c\u0627\u0631\u064a \u0627\u0644\u062a\u062d\u0645\u064a\u0644...' },
+  loyaltyProgram: { en: 'Loyalty Program', ar: 'برنامج الولاء' },
+  viewAll: { en: 'View All', ar: 'عرض الكل' },
+  loyaltySub: { en: 'Track your performance and rise to higher levels', ar: 'تابع مؤشرات الآداء وارتق الى مستويات اعلى' },
 };
 
 const statusLabels: Record<string, { en: string; ar: string }> = {
@@ -66,6 +70,7 @@ export default function HostDashboardPage() {
   usePageTitle(isAr ? 'لوحة تحكم المضيف' : 'Host Dashboard');
   const [stats, setStats] = useState<Stats>({ totalProperties: 0, activeBookings: 0, totalEarnings: 0, averageRating: 0 });
   const [bookings, setBookings] = useState<RecentBooking[]>([]);
+  const [loyaltySummary, setLoyaltySummary] = useState<{ tier: string; tierLabel: { en: string; ar: string } } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -74,9 +79,10 @@ export default function HostDashboardPage() {
 
   const loadData = async () => {
     try {
-      const [statsRes, bookingsRes] = await Promise.all([
+      const [statsRes, bookingsRes, loyaltyRes] = await Promise.all([
         hostApi.getStats(),
         hostApi.getRecentBookings(),
+        hostApi.getLoyaltySummary().catch(() => null),
       ]);
       const raw = statsRes.data.data || statsRes.data;
       // Map nested backend response to flat stats shape
@@ -87,6 +93,7 @@ export default function HostDashboardPage() {
         averageRating: raw.averageRating ?? raw.reviews?.averageRating ?? 0,
       });
       setBookings(bookingsRes.data.data || bookingsRes.data || []);
+      if (loyaltyRes?.data?.data) setLoyaltySummary(loyaltyRes.data.data);
     } catch {
       toast.error(lang === 'ar' ? '\u0641\u0634\u0644 \u0641\u064a \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a' : 'Failed to load data');
     } finally {
@@ -130,6 +137,45 @@ export default function HostDashboardPage() {
           );
         })}
       </div>
+
+      {/* Loyalty Widget */}
+      {loyaltySummary && (() => {
+        const tierGradients: Record<string, string> = {
+          basic: 'from-gray-400 to-gray-500',
+          silver: 'from-slate-400 to-slate-600',
+          gold: 'from-amber-400 to-amber-600',
+          summit: 'from-emerald-500 to-emerald-700',
+        };
+        const tierStars: Record<string, number> = { basic: 0, silver: 1, gold: 2, summit: 3 };
+        const stars = tierStars[loyaltySummary.tier] || 0;
+        return (
+          <Link href="/host/loyalty" className="block mb-8">
+            <div className={`rounded-xl bg-gradient-to-r ${tierGradients[loyaltySummary.tier] || tierGradients.basic} p-5 text-white hover:shadow-lg transition-shadow`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      {stars > 0 && (
+                        <div className="flex gap-0.5">
+                          {Array.from({ length: stars }).map((_, i) => (
+                            <Star key={i} className="w-4 h-4 fill-white text-white" />
+                          ))}
+                        </div>
+                      )}
+                      <span className="text-base font-bold">{loyaltySummary.tierLabel[lang]}</span>
+                    </div>
+                    <p className="text-xs text-white/70">{t.loyaltySub[lang]}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 text-sm font-medium text-white/90">
+                  <span>{t.viewAll[lang]}</span>
+                  <ChevronRight className="w-4 h-4 rtl:rotate-180" />
+                </div>
+              </div>
+            </div>
+          </Link>
+        );
+      })()}
 
       {/* Recent Bookings */}
       <div className="bg-white rounded-xl border border-gray-200">

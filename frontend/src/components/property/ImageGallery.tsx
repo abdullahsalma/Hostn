@@ -47,7 +47,7 @@ export default function ImageGallery({ images, title, videoCount = 0, onVideoCli
             />
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-2 h-80 md:h-96">
+          <div className="grid grid-cols-2 gap-2 h-80 md:h-[28rem] lg:h-[32rem]">
             {/* Main image — always left half */}
             <div className="relative cursor-pointer" onClick={() => openAtIndex(0)}>
               <Image
@@ -116,7 +116,7 @@ export default function ImageGallery({ images, title, videoCount = 0, onVideoCli
         <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center">
           <button
             onClick={() => setLightboxOpen(false)}
-            className="absolute top-4 right-4 text-white bg-white/10 rounded-full p-2 hover:bg-white/20 transition-colors z-10"
+            className="absolute top-4 ltr:right-4 rtl:left-4 text-white bg-white/10 rounded-full p-2 hover:bg-white/20 transition-colors z-10"
           >
             <X className="w-6 h-6" />
           </button>

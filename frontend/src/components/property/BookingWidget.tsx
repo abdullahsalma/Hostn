@@ -41,7 +41,7 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
   const [selectingCheckOut, setSelectingCheckOut] = useState(false);
 
   // ── Unit selection ──
-  interface UnitOption { _id: string; nameEn?: string; nameAr?: string; pricing?: Record<string, number>; capacity?: { maxGuests?: number }; datePricing?: { date: string; price?: number; isBlocked?: boolean }[] }
+  interface UnitOption { _id: string; nameEn?: string; nameAr?: string; pricing?: Record<string, number>; capacity?: { maxGuests?: number }; datePricing?: { date: string; price?: number; isBlocked?: boolean }[]; discountRules?: { type: string; percent: number }[] }
   const [units, setUnits] = useState<UnitOption[]>([]);
   const [selectedUnitId, setSelectedUnitId] = useState<string>(initialUnitId);
   const selectedUnit = units.find((u) => u._id === selectedUnitId) || null;
@@ -125,6 +125,11 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
   let cleaningFee: number;
   let discount: number;
 
+  // Weekday = Sun-Wed (indices 0-3), Weekend = Thu-Sat (indices 4-6)
+  const WEEKDAY_INDICES = new Set([0, 1, 2, 3]);
+  let discountLabel = '';
+  let appliedDiscountPct = 0;
+
   if (hasUnit && selectedUnit.pricing && nights > 0) {
     const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
@@ -137,6 +142,14 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
       }
     }
 
+    // Build discount rules lookup (weekday/weekend)
+    const discountRuleMap: Record<string, number> = {};
+    if (selectedUnit.discountRules) {
+      for (const rule of selectedUnit.discountRules) {
+        discountRuleMap[rule.type] = rule.percent || 0;
+      }
+    }
+
     let sum = 0;
     const start = new Date(checkIn);
     for (let i = 0; i < nights; i++) {
@@ -145,32 +158,49 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
       const dateKey = d.toISOString().slice(0, 10);
       const override = dateOverrides.get(dateKey);
 
+      let nightPrice: number;
       if (override?.isBlocked) {
-        // Blocked date — use day-of-week default price instead of breaking
-        sum += selectedUnit.pricing[dayNames[d.getDay()]] || 0;
+        nightPrice = selectedUnit.pricing[dayNames[d.getDay()]] || 0;
       } else if (override?.price != null && override.price > 0) {
-        sum += override.price;
+        nightPrice = override.price;
       } else {
-        sum += selectedUnit.pricing[dayNames[d.getDay()]] || 0;
+        nightPrice = selectedUnit.pricing[dayNames[d.getDay()]] || 0;
       }
+
+      // Apply discount rules per night (weekday/weekend)
+      const dayType = WEEKDAY_INDICES.has(d.getDay()) ? 'weekday' : 'weekend';
+      const rulePercent = discountRuleMap[dayType] || 0;
+      if (rulePercent > 0) {
+        nightPrice = Math.round(nightPrice * (1 - rulePercent / 100));
+      }
+
+      sum += nightPrice;
     }
 
     subtotal = sum;
     pricePerNight = Math.round(sum / nights);
     cleaningFee = selectedUnit.pricing.cleaningFee || 0;
     let discPct = selectedUnit.pricing.discountPercent || 0;
+    discountLabel = discPct > 0 ? (isAr ? 'خصم عام' : 'Global Discount') : '';
     if (nights >= 30 && (selectedUnit.pricing.monthlyDiscount || 0) > discPct) {
       discPct = selectedUnit.pricing.monthlyDiscount || 0;
-    } else if (nights >= 7 && (selectedUnit.pricing.weeklyDiscount || 0) > discPct) {
-      discPct = selectedUnit.pricing.weeklyDiscount || 0;
+      discountLabel = isAr ? 'خصم شهري' : 'Monthly Discount';
     }
+    if (nights >= 7 && (selectedUnit.pricing.weeklyDiscount || 0) > discPct) {
+      discPct = selectedUnit.pricing.weeklyDiscount || 0;
+      discountLabel = isAr ? 'خصم أسبوعي' : 'Weekly Discount';
+    }
+    appliedDiscountPct = discPct;
     discount = discPct > 0 ? Math.round(subtotal * (discPct / 100)) : 0;
   } else {
     pricePerNight = property.pricing?.perNight ?? 0;
     subtotal = nights * pricePerNight;
     cleaningFee = property.pricing?.cleaningFee || 0;
-    discount = (property.pricing?.discountPercent ?? 0) > 0
-      ? Math.round(subtotal * ((property.pricing?.discountPercent ?? 0) / 100))
+    const propDiscPct = property.pricing?.discountPercent ?? 0;
+    appliedDiscountPct = propDiscPct;
+    discountLabel = propDiscPct > 0 ? (isAr ? 'خصم عام' : 'Global Discount') : '';
+    discount = propDiscPct > 0
+      ? Math.round(subtotal * (propDiscPct / 100))
       : 0;
   }
 
@@ -178,6 +208,22 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
   const taxableAmount = subtotal + cleaningFee + serviceFee - discount;
   const vat = Math.round(taxableAmount * 0.15);
   const total = taxableAmount + vat;
+
+  // Check if any selected dates are blocked
+  const hasBlockedDates = (() => {
+    if (!selectedUnit?.datePricing || !checkIn || !checkOut || nights <= 0) return false;
+    const overrides = new Map<string, { isBlocked?: boolean }>();
+    for (const dp of selectedUnit.datePricing) {
+      overrides.set(new Date(dp.date).toISOString().slice(0, 10), dp);
+    }
+    const s = new Date(checkIn);
+    for (let i = 0; i < nights; i++) {
+      const d = new Date(s);
+      d.setDate(d.getDate() + i);
+      if (overrides.get(d.toISOString().slice(0, 10))?.isBlocked) return true;
+    }
+    return false;
+  })();
 
   const handleBookNow = async () => {
     if (!checkIn || !checkOut) {
@@ -249,7 +295,9 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
   // Use unit discount if available, fall back to property discount
   const discountPct = (selectedUnit?.pricing as Record<string, number>)?.discountPercent
     ?? property.pricing?.discountPercent ?? 0;
-  const baseNightlyPrice = pricePerNight > 0 ? pricePerNight : (property.pricing?.perNight ?? 0);
+  const baseNightlyPrice = pricePerNight > 0 ? pricePerNight
+    : previewPricePerNight > 0 ? previewPricePerNight
+    : (property.pricing?.perNight ?? 0);
   const displayPrice = discountPct > 0
     ? getDiscountedPrice(baseNightlyPrice, discountPct)
     : baseNightlyPrice;
@@ -298,7 +346,7 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
       {/* Total nights summary */}
       {nights > 0 && (
         <div className="text-sm text-gray-500 mb-3">
-          <span>{isAr ? `${nightLabel} = ` : `${nightLabel} = `}</span>
+          <span>{isAr ? `الإجمالي ${nightLabel} ` : `Total ${nightLabel} `}</span>
           <span className="font-semibold text-gray-700" dir="ltr"><SarSymbol /> {formatPriceNumber(subtotal)}</span>
         </div>
       )}
@@ -425,27 +473,11 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
       </div>
 
       {/* Blocked dates warning */}
-      {(() => {
-        if (!selectedUnit?.datePricing || !checkIn || !checkOut || nights <= 0) return null;
-        const dateOverrides = new Map<string, { price?: number; isBlocked?: boolean }>();
-        for (const dp of selectedUnit.datePricing) {
-          const key = new Date(dp.date).toISOString().slice(0, 10);
-          dateOverrides.set(key, dp);
-        }
-        const start = new Date(checkIn);
-        for (let i = 0; i < nights; i++) {
-          const d = new Date(start);
-          d.setDate(d.getDate() + i);
-          if (dateOverrides.get(d.toISOString().slice(0, 10))?.isBlocked) {
-            return (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600 mb-3">
-                {isAr ? 'بعض التواريخ المحددة غير متاحة. يرجى اختيار تواريخ أخرى.' : 'Some selected dates are unavailable. Please choose different dates.'}
-              </div>
-            );
-          }
-        }
-        return null;
-      })()}
+      {hasBlockedDates && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600 mb-3">
+          {isAr ? 'بعض التواريخ المحددة غير متاحة. يرجى اختيار تواريخ أخرى.' : 'Some selected dates are unavailable. Please choose different dates.'}
+        </div>
+      )}
 
       {/* Min nights warning */}
       {property.rules?.minNights > 1 && nights > 0 && nights < property.rules.minNights && (
@@ -456,7 +488,7 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
         </p>
       )}
 
-      <Button onClick={handleBookNow} size="lg" className="w-full mb-4" disabled={holdLoading}>
+      <Button onClick={handleBookNow} size="lg" className="w-full mb-4" disabled={holdLoading || hasBlockedDates}>
         {holdLoading
           ? (isAr ? 'جاري التحقق...' : 'Checking...')
           : checkIn && checkOut ? `${t('booking.bookFor')} ${nightLabel}` : t('booking.checkAvailability')}
@@ -465,7 +497,7 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
       <p className="text-xs text-center text-gray-500 mb-5">{t('booking.notChargedYet')}</p>
 
       {/* Price breakdown */}
-      {nights > 0 && (
+      {nights > 0 && !hasBlockedDates && (
         <div className="space-y-3 text-sm">
           <div className="flex justify-between text-gray-600">
             <span dir="ltr"><SarSymbol /> {formatPriceNumber(pricePerNight)} &times; {nightLabel}</span>
@@ -483,7 +515,7 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
           </div>
           {discount > 0 && (
             <div className="flex justify-between text-green-600">
-              <span>{t('booking.discount')}</span>
+              <span>{discountLabel ? `${discountLabel} ${appliedDiscountPct}%` : t('booking.discount')}</span>
               <span dir="ltr"><SarSymbol /> -{formatPriceNumber(discount)}</span>
             </div>
           )}

@@ -364,14 +364,12 @@ function UnitDetailContent() {
       <Header />
       <main className="min-h-screen">
         <div className="container-custom py-8">
-          {/* Breadcrumb: Home > Search > City > Unit Name */}
+          {/* Breadcrumb: Home > Property Type > Unit Name */}
           <nav className="text-sm text-gray-500 mb-4">
             <a href="/" className="hover:text-primary-600">{t('breadcrumb.home')}</a>
             <span className="mx-2">/</span>
-            <a href="/search" className="hover:text-primary-600">{t('breadcrumb.properties')}</a>
-            <span className="mx-2">/</span>
-            <a href={`/search?city=${property.location.city}`} className="hover:text-primary-600">
-              {isAr ? (CITIES.find(c => c.value.toLowerCase() === property.location.city.toLowerCase())?.ar || property.location.city) : property.location.city}
+            <a href={`/search?type=${property.type}`} className="hover:text-primary-600">
+              {getPropertyTypeLabel(property.type, language as 'en' | 'ar')}
             </a>
             <span className="mx-2">/</span>
             <span className="text-gray-800 line-clamp-1">{displayTitle}</span>

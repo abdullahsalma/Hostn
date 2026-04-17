@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Calendar, Home, MessageSquare, Settings,
   CreditCard, Star, BarChart3, Users, Building, BookOpen,
   FileText, Shield, LogOut, ChevronRight, Heart, Wallet, Globe, Newspaper,
-  Trophy, ShieldCheck,
+  Trophy, ShieldCheck, Award,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { notificationsApi, messagesApi } from '@/lib/api';
@@ -42,6 +42,7 @@ const hostNav: NavItem[] = [
   { href: '/host/reviews', icon: Star, label: { en: 'Reviews', ar: 'التقييمات' } },
   { href: '/host/unit-points', icon: Trophy, label: { en: 'Unit Points', ar: 'نقاط الوحدات' } },
   { href: '/host/tourism-license', icon: ShieldCheck, label: { en: 'MOT License', ar: 'رخصة السياحة' } },
+  { href: '/host/loyalty', icon: Award, label: { en: 'Loyalty', ar: 'برنامج الولاء' } },
   { href: '/host/messages', icon: MessageSquare, label: { en: 'Messages', ar: 'الرسائل' }, badgeKey: 'messages' },
   { href: '/host/settings', icon: Settings, label: { en: 'Settings', ar: 'الإعدادات' } },
 ];
