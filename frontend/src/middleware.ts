@@ -11,7 +11,7 @@ function getRoleRedirect(role: Role): string {
   }
 }
 
-function decodeTokenPayload(token: string): { role?: Role } | null {
+function decodeTokenPayload(token: string): { userType?: Role; role?: Role } | null {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
@@ -26,7 +26,8 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get('hostn_token')?.value;
   const payload = token ? decodeTokenPayload(token) : null;
-  const role = payload?.role as Role | undefined;
+  // Prefer new `userType` field; fall back to legacy `role` during transition
+  const role = (payload?.userType || payload?.role) as Role | undefined;
   const isAuthenticated = !!role;
 
   // Redirect old /listings URLs to /search (permanent)

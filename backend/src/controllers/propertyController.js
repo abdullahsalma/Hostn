@@ -418,12 +418,13 @@ exports.updateProperty = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Property not found' });
     }
 
-    if (property.host.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+    const userType = req.user.userType || req.user.role;
+    if (property.host.toString() !== req.user._id.toString() && userType !== 'admin') {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
     const sanitizedBody = {};
-    const allowedFields = req.user.role === 'admin'
+    const allowedFields = userType === 'admin'
       ? [...ALLOWED_UPDATE_FIELDS, 'isActive', 'isFeatured', 'tags']
       : ALLOWED_UPDATE_FIELDS;
 
@@ -695,11 +696,11 @@ exports.getPublicStats = async (req, res, next) => {
 
     const Booking = require('../models/Booking');
     const Review = require('../models/Review');
-    const User = require('../models/User');
+    const Host = require('../models/Host');
 
     const [propertyCount, hostCount, bookingCount, reviewCount] = await Promise.all([
       Property.countDocuments({ isActive: true }),
-      User.countDocuments({ role: 'host' }),
+      Host.countDocuments(),
       Booking.countDocuments({ status: 'completed' }),
       Review.countDocuments(),
     ]);
