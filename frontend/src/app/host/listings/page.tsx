@@ -14,6 +14,7 @@ import { usePageTitle } from '@/lib/usePageTitle';
 import SarSymbol from '@/components/ui/SarSymbol';
 import type { Unit } from '@/types';
 import { CITIES, DISTRICTS } from '@/lib/constants';
+import { URLS } from '@/lib/urls';
 
 interface Property {
   _id: string;
@@ -210,8 +211,9 @@ export default function HostListingsPage() {
   };
 
   const copyPropertyLink = async (propertyId: string) => {
-    const base = typeof window !== 'undefined' ? window.location.origin : '';
-    const url = `${base}/property/${propertyId}`;
+    // Property detail pages live on the main domain (hostn.co), not business.hostn.co.
+    // Use the main URL so shared links send guests to the right place.
+    const url = `${URLS.main}/property/${propertyId}`;
     try {
       await navigator.clipboard.writeText(url);
       setCopiedId(propertyId);
@@ -255,7 +257,7 @@ export default function HostListingsPage() {
                     properties.map((p) => (
                       <Link
                         key={p._id}
-                        href={`/host/listings/${p._id}/units/new`}
+                        href={`/listings/${p._id}/units/new`}
                         onClick={() => setShowUnitDropdown(false)}
                         className="block w-full px-4 py-2.5 text-sm text-start text-gray-700 hover:bg-gray-50 transition-colors"
                       >
@@ -269,7 +271,7 @@ export default function HostListingsPage() {
           </div>
           {/* Add New Property */}
           <Link
-            href="/host/listings/new"
+            href="/listings/new"
             className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2.5 rounded-xl hover:bg-primary-700 transition-colors text-sm font-medium shadow-sm"
           >
             <Plus className="w-4 h-4" />
@@ -418,7 +420,7 @@ export default function HostListingsPage() {
                   <div className="flex items-center gap-1">
                     {/* Edit */}
                     <Link
-                      href={`/host/listings/${property._id}/edit`}
+                      href={`/listings/${property._id}/edit`}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-white hover:text-primary-600 hover:shadow-sm transition-all"
                     >
                       <Pencil className="w-3.5 h-3.5" />
@@ -479,7 +481,7 @@ export default function HostListingsPage() {
                       <div className="px-5 py-8 text-center">
                         <p className="text-sm text-gray-400 mb-3">{t.noUnitsYet[lang]}</p>
                         <Link
-                          href={`/host/listings/${property._id}/units/new`}
+                          href={`/listings/${property._id}/units/new`}
                           className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors"
                         >
                           <Plus className="w-4 h-4" />
@@ -553,14 +555,14 @@ export default function HostListingsPage() {
                                 {/* Unit actions */}
                                 <div className="flex items-center gap-2 flex-shrink-0">
                                   <Link
-                                    href={`/host/listings/${property._id}/units/${unit._id}/edit`}
+                                    href={`/listings/${property._id}/units/${unit._id}/edit`}
                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 hover:border-primary-300 hover:bg-primary-50 rounded-lg text-xs font-medium text-gray-700 hover:text-primary-600 shadow-sm transition-colors"
                                   >
                                     <Pencil className="w-3.5 h-3.5" />
                                     {t.edit[lang]}
                                   </Link>
                                   <Link
-                                    href={`/host/listings/${property._id}/units/${unit._id}/calendar`}
+                                    href={`/listings/${property._id}/units/${unit._id}/calendar`}
                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 border border-primary-200 hover:bg-primary-100 rounded-lg text-xs font-medium text-primary-700 shadow-sm transition-colors"
                                   >
                                     <Calendar className="w-3.5 h-3.5" />
@@ -585,14 +587,14 @@ export default function HostListingsPage() {
                         {/* Footer */}
                         <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100 bg-gray-50/50">
                           <Link
-                            href={`/host/listings/${property._id}/units/new`}
+                            href={`/listings/${property._id}/units/new`}
                             className="inline-flex items-center gap-1.5 text-xs font-medium text-primary-600 hover:text-primary-700 transition-colors"
                           >
                             <Plus className="w-3.5 h-3.5" />
                             {t.addUnit[lang]}
                           </Link>
                           <Link
-                            href={`/host/listings/${property._id}/units`}
+                            href={`/listings/${property._id}/units`}
                             className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
                           >
                             {t.manageAll[lang]}

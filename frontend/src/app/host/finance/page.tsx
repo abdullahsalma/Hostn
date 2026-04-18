@@ -43,10 +43,10 @@ const t: Record<string, Record<string, string>> = {
 };
 
 const quickLinks = [
-  { href: '/host/finance/remittances', icon: Banknote, labelKey: 'remittances', descKey: 'remittancesDesc', color: 'bg-blue-50 text-blue-600' },
-  { href: '/host/finance/invoices', icon: FileText, labelKey: 'invoices', descKey: 'invoicesDesc', color: 'bg-purple-50 text-purple-600' },
-  { href: '/host/finance/statements', icon: ScrollText, labelKey: 'statements', descKey: 'statementsDesc', color: 'bg-teal-50 text-teal-600' },
-  { href: '/host/finance/payment-method', icon: CreditCard, labelKey: 'paymentMethod', descKey: 'paymentMethodDesc', color: 'bg-orange-50 text-orange-600' },
+  { href: '/finance/remittances', icon: Banknote, labelKey: 'remittances', descKey: 'remittancesDesc', color: 'bg-blue-50 text-blue-600' },
+  { href: '/finance/invoices', icon: FileText, labelKey: 'invoices', descKey: 'invoicesDesc', color: 'bg-purple-50 text-purple-600' },
+  { href: '/finance/statements', icon: ScrollText, labelKey: 'statements', descKey: 'statementsDesc', color: 'bg-teal-50 text-teal-600' },
+  { href: '/finance/payment-method', icon: CreditCard, labelKey: 'paymentMethod', descKey: 'paymentMethodDesc', color: 'bg-orange-50 text-orange-600' },
 ];
 
 export default function FinancePage() {
@@ -136,7 +136,7 @@ export default function FinancePage() {
             <p className="text-sm font-medium text-amber-800">{t.noBankWarning[lang]}</p>
           </div>
           <Link
-            href="/host/finance/payment-method"
+            href="/finance/payment-method"
             className="text-sm font-semibold text-primary-600 hover:text-primary-700 whitespace-nowrap"
           >
             {t.setupNow[lang]} <ArrowRight className="w-3.5 h-3.5 inline rtl:rotate-180" />
