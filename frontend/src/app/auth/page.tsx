@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth, getRoleRedirect } from '@/context/AuthContext';
 import { authApi } from '@/lib/api';
 import { useLanguage } from '@/context/LanguageContext';
-import { Phone, ArrowLeft, ChevronDown } from 'lucide-react';
+import { Phone, ArrowLeft, ChevronDown, Globe } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import toast from 'react-hot-toast';
@@ -33,7 +33,7 @@ function AuthContent() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('redirect');
   const { loginWithOtp } = useAuth();
-  const { language } = useLanguage();
+  const { language, toggleLanguage } = useLanguage();
   const lang = language as 'en' | 'ar';
   const isAr = lang === 'ar';
 
@@ -151,7 +151,23 @@ function AuthContent() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
-        {/* Header */}
+        {/* Top row: logo + language toggle */}
+        <div className="flex items-center justify-between mb-8">
+          <Link href="/" className="text-xl font-bold text-gray-900 hover:text-primary-600 transition-colors">
+            Hostn
+          </Link>
+          <button
+            type="button"
+            onClick={toggleLanguage}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+            aria-label="Toggle language"
+          >
+            <Globe className="w-4 h-4" />
+            {isAr ? 'English' : '\u0627\u0644\u0639\u0631\u0628\u064A\u0629'}
+          </button>
+        </div>
+
+        {/* Welcome heading */}
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-gray-900">
             {isAr ? '\u0645\u0631\u062D\u0628\u0627\u064B \u0628\u0643 \u0641\u064A Hostn' : 'Welcome to Hostn'}

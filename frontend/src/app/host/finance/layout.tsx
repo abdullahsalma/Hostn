@@ -36,9 +36,6 @@ export default function FinanceLayout({ children }: { children: React.ReactNode 
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
 
-  // Redirect /finance to first tab
-  const isIndex = pathname === '/finance';
-
   return (
     <div>
       {/* Tab bar */}
@@ -50,7 +47,7 @@ export default function FinanceLayout({ children }: { children: React.ReactNode 
               href={href}
               className={cn(
                 'flex items-center gap-2 px-5 py-3.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors',
-                isActive(href) || (isIndex && href === tabs[0].href)
+                isActive(href)
                   ? 'border-primary-600 text-primary-700 bg-primary-50'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               )}

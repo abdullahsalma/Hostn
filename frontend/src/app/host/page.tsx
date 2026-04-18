@@ -19,7 +19,8 @@ interface Stats {
 interface RecentBooking {
   _id: string;
   guest?: { name: string };
-  property?: { title: string };
+  property?: { title: string; titleAr?: string };
+  unit?: { nameEn?: string; nameAr?: string } | null;
   checkIn: string;
   checkOut: string;
   status: string;
@@ -36,6 +37,7 @@ const t: Record<string, Record<string, string>> = {
   recentBookings: { en: 'Recent Bookings', ar: '\u0627\u0644\u062d\u062c\u0648\u0632\u0627\u062a \u0627\u0644\u0623\u062e\u064a\u0631\u0629' },
   guest: { en: 'Guest', ar: '\u0627\u0644\u0636\u064a\u0641' },
   property: { en: 'Property', ar: '\u0627\u0644\u0639\u0642\u0627\u0631' },
+  unit: { en: 'Unit', ar: '\u0627\u0644\u0648\u062d\u062f\u0629' },
   checkIn: { en: 'Check-in', ar: '\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644' },
   checkOut: { en: 'Check-out', ar: '\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062e\u0631\u0648\u062c' },
   status: { en: 'Status', ar: '\u0627\u0644\u062d\u0627\u0644\u0629' },
@@ -191,6 +193,7 @@ export default function HostDashboardPage() {
                 <tr className="bg-gray-50 border-b border-gray-200">
                   <th className="text-start p-3 font-medium text-gray-600">{t.guest[lang]}</th>
                   <th className="text-start p-3 font-medium text-gray-600">{t.property[lang]}</th>
+                  <th className="text-start p-3 font-medium text-gray-600">{t.unit[lang]}</th>
                   <th className="text-start p-3 font-medium text-gray-600">{t.checkIn[lang]}</th>
                   <th className="text-start p-3 font-medium text-gray-600">{t.checkOut[lang]}</th>
                   <th className="text-start p-3 font-medium text-gray-600">{t.status[lang]}</th>
@@ -198,20 +201,36 @@ export default function HostDashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {bookings.map((booking) => (
-                  <tr key={booking._id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="p-3 text-gray-900">{booking.guest?.name || '-'}</td>
-                    <td className="p-3 text-gray-700">{booking.property?.title || '-'}</td>
-                    <td className="p-3 text-gray-600">{new Date(booking.checkIn).toLocaleDateString(lang === 'ar' ? 'ar-u-nu-latn' : 'en-US', { month: 'short', day: 'numeric' })}</td>
-                    <td className="p-3 text-gray-600">{new Date(booking.checkOut).toLocaleDateString(lang === 'ar' ? 'ar-u-nu-latn' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
-                    <td className="p-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[booking.status] || 'bg-gray-100 text-gray-600'}`}>
-                        {statusLabels[booking.status]?.[lang] || booking.status}
-                      </span>
-                    </td>
-                    <td className="p-3 font-medium text-gray-900"><span dir="ltr"><SarSymbol /> {(booking.pricing?.total || booking.totalPrice || 0).toLocaleString('en')}</span></td>
-                  </tr>
-                ))}
+                {bookings.map((booking) => {
+                  // Pick Arabic title when available and lang is Arabic; fall back to English.
+                  const propertyName =
+                    (isAr ? booking.property?.titleAr : booking.property?.title) ||
+                    booking.property?.title ||
+                    booking.property?.titleAr ||
+                    '-';
+                  const unitName =
+                    (isAr ? booking.unit?.nameAr : booking.unit?.nameEn) ||
+                    booking.unit?.nameEn ||
+                    booking.unit?.nameAr ||
+                    '-';
+                  const dateOpts = { month: 'short' as const, day: 'numeric' as const, year: 'numeric' as const };
+                  const locale = isAr ? 'ar-u-nu-latn' : 'en-US';
+                  return (
+                    <tr key={booking._id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="p-3 text-gray-900">{booking.guest?.name || '-'}</td>
+                      <td className="p-3 text-gray-700">{propertyName}</td>
+                      <td className="p-3 text-gray-700">{unitName}</td>
+                      <td className="p-3 text-gray-600">{new Date(booking.checkIn).toLocaleDateString(locale, dateOpts)}</td>
+                      <td className="p-3 text-gray-600">{new Date(booking.checkOut).toLocaleDateString(locale, dateOpts)}</td>
+                      <td className="p-3">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[booking.status] || 'bg-gray-100 text-gray-600'}`}>
+                          {statusLabels[booking.status]?.[lang] || booking.status}
+                        </span>
+                      </td>
+                      <td className="p-3 font-medium text-gray-900"><span dir="ltr"><SarSymbol /> {(booking.pricing?.total || booking.totalPrice || 0).toLocaleString('en')}</span></td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

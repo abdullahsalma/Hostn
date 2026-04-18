@@ -95,6 +95,7 @@ exports.getRecentBookings = async (req, res, next) => {
 
     const bookings = await Booking.find({ property: { $in: propertyIds } })
       .populate('property', 'title titleAr images location type')
+      .populate('unit', 'nameEn nameAr')
       .populate('guest', 'name email phone avatar')
       .sort('-createdAt')
       .limit(Math.min(parseInt(req.query.limit) || 10, 50));

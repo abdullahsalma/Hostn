@@ -152,7 +152,7 @@ export default function HostBookingsPage() {
                         : '-'}
                     </td>
                     <td className="p-3 text-gray-600">
-                      {new Date(booking.checkIn).toLocaleDateString(lang === 'ar' ? 'ar-u-nu-latn' : 'en-US', { month: 'short', day: 'numeric' })}
+                      {new Date(booking.checkIn).toLocaleDateString(lang === 'ar' ? 'ar-u-nu-latn' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                     </td>
                     <td className="p-3 text-gray-600">
                       {new Date(booking.checkOut).toLocaleDateString(lang === 'ar' ? 'ar-u-nu-latn' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
