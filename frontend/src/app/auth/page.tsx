@@ -7,11 +7,9 @@ import { useAuth, getRoleRedirect } from '@/context/AuthContext';
 import { authApi } from '@/lib/api';
 import { useLanguage } from '@/context/LanguageContext';
 import { Phone, ArrowLeft, ChevronDown } from 'lucide-react';
-import Header from '@/components/layout/Header';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import toast from 'react-hot-toast';
-import { detectSubdomain } from '@/lib/urls';
 
 const GCC_COUNTRIES = [
   { code: '+966', flag: '\u{1F1F8}\u{1F1E6}', en: 'Saudi Arabia', ar: '\u0627\u0644\u0633\u0639\u0648\u062F\u064A\u0629', digits: 9, startsWith: '5' },
@@ -38,13 +36,6 @@ function AuthContent() {
   const { language } = useLanguage();
   const lang = language as 'en' | 'ar';
   const isAr = lang === 'ar';
-
-  // On business.hostn.co and admin.hostn.co, show a minimal centered login card
-  // (no guest-site Header). On the main domain, keep the Header for brand continuity.
-  const [isSubdomainAuth, setIsSubdomainAuth] = useState(false);
-  useEffect(() => {
-    setIsSubdomainAuth(detectSubdomain() !== 'main');
-  }, []);
 
   // Country picker
   const [selectedCountry, setSelectedCountry] = useState(GCC_COUNTRIES[0]);
@@ -158,9 +149,7 @@ function AuthContent() {
   };
 
   return (
-    <div className={isSubdomainAuth ? 'min-h-screen bg-gray-50 flex items-center justify-center' : 'min-h-screen bg-gray-50'}>
-      {!isSubdomainAuth && <Header />}
-      <div className={isSubdomainAuth ? 'w-full flex items-center justify-center px-4 py-12' : 'flex items-center justify-center px-4 py-12'}>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
@@ -317,7 +306,6 @@ function AuthContent() {
             <ArrowLeft className="w-3.5 h-3.5 inline rtl:rotate-180" /> {isAr ? '\u0627\u0644\u0631\u0626\u064A\u0633\u064A\u0629' : 'Home'}
           </Link>
         </div>
-      </div>
       </div>
     </div>
   );
