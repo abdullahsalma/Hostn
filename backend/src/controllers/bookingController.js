@@ -308,6 +308,7 @@ exports.createBooking = async (req, res, next) => {
             });
             Notification.createNotification({
               user: property.host,
+              userType: 'Host',
               type: 'booking_created',
               title: 'New Booking Request',
               message: `${req.user.name} requested to book "${property.title}" for ${hold.pricing.nights} nights`,
@@ -490,6 +491,7 @@ exports.createBooking = async (req, res, next) => {
     // Notify host about new booking (non-blocking)
     Notification.createNotification({
       user: property.host,
+      userType: 'Host',
       type: 'booking_created',
       title: 'New Booking Request',
       message: `${req.user.name} requested to book "${property.title}" for ${nights} nights`,
@@ -542,9 +544,27 @@ exports.getHostBookings = async (req, res, next) => {
       .populate('property', 'title titleAr images location')
       .populate('unit', 'nameEn nameAr images')
       .populate('guest', 'name email phone avatar')
-      .sort('-createdAt');
+      .sort('-createdAt')
+      .lean();
 
-    res.json({ success: true, data: bookings });
+    // Attach invoice (if any) for each booking so the UI can link to it.
+    const HostInvoice = require('../models/HostInvoice');
+    const bookingIds = bookings.map((b) => b._id);
+    const invoices = await HostInvoice.find({ bookings: { $in: bookingIds } })
+      .select('_id invoiceNumber bookings')
+      .lean();
+    const invoiceByBooking = new Map();
+    for (const inv of invoices) {
+      for (const bid of inv.bookings || []) {
+        invoiceByBooking.set(String(bid), { _id: inv._id, invoiceNumber: inv.invoiceNumber });
+      }
+    }
+    const enriched = bookings.map((b) => ({
+      ...b,
+      invoice: invoiceByBooking.get(String(b._id)) || null,
+    }));
+
+    res.json({ success: true, data: enriched });
   } catch (error) {
     next(error);
   }
@@ -644,6 +664,7 @@ exports.updateBookingStatus = async (req, res, next) => {
 
     await Notification.createNotification({
       user: booking.guest,
+      userType: 'Guest',
       type: notifType,
       title: notifTitle,
       message: `Your booking at "${property.title}" has been ${status}`,
