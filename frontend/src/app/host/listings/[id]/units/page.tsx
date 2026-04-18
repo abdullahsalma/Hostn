@@ -137,7 +137,7 @@ export default function UnitsListPage() {
   return (
     <div>
       {/* Header */}
-      <Link href="/host/listings" className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-4">
+      <Link href="/listings" className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-4">
         <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
         {t.back[lang]}
       </Link>
@@ -150,7 +150,7 @@ export default function UnitsListPage() {
           )}
         </div>
         <Link
-          href={`/host/listings/${propertyId}/units/new`}
+          href={`/listings/${propertyId}/units/new`}
           className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
         >
           <Plus className="w-4 h-4" />
@@ -227,14 +227,14 @@ export default function UnitsListPage() {
                 <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                   <div className="flex items-center gap-2">
                     <Link
-                      href={`/host/listings/${propertyId}/units/${unit._id}/edit`}
+                      href={`/listings/${propertyId}/units/${unit._id}/edit`}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-medium text-gray-700 transition-colors"
                     >
                       <Pencil className="w-3.5 h-3.5" />
                       {t.edit[lang]}
                     </Link>
                     <Link
-                      href={`/host/listings/${propertyId}/units/${unit._id}/calendar`}
+                      href={`/listings/${propertyId}/units/${unit._id}/calendar`}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-medium text-gray-700 transition-colors"
                     >
                       <Calendar className="w-3.5 h-3.5" />

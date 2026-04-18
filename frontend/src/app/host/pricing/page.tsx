@@ -216,7 +216,7 @@ export default function HostPricingPage() {
 
                               {/* Set Pricing button */}
                               <Link
-                                href={`/host/listings/${property._id}/units/${unit._id}/calendar`}
+                                href={`/listings/${property._id}/units/${unit._id}/calendar`}
                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 rounded-lg text-xs font-medium transition-colors flex-shrink-0"
                               >
                                 <Calendar className="w-3.5 h-3.5" />

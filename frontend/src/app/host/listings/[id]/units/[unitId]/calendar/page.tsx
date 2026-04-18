@@ -804,7 +804,7 @@ export default function UnitPricingPage() {
       {/* ── Header ── */}
       <div className="mb-6">
         <Link
-          href={`/host/listings/${propertyId}/units`}
+          href={`/listings/${propertyId}/units`}
           className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary-600 transition-colors mb-3"
         >
           <ArrowLeft className="w-4 h-4 rtl:rotate-180" />

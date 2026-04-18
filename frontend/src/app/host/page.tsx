@@ -149,7 +149,7 @@ export default function HostDashboardPage() {
         const tierStars: Record<string, number> = { basic: 0, silver: 1, gold: 2, summit: 3 };
         const stars = tierStars[loyaltySummary.tier] || 0;
         return (
-          <Link href="/host/loyalty" className="block mb-8">
+          <Link href="/loyalty" className="block mb-8">
             <div className={`rounded-xl bg-gradient-to-r ${tierGradients[loyaltySummary.tier] || tierGradients.basic} p-5 text-white hover:shadow-lg transition-shadow`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">

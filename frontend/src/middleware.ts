@@ -53,7 +53,23 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // ── 2. Subdomain rewrites ───────────────────────────────────────────
+  // ── 2. Redirect legacy-prefixed paths to clean URLs on subdomains ───
+  // business.hostn.co/host → business.hostn.co/ (308 permanent)
+  // business.hostn.co/host/bookings → business.hostn.co/bookings
+  // admin.hostn.co/admin/users → admin.hostn.co/users
+  // Users who type the prefixed URL get bounced to the clean version.
+  if (subdomain === 'business' && (pathname === '/host' || pathname.startsWith('/host/'))) {
+    const cleanPath = pathname.replace(/^\/host/, '') || '/';
+    const url = new URL(cleanPath + (request.nextUrl.search || ''), request.url);
+    return NextResponse.redirect(url, 308);
+  }
+  if (subdomain === 'admin' && (pathname === '/admin' || pathname.startsWith('/admin/'))) {
+    const cleanPath = pathname.replace(/^\/admin/, '') || '/';
+    const url = new URL(cleanPath + (request.nextUrl.search || ''), request.url);
+    return NextResponse.redirect(url, 308);
+  }
+
+  // ── 3. Subdomain rewrites ───────────────────────────────────────────
   // business.hostn.co/bookings → /host/bookings (internally)
   // admin.hostn.co/users       → /admin/users  (internally)
   // URL stays clean (business.hostn.co/bookings); the /host prefix is hidden.

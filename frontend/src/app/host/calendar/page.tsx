@@ -402,7 +402,7 @@ export default function HostCalendarPage() {
                   return (
                     <Link
                       key={unit._id}
-                      href={`/host/listings/${property._id}/units/${unit._id}/calendar`}
+                      href={`/listings/${property._id}/units/${unit._id}/calendar`}
                       className="block bg-white rounded-xl border border-gray-200 p-3 hover:border-primary-300 hover:shadow-sm transition-all cursor-pointer"
                     >
                       {/* Unit name */}
