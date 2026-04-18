@@ -197,7 +197,7 @@ exports.getInvoiceDetail = async (req, res) => {
       host: req.user._id,
     }).populate({
       path: 'bookings',
-      select: 'checkIn checkOut pricing status guest property',
+      select: 'reference checkIn checkOut pricing status guest property',
       populate: [
         { path: 'guest', select: 'name' },
         { path: 'property', select: 'title titleAr' },

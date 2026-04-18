@@ -207,6 +207,7 @@ exports.verifyPayment = async (req, res, next) => {
         if (property) {
           await Notification.createNotification({
             user: property.host,
+            userType: 'Host',
             type: 'payment_success',
             title: 'Payment Received',
             message: `Payment of ${payment.amount} SAR received for booking at ${property.title}`,
@@ -217,6 +218,7 @@ exports.verifyPayment = async (req, res, next) => {
         // Notify guest
         await Notification.createNotification({
           user: req.user._id,
+          userType: 'Guest',
           type: 'payment_success',
           title: 'Payment Successful',
           message: `Your payment of ${payment.amount} SAR has been confirmed`,
@@ -245,6 +247,7 @@ exports.verifyPayment = async (req, res, next) => {
       // Notify guest
       await Notification.createNotification({
         user: req.user._id,
+        userType: 'Guest',
         type: 'payment_failed',
         title: 'Payment Failed',
         message: `Your payment of ${payment.amount} SAR was declined. Please try again.`,
@@ -508,6 +511,7 @@ exports.refundPayment = async (req, res, next) => {
     // Notify user
     await Notification.createNotification({
       user: payment.user,
+      userType: 'Guest',
       type: 'payment_success', // reuse type, message clarifies it's a refund
       title: 'Payment Refunded',
       message: `Your payment of ${payment.amount} SAR has been refunded`,
