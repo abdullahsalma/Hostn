@@ -40,6 +40,12 @@ const unitSchema = new mongoose.Schema(
     // ── A. Toggle ─────────────────────────────────────────────────
     isActive: { type: Boolean, default: true },
 
+    // ── Soft-delete ───────────────────────────────────────────────
+    // Deleted units are retained for audit + booking history, but hidden
+    // from all non-admin queries. `isActive` is ALSO set to false on delete.
+    isDeleted: { type: Boolean, default: false, index: true },
+    deletedAt: { type: Date, default: null },
+
     // ── C-i. Name (bilingual) ────────────────────────────────────
     nameEn: {
       type: String,

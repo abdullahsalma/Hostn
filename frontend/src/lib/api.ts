@@ -105,6 +105,8 @@ export const propertiesApi = {
   getOne: (id: string) => api.get(`/properties/${id}`),
   create: (data: Record<string, unknown>) => api.post('/properties', data),
   update: (id: string, data: Record<string, unknown>) => api.put(`/properties/${id}`, data),
+  /** Soft-delete a property (host owner / admin) */
+  remove: (id: string) => api.delete(`/properties/${id}`),
   getMyProperties: () => api.get('/properties/my-properties'),
   getCities: () => api.get('/properties/cities'),
   getSuggestions: (q: string) => api.get('/properties/suggestions', { params: { q } }),

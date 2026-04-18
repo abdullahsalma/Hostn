@@ -67,10 +67,11 @@ exports.getStats = async (req, res, next) => {
     const canViewPayments = hasPermission(req.user, PERMISSIONS.VIEW_PAYMENTS);
 
     // Base queries — all admin sub-roles can see these
+    // Stats treat soft-deleted as if they never existed (they're audit-only).
     const baseQueries = [
-      Property.countDocuments(),
-      Property.countDocuments({ isActive: true }),
-      Property.countDocuments({ isApproved: false }),
+      Property.countDocuments({ isDeleted: { $ne: true } }),
+      Property.countDocuments({ isActive: true, isDeleted: { $ne: true } }),
+      Property.countDocuments({ isApproved: false, isDeleted: { $ne: true } }),
       Booking.countDocuments(),
       Booking.countDocuments({ status: 'pending' }),
       Booking.countDocuments({ status: 'confirmed' }),
@@ -407,9 +408,15 @@ exports.getProperties = async (req, res, next) => {
     const { status, search, page = 1, limit = 20 } = req.query;
     const query = {};
 
-    if (status === 'active') query.isActive = true;
-    if (status === 'inactive') query.isActive = false;
-    if (status === 'pending') query.isApproved = false;
+    // By default, admin sees all non-deleted properties. `status: deleted` opts in.
+    if (status === 'deleted') {
+      query.isDeleted = true;
+    } else {
+      query.isDeleted = { $ne: true };
+      if (status === 'active') query.isActive = true;
+      if (status === 'inactive') query.isActive = false;
+      if (status === 'pending') query.isApproved = false;
+    }
     if (search) {
       query.$or = [
         { title: { $regex: escapeRegex(search), $options: 'i' } },

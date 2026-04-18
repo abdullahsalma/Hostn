@@ -7,7 +7,7 @@ import { unitsApi, propertiesApi } from '@/lib/api';
 import {
   Plus, Loader2, ArrowLeft, Copy, Calendar, Pencil,
   ToggleLeft, ToggleRight, Bed, Users, Droplets, Building,
-  X, ImageOff, DollarSign, CalendarOff,
+  X, ImageOff, DollarSign, CalendarOff, Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
@@ -44,6 +44,13 @@ const t: Record<string, Record<string, string>> = {
   dupConfirm:   { en: 'Duplicate', ar: 'نسخ' },
   cancel:       { en: 'Cancel', ar: 'إلغاء' },
   pricing:      { en: 'Calendar', ar: 'التقويم' },
+  delete:       { en: 'Delete', ar: 'حذف' },
+  deleteUnit:   { en: 'Delete unit', ar: 'حذف الوحدة' },
+  deleteUnitConfirm: {
+    en: 'This will remove the unit from your listings. Active bookings will remain. Continue?',
+    ar: 'سيؤدي هذا إلى إزالة الوحدة من قوائمك. ستبقى الحجوزات النشطة. متابعة؟',
+  },
+  unitDeleted:  { en: 'Unit deleted', ar: 'تم حذف الوحدة' },
 };
 
 export default function UnitsListPage() {
@@ -60,6 +67,8 @@ export default function UnitsListPage() {
   const [dupDialogId, setDupDialogId] = useState<string | null>(null);
   const [dupExclude, setDupExclude] = useState<Record<string, boolean>>({ images: false, pricing: false, unavailableDates: false });
   const [dupLoading, setDupLoading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => { load(); }, [propertyId]);
 
@@ -98,6 +107,22 @@ export default function UnitsListPage() {
       toast.error(isAr ? 'فشل في نسخ الوحدة' : 'Failed to duplicate unit');
     } finally {
       setDupLoading(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    try {
+      await unitsApi.remove(deleteTarget.id);
+      setUnits((prev) => prev.filter((u) => u._id !== deleteTarget.id));
+      toast.success(t.unitDeleted[lang]);
+      setDeleteTarget(null);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg || (isAr ? 'فشل في الحذف' : 'Delete failed'));
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -247,6 +272,14 @@ export default function UnitsListPage() {
                       <Copy className="w-3.5 h-3.5" />
                       {t.duplicate[lang]}
                     </button>
+                    <button
+                      onClick={() => setDeleteTarget({ id: unit._id, name: unitName(unit) })}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 rounded-lg text-xs font-medium text-red-600 transition-colors"
+                      title={t.deleteUnit[lang]}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      {t.delete[lang]}
+                    </button>
                   </div>
                   <button
                     onClick={() => handleToggle(unit._id)}
@@ -333,6 +366,53 @@ export default function UnitsListPage() {
                 {dupLoading && <Loader2 className="w-4 h-4 animate-spin" />}
                 <Copy className="w-4 h-4" />
                 {t.dupConfirm[lang]}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete confirmation modal ───────────────────────────── */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between px-5 pt-5 pb-2">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center">
+                  <Trash2 className="w-4 h-4 text-red-600" />
+                </div>
+                <h3 className="text-base font-bold text-gray-900">{t.deleteUnit[lang]}</h3>
+              </div>
+              <button
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleteLoading}
+                className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="px-5 pb-4">
+              <p className="text-sm text-gray-700 mb-3">{t.deleteUnitConfirm[lang]}</p>
+              <p className="text-sm font-semibold text-gray-900 bg-gray-50 rounded-lg px-3 py-2 border border-gray-200">
+                {deleteTarget.name}
+              </p>
+            </div>
+            <div className="flex items-center gap-3 px-5 pb-5">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleteLoading}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                {t.cancel[lang]}
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={deleteLoading}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {deleteLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                <Trash2 className="w-4 h-4" />
+                {t.delete[lang]}
               </button>
             </div>
           </div>

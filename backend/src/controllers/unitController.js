@@ -80,7 +80,7 @@ exports.searchUnits = async (req, res, next) => {
     } = req.query;
 
     // ── Step 1: Property-level filter ──────────────────────────────
-    const propFilter = { isActive: true };
+    const propFilter = { isActive: true, isDeleted: { $ne: true } };
     if (city) propFilter['location.city'] = { $regex: new RegExp(String(city).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') };
     if (type) {
       const types = String(type).split(',').map(t => t.trim()).filter(Boolean);
@@ -100,7 +100,11 @@ exports.searchUnits = async (req, res, next) => {
     }
 
     // ── Step 2: Unit-level filter ──────────────────────────────────
-    const unitFilter = { isActive: true, property: { $in: matchingPropertyIds } };
+    const unitFilter = {
+      isActive: true,
+      isDeleted: { $ne: true },
+      property: { $in: matchingPropertyIds },
+    };
     if (guests) unitFilter['capacity.maxGuests'] = { $gte: Number(guests) };
     if (bedrooms) unitFilter['bedrooms.count'] = { $gte: Number(bedrooms) };
     if (rating) unitFilter['ratings.average'] = { $gte: Number(rating) };
@@ -332,7 +336,7 @@ exports.getUnits = async (req, res, next) => {
 
     const { page = 1, limit = 20 } = req.query;
 
-    const query = { property: propertyId, isActive: true };
+    const query = { property: propertyId, isActive: true, isDeleted: { $ne: true } };
 
     const safePage = Math.max(1, Number(page) || 1);
     const safeLimit = Math.min(Math.max(1, Number(limit) || 20), 50);
@@ -375,7 +379,8 @@ exports.getMyPropertyUnits = async (req, res, next) => {
     }
 
     const { page = 1, limit = 20 } = req.query;
-    const query = { property: propertyId };
+    // Exclude soft-deleted units from the host's management view — admin-only.
+    const query = { property: propertyId, isDeleted: { $ne: true } };
 
     const safePage = Math.max(1, Number(page) || 1);
     const safeLimit = Math.min(Math.max(1, Number(limit) || 20), 50);
@@ -408,11 +413,16 @@ exports.getUnit = async (req, res, next) => {
   try {
     const unit = await Unit.findById(req.params.id).populate({
       path: 'property',
-      select: 'title titleAr location host type images ratings direction rules pricing capacity',
+      select: 'title titleAr location host type images ratings direction rules pricing capacity isDeleted',
       populate: { path: 'host', select: 'name avatar isVerified _id createdAt' },
     });
 
-    if (!unit || !unit.isActive) {
+    if (!unit || !unit.isActive || unit.isDeleted) {
+      return res.status(404).json({ success: false, message: 'Unit not found' });
+    }
+
+    // If the parent property has been soft-deleted, hide the unit from the public view.
+    if (unit.property && unit.property.isDeleted) {
       return res.status(404).json({ success: false, message: 'Unit not found' });
     }
 
@@ -457,6 +467,9 @@ exports.updateUnit = async (req, res, next) => {
 // @desc    Delete unit (soft-delete)
 // @route   DELETE /api/v1/units/:id
 // @access  Private (Host owner / Admin)
+//
+// Soft-delete: `isDeleted: true` + `deletedAt` + also clears `isActive` so
+// existing isActive-only filters don't need to know about deletion.
 exports.deleteUnit = async (req, res, next) => {
   try {
     const auth = await authorizeUnitOwner(req.params.id, req.user);
@@ -465,15 +478,21 @@ exports.deleteUnit = async (req, res, next) => {
     }
 
     auth.unit.isActive = false;
+    auth.unit.isDeleted = true;
+    auth.unit.deletedAt = new Date();
     await auth.unit.save();
 
-    // If this was the last active unit, deactivate the property too
+    // If this was the last active (non-deleted) unit, deactivate the property too.
     const remainingActive = await Unit.countDocuments({
       property: auth.unit.property,
       isActive: true,
+      isDeleted: { $ne: true },
     });
     if (remainingActive === 0) {
-      const totalUnits = await Unit.countDocuments({ property: auth.unit.property });
+      const totalUnits = await Unit.countDocuments({
+        property: auth.unit.property,
+        isDeleted: { $ne: true },
+      });
       if (totalUnits > 0) {
         // Property has units but none are active — deactivate property
         await Property.findByIdAndUpdate(auth.unit.property, { isActive: false });
@@ -629,9 +648,13 @@ exports.toggleUnitStatus = async (req, res, next) => {
       const remainingActive = await Unit.countDocuments({
         property: auth.unit.property,
         isActive: true,
+        isDeleted: { $ne: true },
       });
       if (remainingActive === 0) {
-        const totalUnits = await Unit.countDocuments({ property: auth.unit.property });
+        const totalUnits = await Unit.countDocuments({
+          property: auth.unit.property,
+          isDeleted: { $ne: true },
+        });
         if (totalUnits > 0) {
           await Property.findByIdAndUpdate(auth.unit.property, { isActive: false });
         }
