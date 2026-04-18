@@ -29,7 +29,7 @@ exports.getPublicHostProfile = async (req, res, next) => {
     }
 
     // Get all active property IDs for this host
-    const allProperties = await Property.find({ host: req.params.id, isActive: true })
+    const allProperties = await Property.find({ host: req.params.id, isActive: true, isDeleted: { $ne: true } })
       .select('_id');
     const propertyIds = allProperties.map((p) => p._id);
     const propertyCount = propertyIds.length;
@@ -67,7 +67,7 @@ exports.getPublicHostProfile = async (req, res, next) => {
 
     // Paginated properties
     const propSkip = (safePropPage - 1) * safePropLimit;
-    const properties = await Property.find({ host: req.params.id, isActive: true })
+    const properties = await Property.find({ host: req.params.id, isActive: true, isDeleted: { $ne: true } })
       .select('title titleAr images location type pricing capacity ratings tags isFeatured')
       .sort('-ratings.average')
       .skip(propSkip)
