@@ -17,8 +17,9 @@ interface AuthContextType {
   upgradeToHost: () => Promise<void>;
 }
 
-export function getRoleRedirect(role?: string): string {
-  switch (role) {
+export function getRoleRedirect(userType?: string): string {
+  // Accepts either the new `userType` or the legacy `role` field (same string values)
+  switch (userType) {
     case 'host': return '/host';
     case 'admin': return '/admin';
     default: return '/dashboard';

@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User');
+const Guest = require('../models/Guest');
+const Host = require('../models/Host');
+const Admin = require('../models/Admin');
 const Property = require('../models/Property');
 const Booking = require('../models/Booking');
 const Review = require('../models/Review');
@@ -16,48 +18,51 @@ router.post('/host-data', async (req, res) => {
 
     const results = { users: [], properties: [], bookings: [], reviews: [] };
 
-    // ── 1. Setup Host User ─────────────────────────────────────────────
-    let hostUser = await User.findOne({ phone: '500407888' });
-    if (hostUser) {
-      hostUser.role = 'host';
+    // ── 1. Setup Host User (in Host collection) ─────────────────────────
+    let hostUser = await Host.findOne({ phone: '500407888' });
+    if (!hostUser) {
+      hostUser = await Host.create({
+        name: 'طارق الخثعمي',
+        phone: '500407888',
+        phoneVerified: true,
+        isVerified: true,
+      });
+      results.users.push({ action: 'created', id: hostUser._id, role: 'host' });
+    } else {
       hostUser.name = 'طارق الخثعمي';
       hostUser.isVerified = true;
       await hostUser.save();
       results.users.push({ action: 'updated', id: hostUser._id, role: 'host' });
     }
 
-    // ── 2. Setup Guest Users ────────────────────────────────────────────
-    let guestUser = await User.findOne({ phone: '501234567' });
+    // ── 2. Setup Guest Users (in Guest collection) ──────────────────────
+    let guestUser = await Guest.findOne({ phone: '501234567' });
     if (!guestUser) {
-      guestUser = await User.create({
+      guestUser = await Guest.create({
         name: 'محمد الرمل',
         phone: '501234567',
         phoneVerified: true,
-        role: 'guest',
         isVerified: true,
       });
       results.users.push({ action: 'created', id: guestUser._id, name: 'محمد الرمل' });
     }
 
-    let guestUser2 = await User.findOne({ phone: '509876543' });
+    let guestUser2 = await Guest.findOne({ phone: '509876543' });
     if (!guestUser2) {
-      guestUser2 = await User.create({
+      guestUser2 = await Guest.create({
         name: 'سعود الحربي',
         phone: '509876543',
         phoneVerified: true,
-        role: 'guest',
         isVerified: true,
       });
       results.users.push({ action: 'created', id: guestUser2._id, name: 'سعود الحربي' });
     }
 
     // ── 3. Create 8 Mivara Chalets ──────────────────────────────────────
-    // Only create if none exist for this host
     const existingProps = await Property.find({ host: hostUser._id });
     if (existingProps.length >= 8) {
       results.properties = existingProps.map(p => ({ id: p._id, title: p.title, status: 'already_exists' }));
     } else {
-      // Clear existing
       if (existingProps.length > 0) {
         await Property.deleteMany({ host: hostUser._id });
         await Booking.deleteMany({ property: { $in: existingProps.map(p => p._id) } });
@@ -176,17 +181,20 @@ router.post('/host-data', async (req, res) => {
   }
 });
 
-// DEV ONLY: promote a user to admin
+// DEV ONLY: create (or promote) an admin account
 router.post('/make-admin', async (req, res) => {
   if (process.env.NODE_ENV === 'production') return res.status(404).json({ success: false });
   const { email, secret } = req.body;
   if (secret !== 'hostn_seed_2026_x') return res.status(403).json({ success: false });
-  const user = await User.findOne({ email });
-  if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-  user.role = 'admin';
-  user.adminRole = 'super';
-  await user.save();
-  res.json({ success: true, message: `${email} is now admin` });
+
+  let admin = await Admin.findOne({ email });
+  if (!admin) {
+    admin = await Admin.create({ email, adminRole: 'super', name: email.split('@')[0] });
+    return res.json({ success: true, message: `${email} admin created`, adminId: admin._id });
+  }
+  admin.adminRole = 'super';
+  await admin.save();
+  res.json({ success: true, message: `${email} is now super admin` });
 });
 
 module.exports = router;

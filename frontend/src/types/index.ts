@@ -4,10 +4,14 @@ export interface User {
   email: string;
   phone?: string;
   avatar?: string;
+  /** New field: identifies which collection this user belongs to. Prefer over `role`. */
+  userType?: 'guest' | 'host' | 'admin';
+  /** Legacy alias — mirrors `userType`. Kept for backward compat during migration. */
   role: 'guest' | 'host' | 'admin';
   adminRole?: 'super' | 'support' | 'finance' | null;
   isVerified: boolean;
-  wishlist: string[];
+  /** Legacy: user-level wishlist. New code should use the Wishlist collection. */
+  wishlist?: string[];
   balance?: number;
   blockedByHosts?: number;
   guestRating?: number;
