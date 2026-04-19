@@ -36,13 +36,22 @@ function overlapQuery(propertyId, checkInDate, checkOutDate, unitId) {
   return query;
 }
 
-// Helper: calculate pricing from a Unit's per-day rates (with per-date overrides)
+// Helper: calculate pricing from a Unit's per-day rates (with per-date overrides).
+//
+// PR E stacking model:
+// Every discount type carries a `stackable` flag. Per-night effective discount =
+//   min(100, sum(stackable applicable) + max(non-stackable applicable, 0))
+//
+// Applicable discounts on a given night:
+//   - Global (unit.pricing.discountPercent + globalStackable) — always applies
+//   - Weekday OR Weekend rule (discountRules[]) — whichever matches day-of-week
+//   - Date-specific (datePricing[n].discountPercent + discountStackable)
+//   - Weekly (unit.pricing.weeklyDiscount) — applies when stay >= 7 nights
+//   - Monthly (unit.pricing.monthlyDiscount) — applies when stay >= 30 nights
 function calculateUnitPricing(unit, checkInDate, checkOutDate) {
   const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   // Weekday = Sun-Wed (indices 0-3), Weekend = Thu-Sat (indices 4-6)
   const WEEKDAY_INDICES = new Set([0, 1, 2, 3]);
-  let subtotal = 0;
-  let nights = 0;
 
   // Build a lookup map from datePricing for O(1) per-date checks
   const dateOverrides = new Map();
@@ -57,68 +66,94 @@ function calculateUnitPricing(unit, checkInDate, checkOutDate) {
   const discountRuleMap = {};
   if (unit.discountRules && unit.discountRules.length > 0) {
     for (const rule of unit.discountRules) {
-      discountRuleMap[rule.type] = rule.percent || 0;
+      discountRuleMap[rule.type] = { percent: rule.percent || 0, stackable: !!rule.stackable };
     }
   }
+
+  // Compute stay length first so long-stay discounts can apply to every night.
+  const msPerDay = 1000 * 60 * 60 * 24;
+  const totalNights = Math.max(0, Math.round((checkOutDate - checkInDate) / msPerDay));
+
+  const globalPct = unit.pricing?.discountPercent || 0;
+  const globalStackable = !!unit.pricing?.globalStackable;
+  const weeklyPct = totalNights >= 7 ? (unit.pricing?.weeklyDiscount || 0) : 0;
+  const weeklyStackable = !!unit.pricing?.weeklyStackable;
+  const monthlyPct = totalNights >= 30 ? (unit.pricing?.monthlyDiscount || 0) : 0;
+  const monthlyStackable = !!unit.pricing?.monthlyStackable;
+
+  // Aggregate which discount TYPES contributed (for UI/receipt display).
+  const appliedTypes = new Set();
+
+  let subtotalBase = 0;   // before discounts
+  let subtotalAfter = 0;  // after discounts
+  let nights = 0;
 
   const current = new Date(checkInDate);
   while (current < checkOutDate) {
     const dateKey = current.toISOString().slice(0, 10);
     const override = dateOverrides.get(dateKey);
 
-    // If this date is blocked via datePricing, throw an error (safety check)
     if (override && override.isBlocked) {
       const err = new Error('DATES_BLOCKED');
       err.blockedDate = dateKey;
       throw err;
     }
 
-    let nightPrice;
-    if (override && override.price != null) {
-      // Use the per-date override price
-      nightPrice = override.price;
-    } else {
-      // Fall back to day-of-week price
-      const dayName = dayNames[current.getDay()];
-      nightPrice = unit.pricing[dayName] || 0;
-    }
+    const basePrice = (override && override.price != null)
+      ? override.price
+      : (unit.pricing?.[dayNames[current.getDay()]] || 0);
 
-    // Apply discount rules per night (weekday/weekend)
+    // Collect discounts that apply TONIGHT
+    const applicable = [];
+    if (globalPct > 0)  { applicable.push({ type: 'global',  percent: globalPct,  stackable: globalStackable }); }
+    if (weeklyPct > 0)  { applicable.push({ type: 'weekly',  percent: weeklyPct,  stackable: weeklyStackable }); }
+    if (monthlyPct > 0) { applicable.push({ type: 'monthly', percent: monthlyPct, stackable: monthlyStackable }); }
     const dayIndex = current.getDay();
     const dayType = WEEKDAY_INDICES.has(dayIndex) ? 'weekday' : 'weekend';
-    const rulePercent = discountRuleMap[dayType] || 0;
-    if (rulePercent > 0) {
-      nightPrice = Math.round(nightPrice * (1 - rulePercent / 100));
+    const rule = discountRuleMap[dayType];
+    if (rule && rule.percent > 0) {
+      applicable.push({ type: dayType, percent: rule.percent, stackable: rule.stackable });
+    }
+    if (override && override.discountPercent && override.discountPercent > 0) {
+      applicable.push({ type: 'date', percent: override.discountPercent, stackable: !!override.discountStackable });
     }
 
-    subtotal += nightPrice;
+    let stackableSum = 0;
+    let nonStackableMax = 0;
+    for (const d of applicable) {
+      if (d.stackable) stackableSum += d.percent;
+      else if (d.percent > nonStackableMax) nonStackableMax = d.percent;
+      appliedTypes.add(d.type);
+    }
+    const effectivePct = Math.min(100, stackableSum + nonStackableMax);
+    const nightPrice = Math.round(basePrice * (1 - effectivePct / 100));
+
+    subtotalBase += basePrice;
+    subtotalAfter += nightPrice;
     nights++;
     current.setDate(current.getDate() + 1);
   }
 
-  const perNight = nights > 0 ? Math.round(subtotal / nights) : 0;
-  const cleaningFee = unit.pricing.cleaningFee || 0;
-  const serviceFee = Math.round(subtotal * 0.1);
+  const subtotal = subtotalBase;                          // gross (pre-discount) nights
+  const discount = Math.max(0, subtotalBase - subtotalAfter);
+  // Keep `discountPercent` + `discountType` populated for back-compat with
+  // consumers that expect a single headline number. Headline percent is the
+  // effective average across the stay; type is the first applied for labeling.
+  const discountPercent = subtotalBase > 0 ? Math.round((discount / subtotalBase) * 100) : 0;
+  const discountType = appliedTypes.size > 0 ? Array.from(appliedTypes)[0] : '';
 
-  let discountPercent = unit.pricing.discountPercent || 0;
-  let discountType = discountPercent > 0 ? 'global' : '';
-  // Apply monthly discount if stay is 30+ nights and it's higher
-  if (nights >= 30 && (unit.pricing.monthlyDiscount || 0) > discountPercent) {
-    discountPercent = unit.pricing.monthlyDiscount;
-    discountType = 'monthly';
-  }
-  // Apply weekly discount if stay is 7+ nights and it's higher
-  if (nights >= 7 && (unit.pricing.weeklyDiscount || 0) > discountPercent) {
-    discountPercent = unit.pricing.weeklyDiscount;
-    discountType = 'weekly';
-  }
-
-  const discount = discountPercent > 0 ? Math.round(subtotal * (discountPercent / 100)) : 0;
-  const taxableAmount = subtotal + cleaningFee + serviceFee - discount;
+  const perNight = nights > 0 ? Math.round(subtotalBase / nights) : 0;
+  const cleaningFee = unit.pricing?.cleaningFee || 0;
+  const serviceFee = Math.round(subtotalBase * 0.1);
+  const taxableAmount = subtotalBase + cleaningFee + serviceFee - discount;
   const vat = Math.round(taxableAmount * 0.15);
   const total = taxableAmount + vat;
 
-  return { perNight, nights, subtotal, cleaningFee, serviceFee, discount, discountPercent, discountType, vat, total };
+  return {
+    perNight, nights, subtotal, cleaningFee, serviceFee, discount,
+    discountPercent, discountType, vat, total,
+    appliedDiscountTypes: Array.from(appliedTypes),
+  };
 }
 
 // Detect once at startup whether the MongoDB deployment supports transactions
