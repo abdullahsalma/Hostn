@@ -62,10 +62,15 @@ function calculateUnitPricing(unit, checkInDate, checkOutDate) {
     }
   }
 
-  // Build discount rules lookup (weekday/weekend)
+  // PR F: `enabled` defaults to true when undefined so legacy unit data
+  // without the flag keeps applying its discounts as before.
+  const isEnabled = (flag) => flag !== false;
+
+  // Build discount rules lookup (weekday/weekend) — skip disabled rules entirely.
   const discountRuleMap = {};
   if (unit.discountRules && unit.discountRules.length > 0) {
     for (const rule of unit.discountRules) {
+      if (!isEnabled(rule.enabled)) continue;
       discountRuleMap[rule.type] = { percent: rule.percent || 0, stackable: !!rule.stackable };
     }
   }
@@ -74,12 +79,13 @@ function calculateUnitPricing(unit, checkInDate, checkOutDate) {
   const msPerDay = 1000 * 60 * 60 * 24;
   const totalNights = Math.max(0, Math.round((checkOutDate - checkInDate) / msPerDay));
 
-  const globalPct = unit.pricing?.discountPercent || 0;
-  const globalStackable = !!unit.pricing?.globalStackable;
-  const weeklyPct = totalNights >= 7 ? (unit.pricing?.weeklyDiscount || 0) : 0;
-  const weeklyStackable = !!unit.pricing?.weeklyStackable;
-  const monthlyPct = totalNights >= 30 ? (unit.pricing?.monthlyDiscount || 0) : 0;
-  const monthlyStackable = !!unit.pricing?.monthlyStackable;
+  const p = unit.pricing || {};
+  const globalPct = isEnabled(p.globalEnabled) ? (p.discountPercent || 0) : 0;
+  const globalStackable = !!p.globalStackable;
+  const weeklyPct = (totalNights >= 7 && isEnabled(p.weeklyEnabled)) ? (p.weeklyDiscount || 0) : 0;
+  const weeklyStackable = !!p.weeklyStackable;
+  const monthlyPct = (totalNights >= 30 && isEnabled(p.monthlyEnabled)) ? (p.monthlyDiscount || 0) : 0;
+  const monthlyStackable = !!p.monthlyStackable;
 
   // Aggregate which discount TYPES contributed (for UI/receipt display).
   const appliedTypes = new Set();

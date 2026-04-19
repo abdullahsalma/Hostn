@@ -197,10 +197,12 @@ export default function HostListingsPage() {
   const primaryImage = (unit: Unit) =>
     unit.images?.find((i) => i.isPrimary)?.url || unit.images?.[0]?.url;
 
-  const avgPrice = (pricing?: Record<string, number>) => {
+  const avgPrice = (pricing?: Record<string, number | boolean | undefined>) => {
     if (!pricing) return 0;
     const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const prices = days.map((d) => pricing[d] || 0).filter((p) => p > 0);
+    const prices = days
+      .map((d) => (typeof pricing[d] === 'number' ? pricing[d] as number : 0))
+      .filter((p) => p > 0);
     return prices.length ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length) : 0;
   };
 
