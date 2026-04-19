@@ -645,7 +645,14 @@ exports.updateUnitPricing = async (req, res, next) => {
         if (dp.remove) {
           dateMap.delete(key); // Remove override
         } else {
-          dateMap.set(key, { date: new Date(dp.date), price: dp.price, isBlocked: dp.isBlocked ?? false, discountPercent: dp.discountPercent ?? undefined });
+          dateMap.set(key, {
+            date: new Date(dp.date),
+            price: dp.price,
+            isBlocked: dp.isBlocked ?? false,
+            discountPercent: dp.discountPercent ?? undefined,
+            // E1: preserve the per-date stackable flag alongside the discount percent
+            discountStackable: dp.discountStackable ?? false,
+          });
         }
       }
       unit.datePricing = Array.from(dateMap.values());

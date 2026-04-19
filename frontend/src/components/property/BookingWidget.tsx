@@ -16,6 +16,7 @@ import BnplWidget from '@/components/payment/BnplWidget';
 import SarSymbol from '@/components/ui/SarSymbol';
 import { saveSearchCookies } from '@/lib/searchCookies';
 import { bookingsApi, unitsApi } from '@/lib/api';
+import { calculateStayPricing, type PricingUnit } from '@/lib/pricing';
 
 interface BookingWidgetProps {
   property: Property;
@@ -119,79 +120,40 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
   })();
 
   // ── Calculate pricing: unit per-day rates vs property flat rate ──
+  // PR E: uses the shared `calculateStayPricing` helper which implements the
+  // new stackable-aware discount formula. The property-only fallback keeps
+  // the legacy flat-rate path for (old) properties without units.
   const hasUnit = !!selectedUnit;
   let pricePerNight: number;
   let subtotal: number;
   let cleaningFee: number;
   let discount: number;
-
-  // Weekday = Sun-Wed (indices 0-3), Weekend = Thu-Sat (indices 4-6)
-  const WEEKDAY_INDICES = new Set([0, 1, 2, 3]);
   let discountLabel = '';
   let appliedDiscountPct = 0;
+  let serviceFee: number;
+  let vat: number;
+  let total: number;
 
   if (hasUnit && selectedUnit.pricing && nights > 0) {
-    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-
-    // Build date override map from datePricing
-    const dateOverrides = new Map<string, { price?: number; isBlocked?: boolean }>();
-    if (selectedUnit.datePricing) {
-      for (const dp of selectedUnit.datePricing) {
-        const key = new Date(dp.date).toISOString().slice(0, 10);
-        dateOverrides.set(key, dp);
-      }
-    }
-
-    // Build discount rules lookup (weekday/weekend)
-    const discountRuleMap: Record<string, number> = {};
-    if (selectedUnit.discountRules) {
-      for (const rule of selectedUnit.discountRules) {
-        discountRuleMap[rule.type] = rule.percent || 0;
-      }
-    }
-
-    let sum = 0;
-    const start = new Date(checkIn);
-    for (let i = 0; i < nights; i++) {
-      const d = new Date(start);
-      d.setDate(d.getDate() + i);
-      const dateKey = d.toISOString().slice(0, 10);
-      const override = dateOverrides.get(dateKey);
-
-      let nightPrice: number;
-      if (override?.isBlocked) {
-        nightPrice = selectedUnit.pricing[dayNames[d.getDay()]] || 0;
-      } else if (override?.price != null && override.price > 0) {
-        nightPrice = override.price;
-      } else {
-        nightPrice = selectedUnit.pricing[dayNames[d.getDay()]] || 0;
-      }
-
-      // Apply discount rules per night (weekday/weekend)
-      const dayType = WEEKDAY_INDICES.has(d.getDay()) ? 'weekday' : 'weekend';
-      const rulePercent = discountRuleMap[dayType] || 0;
-      if (rulePercent > 0) {
-        nightPrice = Math.round(nightPrice * (1 - rulePercent / 100));
-      }
-
-      sum += nightPrice;
-    }
-
-    subtotal = sum;
-    pricePerNight = Math.round(sum / nights);
-    cleaningFee = selectedUnit.pricing.cleaningFee || 0;
-    let discPct = selectedUnit.pricing.discountPercent || 0;
-    discountLabel = discPct > 0 ? (isAr ? 'خصم عام' : 'Global Discount') : '';
-    if (nights >= 30 && (selectedUnit.pricing.monthlyDiscount || 0) > discPct) {
-      discPct = selectedUnit.pricing.monthlyDiscount || 0;
-      discountLabel = isAr ? 'خصم شهري' : 'Monthly Discount';
-    }
-    if (nights >= 7 && (selectedUnit.pricing.weeklyDiscount || 0) > discPct) {
-      discPct = selectedUnit.pricing.weeklyDiscount || 0;
-      discountLabel = isAr ? 'خصم أسبوعي' : 'Weekly Discount';
-    }
-    appliedDiscountPct = discPct;
-    discount = discPct > 0 ? Math.round(subtotal * (discPct / 100)) : 0;
+    const ci = new Date(checkIn);
+    const co = new Date(checkIn);
+    co.setDate(co.getDate() + nights);
+    const breakdown = calculateStayPricing(selectedUnit as PricingUnit, ci, co);
+    pricePerNight = breakdown.perNight;
+    subtotal = breakdown.subtotal;
+    cleaningFee = breakdown.cleaningFee;
+    discount = breakdown.discount;
+    appliedDiscountPct = breakdown.discountPercent;
+    serviceFee = breakdown.serviceFee;
+    vat = breakdown.vat;
+    total = breakdown.total;
+    // Headline label: prefer the long-stay types (weekly/monthly) when they
+    // contributed, else fall back to whichever type appears first.
+    const types = breakdown.appliedDiscountTypes;
+    if (types.includes('monthly')) discountLabel = isAr ? 'خصم شهري' : 'Monthly Discount';
+    else if (types.includes('weekly')) discountLabel = isAr ? 'خصم أسبوعي' : 'Weekly Discount';
+    else if (types.includes('global')) discountLabel = isAr ? 'خصم عام' : 'Global Discount';
+    else if (types.length > 0) discountLabel = isAr ? 'خصم' : 'Discount';
   } else {
     pricePerNight = property.pricing?.perNight ?? 0;
     subtotal = nights * pricePerNight;
@@ -202,12 +164,11 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
     discount = propDiscPct > 0
       ? Math.round(subtotal * (propDiscPct / 100))
       : 0;
+    serviceFee = Math.round(subtotal * 0.1);
+    const taxableAmount = subtotal + cleaningFee + serviceFee - discount;
+    vat = Math.round(taxableAmount * 0.15);
+    total = taxableAmount + vat;
   }
-
-  const serviceFee = Math.round(subtotal * 0.1);
-  const taxableAmount = subtotal + cleaningFee + serviceFee - discount;
-  const vat = Math.round(taxableAmount * 0.15);
-  const total = taxableAmount + vat;
 
   // Check if any selected dates are blocked
   const hasBlockedDates = (() => {
