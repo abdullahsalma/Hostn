@@ -88,17 +88,26 @@ export default function HostPricingPage() {
     (isAr ? unit.nameAr || unit.nameEn : unit.nameEn || unit.nameAr) ||
     (isAr ? '\u0628\u062f\u0648\u0646 \u0627\u0633\u0645' : 'Untitled');
 
-  const weekdayAvg = (pricing?: Record<string, number>) => {
+  // After PR F, `unit.pricing` can hold boolean flags (stackable/enabled)
+  // alongside numeric prices. Cast each lookup to Number so the reducers
+  // only see numeric values.
+  type PricingLike = Record<string, number | boolean | undefined>;
+  const numericAt = (pricing: PricingLike | undefined, key: string): number => {
+    const v = pricing?.[key];
+    return typeof v === 'number' ? v : 0;
+  };
+
+  const weekdayAvg = (pricing?: PricingLike) => {
     if (!pricing) return 0;
     const days = ['sunday', 'monday', 'tuesday', 'wednesday'];
-    const prices = days.map((d) => pricing[d] || 0).filter((p) => p > 0);
+    const prices = days.map((d) => numericAt(pricing, d)).filter((p) => p > 0);
     return prices.length ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length) : 0;
   };
 
-  const weekendAvg = (pricing?: Record<string, number>) => {
+  const weekendAvg = (pricing?: PricingLike) => {
     if (!pricing) return 0;
     const days = ['thursday', 'friday', 'saturday'];
-    const prices = days.map((d) => pricing[d] || 0).filter((p) => p > 0);
+    const prices = days.map((d) => numericAt(pricing, d)).filter((p) => p > 0);
     return prices.length ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length) : 0;
   };
 

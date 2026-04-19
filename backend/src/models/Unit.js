@@ -274,12 +274,19 @@ const unitSchema = new mongoose.Schema(
       friday: { type: Number, min: 0, default: 0 },
       saturday: { type: Number, min: 0, default: 0 },
       cleaningFee: { type: Number, default: 0, min: 0 },
+      // Each discount has a `percent`, a `stackable` flag (see PR E), and an
+      // `enabled` on/off toggle (PR F). `enabled` defaults to TRUE so existing
+      // units with a non-zero percent still apply their discount; the host
+      // can then disable without losing the value.
       discountPercent: { type: Number, default: 0, min: 0, max: 100 },
       globalStackable: { type: Boolean, default: false },
+      globalEnabled: { type: Boolean, default: true },
       weeklyDiscount: { type: Number, default: 0, min: 0, max: 100 },
       weeklyStackable: { type: Boolean, default: false },
+      weeklyEnabled: { type: Boolean, default: true },
       monthlyDiscount: { type: Number, default: 0, min: 0, max: 100 },
       monthlyStackable: { type: Boolean, default: false },
+      monthlyEnabled: { type: Boolean, default: true },
     },
 
     // ── Discount rules (weekday/weekend) ────────────────────────────
@@ -287,6 +294,7 @@ const unitSchema = new mongoose.Schema(
       type: { type: String, enum: ['weekday', 'weekend'], required: true },
       percent: { type: Number, required: true, min: 0, max: 100 },
       stackable: { type: Boolean, default: false },
+      enabled: { type: Boolean, default: true },
     }],
 
     // ── Per-date price overrides ─────────────────────────────────────

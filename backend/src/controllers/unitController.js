@@ -630,30 +630,60 @@ exports.updateUnitPricing = async (req, res, next) => {
       unit.pricing = { ...(unit.pricing?.toObject?.() || unit.pricing || {}), ...pricing };
     }
 
-    // 4. Date pricing overrides — merge into existing datePricing array
+    // 4. Date pricing overrides — merge-patch into existing datePricing.
+    //
+    // Semantics (PR F):
+    //   - Field missing from payload  → keep the existing value
+    //   - Field === null              → clear the existing value
+    //   - Field set to anything else  → overwrite
+    //
+    // This lets unblock-a-date preserve the custom price (item 4) while still
+    // letting the frontend explicitly wipe fields when the user sets a
+    // competing override (item 10: setting a date discount clears the price,
+    // and vice-versa).
     if (datePricing && Array.isArray(datePricing)) {
       const existing = unit.datePricing || [];
       const dateMap = new Map();
-      // Keep existing entries
       for (const dp of existing) {
         const key = new Date(dp.date).toISOString().slice(0, 10);
-        dateMap.set(key, dp);
+        // Convert subdoc to plain object so we can mutate fields freely
+        dateMap.set(key, dp.toObject ? dp.toObject() : { ...dp });
       }
-      // Upsert new entries
+
+      // Resolve a merge-patch field — undefined=keep, null=clear, else=set
+      const merge = (patch, existingVal) => {
+        if (patch === undefined) return existingVal;
+        if (patch === null) return undefined;
+        return patch;
+      };
+
       for (const dp of datePricing) {
         const key = new Date(dp.date).toISOString().slice(0, 10);
         if (dp.remove) {
-          dateMap.delete(key); // Remove override
-        } else {
-          dateMap.set(key, {
-            date: new Date(dp.date),
-            price: dp.price,
-            isBlocked: dp.isBlocked ?? false,
-            discountPercent: dp.discountPercent ?? undefined,
-            // E1: preserve the per-date stackable flag alongside the discount percent
-            discountStackable: dp.discountStackable ?? false,
-          });
+          dateMap.delete(key);
+          continue;
         }
+        const prev = dateMap.get(key) || {};
+        const mergedPrice    = merge(dp.price,             prev.price);
+        const mergedBlocked  = dp.isBlocked !== undefined ? !!dp.isBlocked : !!prev.isBlocked;
+        const mergedDiscount = merge(dp.discountPercent,   prev.discountPercent);
+        const mergedDStack   = dp.discountStackable !== undefined ? !!dp.discountStackable : !!prev.discountStackable;
+
+        // If the entry has no meaningful data left, drop it entirely.
+        const hasPrice    = typeof mergedPrice    === 'number' && mergedPrice > 0;
+        const hasDiscount = typeof mergedDiscount === 'number' && mergedDiscount > 0;
+        if (!hasPrice && !hasDiscount && !mergedBlocked) {
+          dateMap.delete(key);
+          continue;
+        }
+
+        dateMap.set(key, {
+          date: new Date(dp.date),
+          price: mergedPrice,
+          isBlocked: mergedBlocked,
+          discountPercent: mergedDiscount,
+          discountStackable: mergedDStack,
+        });
       }
       unit.datePricing = Array.from(dateMap.values());
     }

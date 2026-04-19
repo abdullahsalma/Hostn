@@ -27,13 +27,16 @@ export interface PricingUnit {
     thursday?: number; friday?: number; saturday?: number;
     discountPercent?: number;
     globalStackable?: boolean;
+    globalEnabled?: boolean;
     weeklyDiscount?: number;
     weeklyStackable?: boolean;
+    weeklyEnabled?: boolean;
     monthlyDiscount?: number;
     monthlyStackable?: boolean;
+    monthlyEnabled?: boolean;
     cleaningFee?: number;
   };
-  discountRules?: { type: 'weekday' | 'weekend'; percent: number; stackable?: boolean }[];
+  discountRules?: { type: 'weekday' | 'weekend'; percent: number; stackable?: boolean; enabled?: boolean }[];
   datePricing?: {
     date: string | Date;
     price?: number;
@@ -46,9 +49,26 @@ export interface PricingUnit {
 const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
 const WEEKEND_DAY_INDICES = new Set([4, 5, 6]); // Thu, Fri, Sat
 
+/**
+ * Normalize a date input to a bare `YYYY-MM-DD` key.
+ *
+ * IMPORTANT (bug fix): Date objects are converted using LOCAL getters, not
+ * `toISOString`. Calendar cells are rendered with `new Date(year, month, day)`
+ * which is local midnight. In any timezone east of UTC, `toISOString()` would
+ * roll the UTC date back by one day (e.g. Riyadh UTC+3: local April 19 00:00
+ * = UTC April 18 21:00 → wrong key "2026-04-18"). Using local getters keeps
+ * the cell key aligned with `formatDateKey` in the calendar page.
+ *
+ * String inputs are assumed to be ISO-8601 "bare date" prefixes (e.g.
+ * "2026-04-19..." or "2026-04-19T00:00:00Z"), so slicing the first 10 chars
+ * returns the calendar-date portion the backend actually stored.
+ */
 function toDateKey(d: string | Date): string {
   if (typeof d === 'string') return d.slice(0, 10);
-  return d.toISOString().slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 /** Build a date-indexed map of per-date overrides for O(1) lookup. */
@@ -76,29 +96,38 @@ export function applicableDiscountsForNight(
   const discounts: ApplicableDiscount[] = [];
   const p = unit.pricing || {};
 
+  // `enabled` defaults to true when undefined — existing units with no flag
+  // still see their discounts apply as they always have.
+  const isEnabled = (flag: boolean | undefined) => flag !== false;
+
   const globalPct = p.discountPercent || 0;
-  if (globalPct > 0) {
+  if (globalPct > 0 && isEnabled(p.globalEnabled)) {
     discounts.push({ type: 'global', percent: globalPct, stackable: !!p.globalStackable });
   }
 
   if (stayNights != null && stayNights >= 7) {
     const wk = p.weeklyDiscount || 0;
-    if (wk > 0) discounts.push({ type: 'weekly', percent: wk, stackable: !!p.weeklyStackable });
+    if (wk > 0 && isEnabled(p.weeklyEnabled)) {
+      discounts.push({ type: 'weekly', percent: wk, stackable: !!p.weeklyStackable });
+    }
   }
   if (stayNights != null && stayNights >= 30) {
     const mo = p.monthlyDiscount || 0;
-    if (mo > 0) discounts.push({ type: 'monthly', percent: mo, stackable: !!p.monthlyStackable });
+    if (mo > 0 && isEnabled(p.monthlyEnabled)) {
+      discounts.push({ type: 'monthly', percent: mo, stackable: !!p.monthlyStackable });
+    }
   }
 
   // Weekday or weekend rule — whichever matches this day
   const isWeekend = WEEKEND_DAY_INDICES.has(date.getDay());
   const ruleType = isWeekend ? 'weekend' : 'weekday';
   const rule = (unit.discountRules || []).find((r) => r.type === ruleType);
-  if (rule && rule.percent > 0) {
+  if (rule && rule.percent > 0 && isEnabled(rule.enabled)) {
     discounts.push({ type: ruleType, percent: rule.percent, stackable: !!rule.stackable });
   }
 
-  // Date-specific discount
+  // Date-specific discount (no enabled flag — per-date entries are only
+  // present when the host has explicitly set them)
   const override = buildDateOverrideMap(unit).get(toDateKey(date));
   if (override && override.discountPercent && override.discountPercent > 0) {
     discounts.push({
@@ -120,6 +149,35 @@ export function effectiveDiscountPercent(discounts: ApplicableDiscount[]): numbe
     else if (d.percent > nonStackableMax) nonStackableMax = d.percent;
   }
   return Math.min(100, stackableSum + nonStackableMax);
+}
+
+/**
+ * Mark which discounts actually contribute to the effective percent after
+ * stacking. Stackable discounts always contribute; non-stackable ones only
+ * contribute if they're the HIGHEST non-stackable percent (all others are
+ * shadowed by the winner).
+ *
+ * Used by the single-date dialog to strike through discounts that don't
+ * ultimately apply so the host knows why the effective percent isn't a
+ * simple sum of everything they configured.
+ */
+export function markAppliedDiscounts(
+  discounts: ApplicableDiscount[],
+): (ApplicableDiscount & { isApplied: boolean })[] {
+  // Find the highest non-stackable percent (if any ties, the first wins).
+  let maxIdx = -1;
+  let maxPct = -1;
+  for (let i = 0; i < discounts.length; i++) {
+    const d = discounts[i];
+    if (!d.stackable && d.percent > maxPct) {
+      maxPct = d.percent;
+      maxIdx = i;
+    }
+  }
+  return discounts.map((d, i) => ({
+    ...d,
+    isApplied: d.stackable || i === maxIdx,
+  }));
 }
 
 /** Base (pre-discount) nightly price for a given date. */
@@ -202,11 +260,19 @@ export function calculateStayPricing(
   };
 }
 
-/** Visual palette — referenced by the calendar page for per-type color dots. */
+/**
+ * Visual palette.
+ *
+ * Only discounts that show PER-DAY on the calendar get a unique color —
+ * host can then see at a glance which type is applied on which day.
+ * Weekly + monthly discounts depend on stay length (guest-selected) so they
+ * never render on individual cells; they use a neutral gray badge in the
+ * unified Discounts card so they don't imply a per-day impact.
+ */
 export const DISCOUNT_COLORS: Record<DiscountType, { bg: string; ring: string; text: string; dot: string }> = {
   global:  { bg: 'bg-emerald-50', ring: 'ring-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-500' },
-  weekly:  { bg: 'bg-amber-50',   ring: 'ring-amber-200',   text: 'text-amber-700',   dot: 'bg-amber-500'   },
-  monthly: { bg: 'bg-purple-50',  ring: 'ring-purple-200',  text: 'text-purple-700',  dot: 'bg-purple-500'  },
+  weekly:  { bg: 'bg-gray-50',    ring: 'ring-gray-200',    text: 'text-gray-700',    dot: 'bg-gray-400'    },
+  monthly: { bg: 'bg-gray-50',    ring: 'ring-gray-200',    text: 'text-gray-700',    dot: 'bg-gray-400'    },
   weekday: { bg: 'bg-blue-50',    ring: 'ring-blue-200',    text: 'text-blue-700',    dot: 'bg-blue-500'    },
   weekend: { bg: 'bg-cyan-50',    ring: 'ring-cyan-200',    text: 'text-cyan-700',    dot: 'bg-cyan-500'    },
   date:    { bg: 'bg-orange-50',  ring: 'ring-orange-200',  text: 'text-orange-700',  dot: 'bg-orange-500'  },
