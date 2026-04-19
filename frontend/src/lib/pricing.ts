@@ -195,6 +195,17 @@ export function nightPriceAfterDiscount(unit: PricingUnit, date: Date, stayNight
   return Math.round(base * (1 - pct / 100));
 }
 
+export interface DiscountBreakdownLine {
+  type: DiscountType;
+  /** Display percent for this type — the highest per-night percent seen
+   *  from this discount during the stay. */
+  percent: number;
+  /** Total SAR the guest saved from this specific discount (post-rounding). */
+  amount: number;
+  /** Whether it was stackable (affects how the effective rate combines). */
+  stackable: boolean;
+}
+
 export interface StayPricing {
   perNight: number;
   nights: number;
@@ -204,11 +215,17 @@ export interface StayPricing {
   discountPercent: number; // effective % over the stay
   /** Set of discount types that contributed at least once during the stay. */
   appliedDiscountTypes: DiscountType[];
+  /** Per-type breakdown for the booking-widget "Discount" lines. One entry
+   *  per type that actually contributed savings; see PR G. */
+  discountBreakdown: DiscountBreakdownLine[];
   cleaningFee: number;
   serviceFee: number;
   vat: number;
   total: number;
 }
+
+/** PR G: service fee rate applied to the POST-discount subtotal, pre-VAT. */
+export const SERVICE_FEE_RATE = 0.11;
 
 /**
  * Full pricing calculation for a stay — mirrors the backend's
@@ -223,6 +240,7 @@ export function calculateStayPricing(
     return {
       perNight: 0, nights: 0, subtotal: 0, subtotalAfterDiscount: 0,
       discount: 0, discountPercent: 0, appliedDiscountTypes: [],
+      discountBreakdown: [],
       cleaningFee: 0, serviceFee: 0, vat: 0, total: 0,
     };
   }
@@ -233,29 +251,88 @@ export function calculateStayPricing(
   let subtotalAfter = 0;
   const appliedTypes = new Set<DiscountType>();
 
+  // Per-type contribution tracking (PR G). For each contributing discount
+  // type we track: how many SAR it saved across the stay, the max percent
+  // seen, and its stackable flag. Non-stackable losers are counted at 0
+  // contribution but still remembered so the UI can strike them out later
+  // if ever needed.
+  const byType = new Map<DiscountType, { percent: number; amount: number; stackable: boolean }>();
+
   for (let i = 0; i < nights; i++) {
     const d = new Date(checkIn);
     d.setDate(d.getDate() + i);
     const base = baseNightPrice(unit, d);
     const applicable = applicableDiscountsForNight(unit, d, nights);
     for (const a of applicable) appliedTypes.add(a.type);
-    const pct = effectiveDiscountPercent(applicable);
+
+    // Identify the winning non-stackable for THIS night.
+    let winnerIdx = -1;
+    let winnerPct = -1;
+    for (let j = 0; j < applicable.length; j++) {
+      const ap = applicable[j];
+      if (!ap.stackable && ap.percent > winnerPct) {
+        winnerPct = ap.percent;
+        winnerIdx = j;
+      }
+    }
+
+    // Sum effective percent (stackable + winning non-stackable), capped.
+    let stackableSum = 0;
+    for (const a of applicable) if (a.stackable) stackableSum += a.percent;
+    const maxNonStackable = winnerIdx >= 0 ? applicable[winnerIdx].percent : 0;
+    const pct = Math.min(100, stackableSum + maxNonStackable);
+
     subtotal += base;
-    subtotalAfter += Math.round(base * (1 - pct / 100));
+    const nightAfter = Math.round(base * (1 - pct / 100));
+    subtotalAfter += nightAfter;
+
+    // Attribute this night's savings proportionally to contributing discounts.
+    // Stackable discounts get their share of the stackable-sum portion;
+    // the winning non-stackable gets the non-stackable portion.
+    const nightDiscount = base - nightAfter;
+    if (nightDiscount > 0 && (stackableSum + maxNonStackable) > 0) {
+      const totalPct = stackableSum + maxNonStackable;
+      for (let j = 0; j < applicable.length; j++) {
+        const ap = applicable[j];
+        const counts = ap.stackable || j === winnerIdx;
+        if (!counts) continue;
+        // Per-type share of tonight's savings proportional to its percent.
+        const share = Math.round((nightDiscount * ap.percent) / totalPct);
+        const existing = byType.get(ap.type);
+        if (existing) {
+          existing.amount += share;
+          if (ap.percent > existing.percent) existing.percent = ap.percent;
+        } else {
+          byType.set(ap.type, { percent: ap.percent, amount: share, stackable: ap.stackable });
+        }
+      }
+    }
   }
 
   const discount = Math.max(0, subtotal - subtotalAfter);
   const discountPercent = subtotal > 0 ? Math.round((discount / subtotal) * 100) : 0;
   const perNight = nights > 0 ? Math.round(subtotal / nights) : 0;
   const cleaningFee = unit.pricing?.cleaningFee || 0;
-  const serviceFee = Math.round(subtotal * 0.1);
-  const taxable = subtotal + cleaningFee + serviceFee - discount;
+
+  // PR G: service fee = 11% of the POST-discount subtotal; VAT is applied
+  // on (discountedSubtotal + cleaning + service), NOT the pre-discount
+  // subtotal.
+  const discountedSubtotal = Math.max(0, subtotal - discount);
+  const serviceFee = Math.round(discountedSubtotal * SERVICE_FEE_RATE);
+  const taxable = discountedSubtotal + cleaningFee + serviceFee;
   const vat = Math.round(taxable * 0.15);
   const total = taxable + vat;
+
+  const discountBreakdown: DiscountBreakdownLine[] = Array.from(byType.entries())
+    .filter(([, v]) => v.amount > 0)
+    .map(([type, v]) => ({ type, percent: v.percent, amount: v.amount, stackable: v.stackable }))
+    // Sort longest-contribution first so the biggest savings render on top.
+    .sort((a, b) => b.amount - a.amount);
 
   return {
     perNight, nights, subtotal, subtotalAfterDiscount: subtotalAfter,
     discount, discountPercent, appliedDiscountTypes: Array.from(appliedTypes),
+    discountBreakdown,
     cleaningFee, serviceFee, vat, total,
   };
 }

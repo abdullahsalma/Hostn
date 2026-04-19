@@ -306,9 +306,11 @@ function BookingContent() {
       ? Math.round(subtotal * ((property.pricing?.discountPercent ?? 0) / 100))
       : 0;
   }
-  const serviceFee = Math.round(subtotal * 0.1);
-  // Saudi Arabia 15% VAT — applied on taxable amount (after discount)
-  const taxableAmount = subtotal + cleaningFee + serviceFee - discount;
+  // PR G: service fee is 11% of the POST-discount subtotal, pre-VAT.
+  const discountedSubtotal = Math.max(0, subtotal - discount);
+  const serviceFee = Math.round(discountedSubtotal * 0.11);
+  // Saudi Arabia 15% VAT — applied on (discounted subtotal + cleaning + service)
+  const taxableAmount = discountedSubtotal + cleaningFee + serviceFee;
   const vat = Math.round(taxableAmount * 0.15);
   const total = taxableAmount + vat;
 
@@ -422,23 +424,34 @@ function BookingContent() {
                         <div className="flex items-center gap-3 py-3">
                           <Shield className="w-5 h-5 text-green-500" />
                           <div>
-                            <p className="text-sm font-medium text-gray-800">
-                              {(() => {
-                                const policy = unit?.cancellationPolicy || 'free';
-                                const labels: Record<string, { en: string; ar: string }> = {
-                                  free: { en: 'Free cancellation', ar: 'إلغاء مجاني' },
-                                  flexible: { en: 'Flexible cancellation', ar: 'إلغاء مرن' },
-                                  normal: { en: 'Normal cancellation', ar: 'إلغاء عادي' },
-                                  restricted: { en: 'Restricted cancellation', ar: 'إلغاء مقيد' },
-                                };
-                                return isAr ? labels[policy]?.ar || labels.free.ar : labels[policy]?.en || labels.free.en;
-                              })()}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {unit?.cancellationDescription
+                            {(() => {
+                              // PR G: policy-specific labels AND descriptions.
+                              // Previously the fallback description always said
+                              // "full refund" which is wrong for normal/restricted.
+                              const policy = (unit?.cancellationPolicy as 'free' | 'flexible' | 'normal' | 'restricted' | undefined) || 'free';
+                              const labels: Record<string, { en: string; ar: string }> = {
+                                free: { en: 'Free cancellation', ar: 'إلغاء مجاني' },
+                                flexible: { en: 'Flexible cancellation', ar: 'إلغاء مرن' },
+                                normal: { en: 'Normal cancellation', ar: 'إلغاء عادي' },
+                                restricted: { en: 'Restricted cancellation', ar: 'إلغاء مقيد' },
+                              };
+                              const fallbackDescriptions: Record<string, { en: string; ar: string }> = {
+                                free:       { en: 'Cancel anytime for a full refund',              ar: 'إلغاء في أي وقت مع استرداد كامل' },
+                                flexible:   { en: 'Cancel before check-in for a full refund',      ar: 'ألغِ قبل الوصول واسترد المبلغ كاملاً' },
+                                normal:     { en: 'Partial refund if you cancel before check-in',  ar: 'استرداد جزئي عند الإلغاء قبل الوصول' },
+                                restricted: { en: 'Non-refundable after booking',                   ar: 'لا يمكن استرداد المبلغ بعد الحجز' },
+                              };
+                              const labelText = isAr ? labels[policy]?.ar : labels[policy]?.en;
+                              const descText = unit?.cancellationDescription
                                 ? unit.cancellationDescription
-                                : (isAr ? 'ألغِ قبل تاريخ الوصول واسترد المبلغ كاملاً' : 'Cancel before check-in for a full refund')}
-                            </p>
+                                : (isAr ? fallbackDescriptions[policy]?.ar : fallbackDescriptions[policy]?.en);
+                              return (
+                                <>
+                                  <p className="text-sm font-medium text-gray-800">{labelText}</p>
+                                  <p className="text-xs text-gray-500">{descText}</p>
+                                </>
+                              );
+                            })()}
                           </div>
                         </div>
                       </div>
