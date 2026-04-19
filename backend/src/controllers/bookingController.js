@@ -150,8 +150,12 @@ function calculateUnitPricing(unit, checkInDate, checkOutDate) {
 
   const perNight = nights > 0 ? Math.round(subtotalBase / nights) : 0;
   const cleaningFee = unit.pricing?.cleaningFee || 0;
-  const serviceFee = Math.round(subtotalBase * 0.1);
-  const taxableAmount = subtotalBase + cleaningFee + serviceFee - discount;
+  // PR G: service fee is 11% of the POST-DISCOUNT subtotal, applied before
+  // VAT. Previously 10% of the pre-discount subtotal — which double-charged
+  // on discounted stays.
+  const discountedSubtotal = Math.max(0, subtotalBase - discount);
+  const serviceFee = Math.round(discountedSubtotal * 0.11);
+  const taxableAmount = discountedSubtotal + cleaningFee + serviceFee;
   const vat = Math.round(taxableAmount * 0.15);
   const total = taxableAmount + vat;
 
@@ -287,11 +291,13 @@ exports.createHold = async (req, res, next) => {
       const perNight = property.pricing.perNight;
       const subtotal = perNight * nights;
       const cleaningFee = property.pricing.cleaningFee || 0;
-      const serviceFee = Math.round(subtotal * 0.1);
       const discount = property.pricing.discountPercent > 0
         ? Math.round(subtotal * (property.pricing.discountPercent / 100))
         : 0;
-      const taxableAmount = subtotal + cleaningFee + serviceFee - discount;
+      // PR G: service fee is 11% post-discount, pre-VAT.
+      const discountedSubtotal = Math.max(0, subtotal - discount);
+      const serviceFee = Math.round(discountedSubtotal * 0.11);
+      const taxableAmount = discountedSubtotal + cleaningFee + serviceFee;
       const vat = Math.round(taxableAmount * 0.15);
       const total = taxableAmount + vat;
       pricing = { perNight, nights, subtotal, cleaningFee, serviceFee, discount, vat, total };
@@ -476,11 +482,13 @@ exports.createBooking = async (req, res, next) => {
       const perNight = property.pricing.perNight;
       const subtotal = perNight * nights;
       const cleaningFee = property.pricing.cleaningFee || 0;
-      const serviceFee = Math.round(subtotal * 0.1);
       const discount = property.pricing.discountPercent > 0
         ? Math.round(subtotal * (property.pricing.discountPercent / 100))
         : 0;
-      const taxableAmount = subtotal + cleaningFee + serviceFee - discount;
+      // PR G: service fee is 11% post-discount, pre-VAT.
+      const discountedSubtotal = Math.max(0, subtotal - discount);
+      const serviceFee = Math.round(discountedSubtotal * 0.11);
+      const taxableAmount = discountedSubtotal + cleaningFee + serviceFee;
       const vat = Math.round(taxableAmount * 0.15);
       const total = taxableAmount + vat;
       pricing = { perNight, nights, subtotal, cleaningFee, serviceFee, discount, vat, total };

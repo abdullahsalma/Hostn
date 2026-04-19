@@ -47,8 +47,14 @@ export function middleware(request: NextRequest) {
   // ── 1. Legacy path 404s on main domain ──────────────────────────────
   // After subdomain migration, /host/* and /admin/* are served only via
   // business.hostn.co and admin.hostn.co respectively.
+  //
+  // PR G: use exact-equals OR prefix-with-slash so the public `/hosts/[id]`
+  // route (guest-side host profile) isn't caught. The old check
+  // `startsWith('/host')` was 404ing every `/hosts/abc` path.
   if (subdomain === 'main') {
-    if (pathname.startsWith('/host') || pathname.startsWith('/admin')) {
+    const isHostDashboard = pathname === '/host' || pathname.startsWith('/host/');
+    const isAdminDashboard = pathname === '/admin' || pathname.startsWith('/admin/');
+    if (isHostDashboard || isAdminDashboard) {
       return new NextResponse('Not Found', { status: 404 });
     }
   }
@@ -155,8 +161,9 @@ function applyAuthProtection(
     return rewriteUrl ? NextResponse.rewrite(rewriteUrl) : NextResponse.next();
   }
 
-  // /host/* — host or admin (admin can be on admin subdomain only though)
-  if (pathname.startsWith('/host')) {
+  // /host/* — host or admin (admin can be on admin subdomain only though).
+  // PR G: `/hosts/*` (plural, public host profile) must NOT be caught here.
+  if (pathname === '/host' || pathname.startsWith('/host/')) {
     if (!isAuthenticated) return redirectToAuth(pathname, request);
     if (role !== 'host' && role !== 'admin') {
       return NextResponse.redirect(new URL('/auth', request.url));
@@ -165,7 +172,7 @@ function applyAuthProtection(
   }
 
   // /admin/* — admin only
-  if (pathname.startsWith('/admin')) {
+  if (pathname === '/admin' || pathname.startsWith('/admin/')) {
     if (!isAuthenticated) return redirectToAuth(pathname, request);
     if (role !== 'admin') {
       return NextResponse.redirect(new URL('/auth', request.url));
