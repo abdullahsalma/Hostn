@@ -34,7 +34,7 @@ const t: Record<string, Record<string, string>> = {
   bedrooms:     { en: 'Bedrooms', ar: '\u063a\u0631\u0641 \u0646\u0648\u0645' },
   bathrooms:    { en: 'Bathrooms', ar: '\u062d\u0645\u0627\u0645\u0627\u062a' },
   avgPrice:     { en: 'Avg price', ar: '\u0645\u062a\u0648\u0633\u0637 \u0627\u0644\u0633\u0639\u0631' },
-  propertyFor:  { en: 'Units for:', ar: '\u0648\u062d\u062f\u0627\u062a:' },
+  propertyFor:  { en: 'Units for', ar: '\u0648\u062d\u062f\u0627\u062a \u0639\u0642\u0627\u0631' },
   confirmDelete:{ en: 'Are you sure you want to deactivate this unit?', ar: 'هل تريد تعطيل هذه الوحدة؟' },
   dupTitle:     { en: 'Duplicate Unit', ar: 'نسخ الوحدة' },
   dupDesc:      { en: 'Select what to exclude from the copy:', ar: 'اختر ما تريد استبعاده من النسخة:' },
@@ -62,7 +62,9 @@ export default function UnitsListPage() {
   usePageTitle(isAr ? 'الوحدات' : 'Units');
 
   const [units, setUnits] = useState<Unit[]>([]);
-  const [propertyTitle, setPropertyTitle] = useState('');
+  // Keep both titles so we can show the right one per-language instead of
+  // always preferring English.
+  const [propertyTitle, setPropertyTitle] = useState<{ en: string; ar: string }>({ en: '', ar: '' });
   const [loading, setLoading] = useState(true);
   const [dupDialogId, setDupDialogId] = useState<string | null>(null);
   const [dupExclude, setDupExclude] = useState<Record<string, boolean>>({ images: false, pricing: false, unavailableDates: false });
@@ -82,7 +84,10 @@ export default function UnitsListPage() {
     try {
       const propRes = await propertiesApi.getOne(propertyId);
       const prop = propRes.data.data || propRes.data;
-      setPropertyTitle(prop.title || prop.titleAr || '');
+      setPropertyTitle({
+        en: prop.title || prop.titleAr || '',
+        ar: prop.titleAr || prop.title || '',
+      });
     } catch {
       // Property may be inactive — still show units
     }
@@ -170,8 +175,12 @@ export default function UnitsListPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{t.title[lang]}</h1>
-          {propertyTitle && (
-            <p className="text-sm text-gray-500 mt-0.5">{t.propertyFor[lang]} {propertyTitle}</p>
+          {propertyTitle[lang] && (
+            <p className="text-sm text-gray-500 mt-0.5">
+              {t.propertyFor[lang]}
+              {isAr ? ' ' : ': '}
+              <span className="font-medium text-gray-700">{propertyTitle[lang]}</span>
+            </p>
           )}
         </div>
         <Link
