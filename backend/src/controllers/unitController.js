@@ -526,12 +526,46 @@ exports.duplicateUnit = async (req, res, next) => {
     // Reset ratings on the copy
     doc.ratings = { average: 0, count: 0 };
 
-    // Remove excluded fields if specified
-    // e.g. body: { exclude: ['images', 'pricing', 'unavailableDates'] }
+    // Remove excluded fields if specified.
+    // Body: { exclude: ['images', 'pricing', 'unavailableDates'] }
+    //
+    // NOTE: "blocked dates" aren't just `unavailableDates` — they ALSO live as
+    // `{ isBlocked: true }` entries inside `datePricing`. Likewise, "pricing"
+    // covers both the day-of-week `pricing` object AND per-date price overrides
+    // in `datePricing`. So we expand the high-level exclude keys into the
+    // individual fields they actually touch.
     const { exclude = [] } = req.body;
     if (Array.isArray(exclude)) {
-      for (const field of exclude) {
-        delete doc[field];
+      const set = new Set(exclude);
+
+      if (set.has('images')) {
+        delete doc.images;
+      }
+
+      if (set.has('pricing')) {
+        delete doc.pricing;
+        delete doc.discountRules;
+        // Drop price-override entries but keep blocked-date entries (unless the
+        // user also asked to exclude blocked dates — handled below).
+        if (Array.isArray(doc.datePricing)) {
+          doc.datePricing = doc.datePricing
+            .filter((e) => e.isBlocked)
+            .map((e) => ({ date: e.date, isBlocked: true }));
+        }
+      }
+
+      if (set.has('unavailableDates')) {
+        delete doc.unavailableDates;
+        // Strip any blocked-date entries that snuck into datePricing.
+        if (Array.isArray(doc.datePricing)) {
+          doc.datePricing = doc.datePricing.filter((e) => !e.isBlocked);
+        }
+      }
+
+      // If BOTH pricing and unavailableDates were excluded, datePricing is now
+      // either empty or irrelevant — just clear it for a clean slate.
+      if (set.has('pricing') && set.has('unavailableDates')) {
+        doc.datePricing = [];
       }
     }
 
