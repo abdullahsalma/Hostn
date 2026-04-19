@@ -498,27 +498,17 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
 
       <p className="text-xs text-center text-gray-500 mb-5">{t('booking.notChargedYet')}</p>
 
-      {/* Price breakdown */}
+      {/* Price breakdown.
+          PR H: order is price → discounts → cleaning → service → vat → total
+          (user feedback — discounts belong right under the nightly price). */}
       {nights > 0 && !hasBlockedDates && (
         <div className="space-y-3 text-sm">
           <div className="flex justify-between text-gray-600">
             <span dir="ltr"><SarSymbol /> {formatPriceNumber(pricePerNight)} &times; {nightLabel}</span>
             <span dir="ltr"><SarSymbol /> {formatPriceNumber(subtotal)}</span>
           </div>
-          {cleaningFee > 0 && (
-            <div className="flex justify-between text-gray-600">
-              <span>{t('booking.cleaningFee')}</span>
-              <span dir="ltr"><SarSymbol /> {formatPriceNumber(cleaningFee)}</span>
-            </div>
-          )}
-          <div className="flex justify-between text-gray-600">
-            <span>{t('booking.serviceFee')}</span>
-            <span dir="ltr"><SarSymbol /> {formatPriceNumber(serviceFee)}</span>
-          </div>
-          {/* PR G: when multiple discount types stack, show one line per
-              type with its own percent + amount. Falls back to a single
-              aggregate line for the legacy property-only pricing path
-              which doesn't provide a breakdown. */}
+          {/* Discounts — one line per contributing type when stacked, else
+              one aggregate line for the legacy property-only branch. */}
           {discountBreakdown.length > 1 ? (
             discountBreakdown.map((d) => (
               <div key={d.type} className="flex justify-between text-green-600">
@@ -538,6 +528,16 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
               <span dir="ltr"><SarSymbol /> -{formatPriceNumber(discount)}</span>
             </div>
           ) : null}
+          {cleaningFee > 0 && (
+            <div className="flex justify-between text-gray-600">
+              <span>{t('booking.cleaningFee')}</span>
+              <span dir="ltr"><SarSymbol /> {formatPriceNumber(cleaningFee)}</span>
+            </div>
+          )}
+          <div className="flex justify-between text-gray-600">
+            <span>{t('booking.serviceFee')}</span>
+            <span dir="ltr"><SarSymbol /> {formatPriceNumber(serviceFee)}</span>
+          </div>
           <div className="flex justify-between text-gray-600">
             <span>{t('booking.vat')}</span>
             <span dir="ltr"><SarSymbol /> {formatPriceNumber(vat)}</span>

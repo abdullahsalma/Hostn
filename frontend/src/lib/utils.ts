@@ -279,7 +279,7 @@ export function getAmenityIcon(amenity: string) {
     projector: '📽️',
     shared_pool: '🏊',
     lit_pool: '🏊',
-    slide: '🛝',
+    slide: '🎢',
     two_sections: '🏠',
     two_separate_sections: '🏘️',
     two_sections_connected: '🏠',

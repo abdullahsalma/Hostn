@@ -355,20 +355,22 @@ export const DISCOUNT_COLORS: Record<DiscountType, { bg: string; ring: string; t
   date:    { bg: 'bg-orange-50',  ring: 'ring-orange-200',  text: 'text-orange-700',  dot: 'bg-orange-500'  },
 };
 
+// PR H: labels always include the word "Discount" so a standalone line
+// like "Global 10%" doesn't read as a nightly rate; now "Global Discount 10%".
 export const DISCOUNT_LABELS_EN: Record<DiscountType, string> = {
-  global:  'Global',
-  weekly:  'Weekly (7+ nights)',
-  monthly: 'Monthly (30+ nights)',
-  weekday: 'Weekdays',
-  weekend: 'Weekend',
-  date:    'Date-specific',
+  global:  'Global Discount',
+  weekly:  'Weekly Discount (7+ nights)',
+  monthly: 'Monthly Discount (30+ nights)',
+  weekday: 'Weekday Discount',
+  weekend: 'Weekend Discount',
+  date:    'Date Discount',
 };
 
 export const DISCOUNT_LABELS_AR: Record<DiscountType, string> = {
-  global:  'عام',
-  weekly:  'أسبوعي (7+ ليالٍ)',
-  monthly: 'شهري (30+ ليلة)',
-  weekday: 'أيام الأسبوع',
-  weekend: 'نهاية الأسبوع',
-  date:    'حسب التاريخ',
+  global:  'خصم عام',
+  weekly:  'خصم أسبوعي (7+ ليالٍ)',
+  monthly: 'خصم شهري (30+ ليلة)',
+  weekday: 'خصم أيام الأسبوع',
+  weekend: 'خصم نهاية الأسبوع',
+  date:    'خصم تاريخ محدد',
 };
