@@ -314,6 +314,25 @@ function BookingContent() {
   const vat = Math.round(taxableAmount * 0.15);
   const total = taxableAmount + vat;
 
+  // PR I: if any selected date is blocked on the unit (host marked it
+  // unavailable, or a confirmed booking claimed it after this hold was
+  // issued), hide the breakdown + disable Continue + show the red banner —
+  // same pattern as BookingWidget on /search/[id].
+  const hasBlockedDates = (() => {
+    if (!unit?.datePricing || !checkIn || !checkOut || nights <= 0) return false;
+    const overrides = new Map<string, { isBlocked?: boolean }>();
+    for (const dp of unit.datePricing as { date: string; isBlocked?: boolean }[]) {
+      overrides.set(new Date(dp.date).toISOString().slice(0, 10), dp);
+    }
+    const s = new Date(checkIn);
+    for (let i = 0; i < nights; i++) {
+      const d = new Date(s);
+      d.setDate(d.getDate() + i);
+      if (overrides.get(d.toISOString().slice(0, 10))?.isBlocked) return true;
+    }
+    return false;
+  })();
+
   const primaryImage = unit?.images?.find((i: any) => i.isPrimary)?.url
     || unit?.images?.[0]?.url
     || property.images?.find((i: any) => i.isPrimary)?.url
@@ -667,13 +686,33 @@ function BookingContent() {
                     </div>
                   </div>
 
-                  {/* Price breakdown */}
+                  {/* PR I: unavailable-dates banner — shown when one or more
+                      of the selected nights have been blocked since this
+                      booking hold was issued. Matches the BookingWidget
+                      pattern on /search/[id]. */}
+                  {hasBlockedDates && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600 mb-4">
+                      {isAr
+                        ? 'هذه التواريخ محجوزة حالياً. يرجى اختيار تواريخ أخرى.'
+                        : 'These dates are currently taken. Please choose different dates.'}
+                    </div>
+                  )}
+
+                  {/* Price breakdown — hidden when dates are unavailable.
+                      PR H order: price → discounts → cleaning → service → vat → total */}
+                  {!hasBlockedDates && (
                   <div className="space-y-3 text-sm mb-6">
                     <h3 className="font-bold text-gray-900">{isAr ? 'تفاصيل السعر' : 'Price details'}</h3>
                     <div className="flex justify-between text-gray-600">
                       <span dir="ltr"><SarSymbol /> {formatPriceNumber(pricePerNight)} &times; {getNightLabel(nights, isAr ? 'ar' : 'en')}</span>
                       <span dir="ltr"><SarSymbol /> {formatPriceNumber(subtotal)}</span>
                     </div>
+                    {discount > 0 && (
+                      <div className="flex justify-between text-green-600">
+                        <span>{isAr ? `\u062E\u0635\u0645 (${unit?.pricing?.discountPercent ?? property.pricing?.discountPercent ?? 0}%)` : `Discount (${unit?.pricing?.discountPercent ?? property.pricing?.discountPercent ?? 0}%)`}</span>
+                        <span dir="ltr"><SarSymbol /> -{formatPriceNumber(discount)}</span>
+                      </div>
+                    )}
                     {cleaningFee > 0 && (
                       <div className="flex justify-between text-gray-600">
                         <span>{isAr ? '\u0631\u0633\u0648\u0645 \u0627\u0644\u062A\u0646\u0638\u064A\u0641' : 'Cleaning fee'}</span>
@@ -684,12 +723,6 @@ function BookingContent() {
                       <span>{isAr ? '\u0631\u0633\u0648\u0645 \u0627\u0644\u062E\u062F\u0645\u0629' : 'Service fee'}</span>
                       <span dir="ltr"><SarSymbol /> {formatPriceNumber(serviceFee)}</span>
                     </div>
-                    {discount > 0 && (
-                      <div className="flex justify-between text-green-600">
-                        <span>{isAr ? `\u062E\u0635\u0645 (${unit?.pricing?.discountPercent ?? property.pricing?.discountPercent ?? 0}%)` : `Discount (${unit?.pricing?.discountPercent ?? property.pricing?.discountPercent ?? 0}%)`}</span>
-                        <span dir="ltr"><SarSymbol /> -{formatPriceNumber(discount)}</span>
-                      </div>
-                    )}
                     <div className="flex justify-between text-gray-600">
                       <span>{isAr ? '\u0636\u0631\u064A\u0628\u0629 \u0627\u0644\u0642\u064A\u0645\u0629 \u0627\u0644\u0645\u0636\u0627\u0641\u0629 (15%)' : 'VAT (15%)'}</span>
                       <span dir="ltr"><SarSymbol /> {formatPriceNumber(vat)}</span>
@@ -699,12 +732,14 @@ function BookingContent() {
                       <span dir="ltr"><SarSymbol /> {formatPriceNumber(total)}</span>
                     </div>
                   </div>
+                  )}
 
-                  {/* Action button */}
+                  {/* Action button — disabled when dates unavailable */}
                   {step === 1 && (
                     <Button
                       onClick={handleContinueToPayment}
                       isLoading={processing}
+                      disabled={hasBlockedDates}
                       size="lg"
                       className="w-full"
                       leftIcon={<CreditCard className="w-4 h-4" />}
