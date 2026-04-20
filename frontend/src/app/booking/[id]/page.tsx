@@ -6,6 +6,13 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { Property } from '@/types';
 import { propertiesApi, unitsApi, bookingsApi, paymentsApi, type SimulatedOutcome } from '@/lib/api';
+import {
+  calculateStayPricing,
+  DISCOUNT_LABELS_EN,
+  DISCOUNT_LABELS_AR,
+  type PricingUnit,
+  type DiscountBreakdownLine,
+} from '@/lib/pricing';
 import { formatPrice, formatPriceNumber, formatDate, calculateNights, getNightLabel, getGuestLabel, getAdultLabel, getChildLabel } from '@/lib/utils';
 import { CITIES } from '@/lib/constants';
 import SarSymbol from '@/components/ui/SarSymbol';
@@ -42,9 +49,17 @@ function BookingContent() {
   const [paymentConfig, setPaymentConfig] = useState<any>(null);
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'tabby' | 'tamara'>('card');
   // PR K: payment simulator state — picks the outcome the back-end applies
-  // when the "Simulate payment" button is clicked at step 2.
+  // when the Pay button is clicked at step 2.
   const [simulatedOutcome, setSimulatedOutcome] = useState<SimulatedOutcome>('approved');
   const [simulating, setSimulating] = useState(false);
+  // PR M: full mock payment form fields. These don't validate or go
+  // anywhere — the simulator endpoint applies the chosen outcome — but
+  // they let the demo feel like a real gateway interaction.
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
+  const [cardholderName, setCardholderName] = useState('');
+  const [saveCard, setSaveCard] = useState(false);
 
   const isAr = language === 'ar';
 
@@ -240,6 +255,14 @@ function BookingContent() {
     }
   };
 
+  // PR M: format helpers for the mock card form
+  const formatCardNumber = (v: string) =>
+    v.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim();
+  const formatExpiry = (v: string) => {
+    const d = v.replace(/\D/g, '').slice(0, 4);
+    return d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d;
+  };
+
   /**
    * PR K: Payment simulator handler. Sends the chosen outcome to the backend
    * which updates the Payment + Booking records, then redirects to the
@@ -248,9 +271,24 @@ function BookingContent() {
    */
   const handleSimulatePayment = async () => {
     if (!bookingId) return;
-    const paymentId = typeof window !== 'undefined'
+    const stored = typeof window !== 'undefined'
       ? localStorage.getItem(`hostn_payment_${bookingId}`)
       : null;
+    // Guard against stale "undefined" string stored by an older frontend
+    // build — if the stored value doesn't look like a valid Mongo ObjectId
+    // we re-initiate the payment before simulating.
+    const isValidId = !!stored && /^[a-f0-9]{24}$/i.test(stored);
+    let paymentId = stored && isValidId ? stored : null;
+    if (!paymentId && bookingId) {
+      try {
+        const fresh = await paymentsApi.initiate({ bookingId });
+        paymentId = fresh.data.data.paymentId;
+        if (paymentId) localStorage.setItem(`hostn_payment_${bookingId}`, paymentId);
+      } catch {
+        toast.error(isAr ? 'تعذّر إنشاء سجل الدفع' : 'Could not initialize payment');
+        return;
+      }
+    }
     if (!paymentId) {
       toast.error(isAr ? 'لم يتم العثور على معرف الدفع' : 'Payment ID not found');
       return;
@@ -291,57 +329,46 @@ function BookingContent() {
 
   const nights = checkIn && checkOut ? calculateNights(checkIn, checkOut) : 0;
 
-  // Pricing: prefer unit day-of-week pricing, fall back to property-level perNight
+  // Pricing — PR M: single source of truth via `calculateStayPricing`, the
+  // same helper `/search/[id]` uses. Guarantees per-type discount lines,
+  // stacking rules, and VAT math stay in lockstep between the two pages.
+  // Falls back to a simple property-level calc when a unit isn't present.
   let pricePerNight = 0;
   let subtotal = 0;
   let cleaningFee = 0;
   let discount = 0;
-  if (unit?.pricing) {
-    const dayNames = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
-    let sum = 0;
-    const loopCount = Math.max(nights, 1); // At least 1 to get today's rate
-    const start = new Date(checkIn || new Date());
-    for (let i = 0; i < loopCount; i++) {
-      const d = new Date(start);
-      d.setDate(d.getDate() + i);
-      const dayKey = dayNames[d.getDay()];
-      // Check datePricing override first
-      const dateStr = d.toISOString().slice(0, 10);
-      const override = unit.datePricing?.find((dp: any) => dp.date?.slice(0, 10) === dateStr);
-      sum += override?.price ?? unit.pricing[dayKey] ?? 0;
-    }
-    pricePerNight = loopCount > 0 ? Math.round(sum / loopCount) : 0;
-    subtotal = nights > 0 ? sum : 0;
-    cleaningFee = unit.pricing.cleaningFee ?? property.pricing?.cleaningFee ?? 0;
-    // Global discount
-    discount = (unit.pricing.discountPercent ?? 0) > 0
-      ? Math.round(subtotal * (unit.pricing.discountPercent / 100))
-      : 0;
-    // Weekly/monthly discount (additive)
-    if (nights >= 30 && (unit.pricing.monthlyDiscount ?? 0) > 0) {
-      discount += Math.round(subtotal * (unit.pricing.monthlyDiscount / 100));
-    } else if (nights >= 7 && (unit.pricing.weeklyDiscount ?? 0) > 0) {
-      discount += Math.round(subtotal * (unit.pricing.weeklyDiscount / 100));
-    }
+  let serviceFee = 0;
+  let vat = 0;
+  let total = 0;
+  let discountBreakdown: DiscountBreakdownLine[] = [];
+
+  if (unit?.pricing && checkIn && checkOut) {
+    const bd = calculateStayPricing(unit as PricingUnit, new Date(checkIn), new Date(checkOut));
+    pricePerNight = bd.perNight;
+    subtotal = bd.subtotal;
+    cleaningFee = bd.cleaningFee;
+    discount = bd.discount;
+    serviceFee = bd.serviceFee;
+    vat = bd.vat;
+    total = bd.total;
+    discountBreakdown = bd.discountBreakdown;
   } else {
-    // Legacy property-level pricing
+    // Legacy property-level path (no unit configured).
     pricePerNight = property.pricing?.perNight ?? 0;
     subtotal = nights * pricePerNight;
     cleaningFee = property.pricing?.cleaningFee ?? 0;
     discount = (property.pricing?.discountPercent ?? 0) > 0
-      ? Math.round(subtotal * ((property.pricing?.discountPercent ?? 0) / 100))
+      ? Math.round(subtotal * ((property.pricing?.discountPercent ?? 0) / 100) * 100) / 100
       : 0;
+    const r2 = (n: number) => Math.round(n * 100) / 100;
+    const discountedSubtotal = Math.max(0, subtotal - discount);
+    const serviceFeeRaw = discountedSubtotal * 0.11;
+    serviceFee = r2(serviceFeeRaw);
+    const taxableRaw = discountedSubtotal + cleaningFee + serviceFeeRaw;
+    const vatRaw = taxableRaw * 0.15;
+    vat = r2(vatRaw);
+    total = r2(taxableRaw + vatRaw);
   }
-  // PR G: service fee is 11% of the POST-discount subtotal, pre-VAT.
-  // PR L: full-precision arithmetic, rounded to 2 decimals only at the end.
-  const r2 = (n: number) => Math.round(n * 100) / 100;
-  const discountedSubtotal = Math.max(0, subtotal - discount);
-  const serviceFeeRaw = discountedSubtotal * 0.11;
-  const serviceFee = r2(serviceFeeRaw);
-  const taxableRaw = discountedSubtotal + cleaningFee + serviceFeeRaw;
-  const vatRaw = taxableRaw * 0.15;
-  const vat = r2(vatRaw);
-  const total = r2(taxableRaw + vatRaw);
 
   // PR I: if any selected date is blocked on the unit (host marked it
   // unavailable, or a confirmed booking claimed it after this hold was
@@ -643,55 +670,251 @@ function BookingContent() {
                 )}
 
                 {/* Step 2: Payment Simulator (PR K) */}
+                {/* Step 2 (PR M): realistic payment UI. Tabs mimic Visa/
+                    Mastercard/Mada card entry + Tamara + Tabby. Fields
+                    don't validate or ship anywhere — the simulator
+                    endpoint decides the outcome — but the UX mirrors a
+                    production gateway. Demo "outcome" selector sits in
+                    its own clearly-marked section at the bottom. */}
                 {step === 2 && paymentConfig && (
-                  <div className="bg-white rounded-2xl p-6 shadow-card">
-                    <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100">
-                      <Lock className="w-5 h-5 text-amber-500" />
+                  <div className="bg-white rounded-2xl shadow-card overflow-hidden">
+                    {/* Secure header */}
+                    <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-100 bg-gradient-to-br from-gray-50 to-white">
+                      <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center">
+                        <Lock className="w-5 h-5 text-green-600" />
+                      </div>
                       <div>
-                        <h2 className="font-bold text-gray-900 text-lg">
-                          {isAr ? 'محاكي الدفع (وضع التجربة)' : 'Payment Simulator (demo mode)'}
+                        <h2 className="font-bold text-gray-900 text-lg leading-tight">
+                          {isAr ? 'دفع آمن' : 'Secure Payment'}
                         </h2>
                         <p className="text-xs text-gray-500">
-                          {isAr
-                            ? 'لم يتم ربط بوابة الدفع الحقيقية بعد. اختر النتيجة لمحاكاة الدفع.'
-                            : 'Real payment gateway is not yet wired up. Pick an outcome to simulate the charge.'}
+                          {isAr ? 'بياناتك محمية ومشفرة' : 'Your information is encrypted'}
                         </p>
+                      </div>
+                      <div className="ms-auto text-sm font-semibold text-gray-900" dir="ltr">
+                        <SarSymbol /> {formatPriceNumber(total)}
                       </div>
                     </div>
 
-                    {/* Outcome dropdown */}
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {isAr ? 'اختر نتيجة الدفع' : 'Choose the payment outcome'}
-                    </label>
-                    <select
-                      value={simulatedOutcome}
-                      onChange={(e) => setSimulatedOutcome(e.target.value as SimulatedOutcome)}
-                      disabled={simulating}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none bg-white disabled:opacity-50 mb-4"
-                    >
-                      <option value="approved">{isAr ? '✓ موافق — تم خصم المبلغ' : '✓ Approved — card charged'}</option>
-                      <option value="declined">{isAr ? '✗ رُفض من قبل البنك' : '✗ Declined — card rejected by issuer'}</option>
-                      <option value="insufficient_funds">{isAr ? '✗ رصيد غير كافٍ' : '✗ Declined — insufficient funds'}</option>
-                      <option value="fraud">{isAr ? '✗ حُجب لأسباب أمنية' : '✗ Blocked — fraud check failed'}</option>
-                      <option value="cancelled">{isAr ? '✗ ألغى الضيف الدفع' : '✗ Cancelled by cardholder'}</option>
-                      <option value="timeout">{isAr ? '⏳ معالجة مستمرة (تجاوز المهلة)' : '⏳ Pending / timeout (stuck on 3DS)'}</option>
-                    </select>
-
-                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800 mb-4">
-                      {isAr
-                        ? 'هذا محاكي مؤقت. في النسخة النهائية ستظهر هنا نموذج الدفع الفعلي (فيزا / ماستر / مدى / تابي / تمارة).'
-                        : 'Temporary simulator. In production this step will show the real gateway form (Visa / Mastercard / mada / Tabby / Tamara).'}
+                    {/* Method tabs */}
+                    <div className="px-6 pt-5">
+                      <div className="grid grid-cols-3 gap-2 bg-gray-50 rounded-xl p-1">
+                        {([
+                          { id: 'card', label: isAr ? 'بطاقة' : 'Card', brands: 'VISA · MC · mada' },
+                          { id: 'tamara', label: 'Tamara', brands: isAr ? 'قسّم على 4' : 'Split in 4' },
+                          { id: 'tabby', label: 'Tabby', brands: isAr ? 'قسّم على 4' : 'Split in 4' },
+                        ] as const).map((m) => (
+                          <button
+                            key={m.id}
+                            onClick={() => setPaymentMethod(m.id as 'card' | 'tabby' | 'tamara')}
+                            className={`py-2.5 px-3 rounded-lg text-xs font-semibold transition-all ${
+                              paymentMethod === m.id
+                                ? 'bg-white text-primary-700 shadow-sm'
+                                : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                          >
+                            <div>{m.label}</div>
+                            <div className="text-[10px] text-gray-400 mt-0.5">{m.brands}</div>
+                          </button>
+                        ))}
+                      </div>
                     </div>
 
-                    <Button
-                      onClick={handleSimulatePayment}
-                      isLoading={simulating}
-                      size="lg"
-                      className="w-full"
-                      leftIcon={<CreditCard className="w-4 h-4" />}
-                    >
-                      {isAr ? 'تشغيل المحاكاة' : 'Simulate Payment'}
-                    </Button>
+                    {/* Card form */}
+                    {paymentMethod === 'card' && (
+                      <div className="px-6 py-5 space-y-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-11 h-7 bg-blue-50 rounded flex items-center justify-center text-[10px] font-bold text-blue-700">VISA</div>
+                          <div className="w-11 h-7 bg-red-50 rounded flex items-center justify-center text-[10px] font-bold text-red-600">MC</div>
+                          <div className="w-11 h-7 bg-amber-50 rounded flex items-center justify-center text-[10px] font-bold text-amber-700">mada</div>
+                          <div className="w-11 h-7 bg-indigo-50 rounded flex items-center justify-center text-[10px] font-bold text-indigo-600">AMEX</div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">
+                            {isAr ? 'رقم البطاقة' : 'Card number'}
+                          </label>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={cardNumber}
+                            onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
+                            placeholder="1234 5678 9012 3456"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none text-sm font-mono tracking-wider"
+                            dir="ltr"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                              {isAr ? 'تاريخ الانتهاء' : 'Expiry'}
+                            </label>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              value={cardExpiry}
+                              onChange={(e) => setCardExpiry(formatExpiry(e.target.value))}
+                              placeholder="MM/YY"
+                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none text-sm font-mono"
+                              dir="ltr"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">CVV</label>
+                            <input
+                              type="password"
+                              inputMode="numeric"
+                              value={cardCvv}
+                              onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                              placeholder="•••"
+                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none text-sm font-mono"
+                              dir="ltr"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">
+                            {isAr ? 'اسم حامل البطاقة' : 'Cardholder name'}
+                          </label>
+                          <input
+                            type="text"
+                            value={cardholderName}
+                            onChange={(e) => setCardholderName(e.target.value)}
+                            placeholder={isAr ? 'الاسم كما يظهر على البطاقة' : 'Name as shown on card'}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none text-sm"
+                          />
+                        </div>
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={saveCard}
+                            onChange={(e) => setSaveCard(e.target.checked)}
+                            className="w-4 h-4 accent-primary-600 cursor-pointer"
+                          />
+                          <span className="text-sm text-gray-700">
+                            {isAr ? 'احفظ البطاقة للمدفوعات القادمة' : 'Save card for future payments'}
+                          </span>
+                        </label>
+                      </div>
+                    )}
+
+                    {/* Tamara preview */}
+                    {paymentMethod === 'tamara' && (
+                      <div className="px-6 py-5 space-y-4">
+                        <div className="flex items-center gap-3 p-4 bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl border border-orange-100">
+                          <div className="w-11 h-11 bg-orange-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">
+                            Ta
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-bold text-orange-900">Tamara</p>
+                            <p className="text-xs text-orange-800">
+                              {isAr ? 'قسّم دفعتك على 4 بدون فوائد' : 'Split into 4 interest-free payments'}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-4 gap-2">
+                          {[0, 1, 2, 3].map((i) => {
+                            const instalment = total / 4;
+                            const d = new Date();
+                            d.setMonth(d.getMonth() + i);
+                            return (
+                              <div key={i} className="text-center p-2 bg-gray-50 rounded-lg border border-gray-100">
+                                <div className="text-[10px] text-gray-500 mb-1">
+                                  {i === 0 ? (isAr ? 'الآن' : 'Today') : d.toLocaleDateString(isAr ? 'ar-u-nu-latn' : 'en-US', { month: 'short', day: 'numeric' })}
+                                </div>
+                                <div className="text-xs font-semibold text-gray-900" dir="ltr">
+                                  <SarSymbol size={9} /> {formatPriceNumber(instalment)}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {isAr ? 'سيتم تحويلك لبوابة Tamara لإكمال الدفع.' : 'You\'ll be redirected to Tamara to complete payment.'}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Tabby preview */}
+                    {paymentMethod === 'tabby' && (
+                      <div className="px-6 py-5 space-y-4">
+                        <div className="flex items-center gap-3 p-4 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-100">
+                          <div className="w-11 h-11 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">
+                            Tb
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-bold text-emerald-900">Tabby</p>
+                            <p className="text-xs text-emerald-800">
+                              {isAr ? 'ادفع 4 مرات. بدون فوائد.' : 'Pay in 4. 0% fees.'}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-4 gap-2">
+                          {[0, 1, 2, 3].map((i) => {
+                            const instalment = total / 4;
+                            const d = new Date();
+                            d.setMonth(d.getMonth() + i);
+                            return (
+                              <div key={i} className="text-center p-2 bg-gray-50 rounded-lg border border-gray-100">
+                                <div className="text-[10px] text-gray-500 mb-1">
+                                  {i === 0 ? (isAr ? 'الآن' : 'Today') : d.toLocaleDateString(isAr ? 'ar-u-nu-latn' : 'en-US', { month: 'short', day: 'numeric' })}
+                                </div>
+                                <div className="text-xs font-semibold text-gray-900" dir="ltr">
+                                  <SarSymbol size={9} /> {formatPriceNumber(instalment)}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {isAr ? 'سيتم تحويلك لبوابة Tabby لإكمال الدفع.' : 'You\'ll be redirected to Tabby to complete payment.'}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Demo simulator section (clearly marked) */}
+                    <div className="mx-6 mb-5 p-4 border border-dashed border-amber-300 bg-amber-50/50 rounded-xl">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-200 text-amber-900 px-2 py-0.5 rounded">
+                          {isAr ? 'وضع تجريبي' : 'Demo mode'}
+                        </span>
+                        <span className="text-xs text-amber-900">
+                          {isAr ? 'اختر نتيجة الدفع المحاكاة' : 'Choose the simulated outcome'}
+                        </span>
+                      </div>
+                      <select
+                        value={simulatedOutcome}
+                        onChange={(e) => setSimulatedOutcome(e.target.value as SimulatedOutcome)}
+                        disabled={simulating}
+                        className="w-full px-3 py-2 border border-amber-300 rounded-lg bg-white text-sm disabled:opacity-50"
+                      >
+                        <option value="approved">{isAr ? '✓ موافق — تم الدفع' : '✓ Approved — payment succeeds'}</option>
+                        <option value="declined">{isAr ? '✗ رفض البطاقة' : '✗ Declined by issuer'}</option>
+                        <option value="insufficient_funds">{isAr ? '✗ رصيد غير كافٍ' : '✗ Insufficient funds'}</option>
+                        <option value="fraud">{isAr ? '✗ حُجب لأسباب أمنية' : '✗ Blocked by fraud check'}</option>
+                        <option value="cancelled">{isAr ? '✗ ألغى الضيف الدفع' : '✗ User cancelled'}</option>
+                        <option value="timeout">{isAr ? '⏳ مهلة 3DS' : '⏳ 3DS timeout'}</option>
+                      </select>
+                    </div>
+
+                    {/* Pay button */}
+                    <div className="px-6 pb-6">
+                      <Button
+                        onClick={handleSimulatePayment}
+                        isLoading={simulating}
+                        size="lg"
+                        className="w-full"
+                        leftIcon={<Lock className="w-4 h-4" />}
+                      >
+                        {isAr
+                          ? `ادفع ${formatPriceNumber(total)} ر.س`
+                          : `Pay SAR ${formatPriceNumber(total)}`}
+                      </Button>
+                      <p className="text-[11px] text-gray-400 text-center mt-3">
+                        {isAr
+                          ? 'بالدفع فإنك توافق على شروط الحجز. المبلغ لن يُخصم فعلياً — وضع تجريبي.'
+                          : 'By paying you agree to the booking terms. No real charge — demo mode.'}
+                      </p>
+                    </div>
                   </div>
                 )}
 
@@ -759,12 +982,26 @@ function BookingContent() {
                       <span dir="ltr"><SarSymbol /> {formatPriceNumber(pricePerNight)} &times; {getNightLabel(nights, isAr ? 'ar' : 'en')}</span>
                       <span dir="ltr"><SarSymbol /> {formatPriceNumber(subtotal)}</span>
                     </div>
-                    {discount > 0 && (
+                    {/* PR M: per-type discount lines — matches /search/[id].
+                        Falls back to a single aggregate line when there's no
+                        breakdown (legacy property-only path). */}
+                    {discountBreakdown.length > 1 ? (
+                      discountBreakdown.map((d) => (
+                        <div key={d.type} className="flex justify-between text-green-600">
+                          <span>{(isAr ? DISCOUNT_LABELS_AR : DISCOUNT_LABELS_EN)[d.type]} {d.percent}%</span>
+                          <span dir="ltr"><SarSymbol /> -{formatPriceNumber(d.amount)}</span>
+                        </div>
+                      ))
+                    ) : discount > 0 ? (
                       <div className="flex justify-between text-green-600">
-                        <span>{isAr ? `\u062E\u0635\u0645 (${unit?.pricing?.discountPercent ?? property.pricing?.discountPercent ?? 0}%)` : `Discount (${unit?.pricing?.discountPercent ?? property.pricing?.discountPercent ?? 0}%)`}</span>
+                        <span>
+                          {discountBreakdown[0]
+                            ? `${(isAr ? DISCOUNT_LABELS_AR : DISCOUNT_LABELS_EN)[discountBreakdown[0].type]} ${discountBreakdown[0].percent}%`
+                            : (isAr ? 'خصم' : 'Discount')}
+                        </span>
                         <span dir="ltr"><SarSymbol /> -{formatPriceNumber(discount)}</span>
                       </div>
-                    )}
+                    ) : null}
                     {cleaningFee > 0 && (
                       <div className="flex justify-between text-gray-600">
                         <span>{isAr ? '\u0631\u0633\u0648\u0645 \u0627\u0644\u062A\u0646\u0638\u064A\u0641' : 'Cleaning fee'}</span>
