@@ -273,6 +273,195 @@ exports.verifyPayment = async (req, res, next) => {
   }
 };
 
+// ─── PAYMENT SIMULATOR (demo mode) ────────────────────────────────────────────
+//
+// While the real payment integration is still in development, the simulator
+// lets the guest finish the booking flow end-to-end by picking an outcome
+// instead of running an actual card charge. Every outcome mirrors the state
+// transitions that would happen if the real processor returned that result.
+//
+// Gated by `PAYMENT_SIMULATOR_ENABLED=true` in the environment. Disabling
+// the flag makes the endpoint 404 so production never accidentally accepts
+// a simulated outcome.
+
+const SIMULATOR_ENABLED = process.env.PAYMENT_SIMULATOR_ENABLED === 'true' || !MOYASAR_SECRET_KEY;
+
+const SIMULATED_OUTCOMES = {
+  approved: {
+    paymentStatus: 'completed',
+    bookingPaymentStatus: 'paid',
+    failureReason: null,
+  },
+  declined: {
+    paymentStatus: 'failed',
+    bookingPaymentStatus: 'unpaid',
+    failureReason: 'Card declined by issuer',
+  },
+  insufficient_funds: {
+    paymentStatus: 'failed',
+    bookingPaymentStatus: 'unpaid',
+    failureReason: 'Insufficient funds',
+  },
+  fraud: {
+    paymentStatus: 'failed',
+    bookingPaymentStatus: 'unpaid',
+    failureReason: 'Blocked by fraud screening',
+  },
+  cancelled: {
+    paymentStatus: 'cancelled',
+    bookingPaymentStatus: 'unpaid',
+    failureReason: 'Cancelled by cardholder',
+  },
+  // `timeout` leaves the payment in `pending` to mimic a slow 3DS challenge
+  // that the guest abandons. Front-end shows a "still processing" state.
+  timeout: {
+    paymentStatus: 'pending',
+    bookingPaymentStatus: 'unpaid',
+    failureReason: null,
+  },
+};
+
+// @desc    Simulate a payment outcome (demo / dev only)
+// @route   POST /api/payments/simulate
+// @access  Private
+exports.simulatePayment = async (req, res, next) => {
+  try {
+    if (!SIMULATOR_ENABLED) {
+      return res.status(404).json({ success: false, message: 'Not found' });
+    }
+
+    const { paymentId, outcome } = req.body;
+    if (!paymentId || !outcome) {
+      return res.status(400).json({ success: false, message: 'paymentId and outcome are required' });
+    }
+
+    const spec = SIMULATED_OUTCOMES[outcome];
+    if (!spec) {
+      return res.status(400).json({
+        success: false,
+        message: `Unknown outcome. Valid: ${Object.keys(SIMULATED_OUTCOMES).join(', ')}`,
+      });
+    }
+
+    const payment = await Payment.findById(paymentId);
+    if (!payment) {
+      return res.status(404).json({ success: false, message: 'Payment not found' });
+    }
+    if (payment.user && payment.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    // Mark the payment with the chosen status. Stamp a fake Moyasar ID so
+    // downstream queries can tell it came from the simulator.
+    payment.status = spec.paymentStatus;
+    payment.moyasarPaymentId = `sim_${outcome}_${Date.now()}`;
+    payment.moyasarStatus = `simulated_${outcome}`;
+    if (spec.paymentStatus === 'completed') {
+      payment.paidAt = new Date();
+      payment.source = {
+        type: 'creditcard',
+        company: 'visa',
+        name: 'Simulator Card',
+        number: 'XXXX-XXXX-XXXX-4242',
+        message: 'Approved (simulated)',
+      };
+    } else if (spec.failureReason) {
+      payment.failureReason = spec.failureReason;
+    }
+    await payment.save();
+
+    // Mirror the booking-side state so host + downstream endpoints see the
+    // expected paymentStatus. Notifications mirror `verifyPayment`.
+    const booking = await Booking.findById(payment.booking);
+    if (booking) {
+      if (spec.bookingPaymentStatus) booking.paymentStatus = spec.bookingPaymentStatus;
+      await booking.save();
+
+      const Property = require('../models/Property');
+      const property = await Property.findById(booking.property);
+
+      if (spec.paymentStatus === 'completed' && property) {
+        await Notification.createNotification({
+          user: property.host,
+          userType: 'Host',
+          type: 'payment_success',
+          title: 'Payment Received (simulated)',
+          message: `Simulated payment of ${payment.amount} SAR received for booking at ${property.title}`,
+          data: { bookingId: booking._id, paymentId: payment._id, propertyId: property._id, simulated: true },
+        });
+        await Notification.createNotification({
+          user: req.user._id,
+          userType: 'Guest',
+          type: 'payment_success',
+          title: 'Payment Successful (simulated)',
+          message: `Your simulated payment of ${payment.amount} SAR has been recorded`,
+          data: { bookingId: booking._id, paymentId: payment._id, simulated: true },
+        });
+      } else if (spec.paymentStatus === 'failed' || spec.paymentStatus === 'cancelled') {
+        await Notification.createNotification({
+          user: req.user._id,
+          userType: 'Guest',
+          type: 'payment_failed',
+          title: 'Payment Failed (simulated)',
+          message: `Simulated payment failure — ${spec.failureReason}`,
+          data: { bookingId: booking._id, paymentId: payment._id, simulated: true },
+        });
+      }
+    }
+
+    await ActivityLog.create({
+      actor: req.user._id,
+      action: `payment_simulated_${outcome}`,
+      target: { type: 'Payment', id: payment._id },
+      details: `Simulated payment outcome: ${outcome}`,
+      ip: req.ip,
+    });
+
+    res.json({
+      success: true,
+      data: {
+        payment,
+        booking,
+        outcome,
+        simulated: true,
+      },
+      message: `Simulated ${outcome}`,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get current status of a payment (used by the simulator callback
+//          page — replaces the Moyasar verify round-trip for simulated runs)
+// @route   GET /api/payments/:id/status
+// @access  Private
+exports.getPaymentStatus = async (req, res, next) => {
+  try {
+    const payment = await Payment.findById(req.params.id).populate('booking', 'status paymentStatus');
+    if (!payment) {
+      return res.status(404).json({ success: false, message: 'Payment not found' });
+    }
+    if (payment.user && payment.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+    res.json({
+      success: true,
+      data: {
+        paymentId: payment._id,
+        status: payment.status,
+        amount: payment.amount,
+        currency: payment.currency,
+        failureReason: payment.failureReason || null,
+        simulated: payment.moyasarPaymentId?.startsWith('sim_') || false,
+        booking: payment.booking,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Verify Moyasar webhook signature (HMAC-SHA256)
 function verifyWebhookSignature(rawBody, signatureHeader) {
   if (!MOYASAR_WEBHOOK_SECRET) {

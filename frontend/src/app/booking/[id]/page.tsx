@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { Property } from '@/types';
-import { propertiesApi, unitsApi, bookingsApi, paymentsApi, bnplApi } from '@/lib/api';
+import { propertiesApi, unitsApi, bookingsApi, paymentsApi, type SimulatedOutcome } from '@/lib/api';
 import { formatPrice, formatPriceNumber, formatDate, calculateNights, getNightLabel, getGuestLabel, getAdultLabel, getChildLabel } from '@/lib/utils';
 import { CITIES } from '@/lib/constants';
 import SarSymbol from '@/components/ui/SarSymbol';
@@ -41,6 +41,10 @@ function BookingContent() {
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [paymentConfig, setPaymentConfig] = useState<any>(null);
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'tabby' | 'tamara'>('card');
+  // PR K: payment simulator state — picks the outcome the back-end applies
+  // when the "Simulate payment" button is clicked at step 2.
+  const [simulatedOutcome, setSimulatedOutcome] = useState<SimulatedOutcome>('approved');
+  const [simulating, setSimulating] = useState(false);
 
   const isAr = language === 'ar';
 
@@ -71,7 +75,10 @@ function BookingContent() {
 
   // Load Moyasar form when moving to step 2
   useEffect(() => {
-    if (step === 2 && paymentConfig) {
+    // PR K: real Moyasar form is disabled while the simulator owns step 2.
+    // Re-enable by setting `NEXT_PUBLIC_PAYMENT_SIMULATOR=0` and restoring
+    // the `loadMoyasarForm()` call below when the real integration ships.
+    if (false && step === 2 && paymentConfig) {
       loadMoyasarForm();
     }
   }, [step, paymentConfig]);
@@ -186,39 +193,21 @@ function BookingContent() {
       const newBookingId = bookingRes.data.data._id;
       setBookingId(newBookingId);
 
-      if (paymentMethod === 'tabby' || paymentMethod === 'tamara') {
-        // BNPL flow — redirect to Tabby/Tamara checkout
-        const bnplRes = paymentMethod === 'tabby'
-          ? await bnplApi.createTabbyCheckout({ bookingId: newBookingId })
-          : await bnplApi.createTamaraCheckout({ bookingId: newBookingId });
+      // PR K: every payment method now routes through the in-app simulator
+      // (demo mode). We still call `paymentsApi.initiate` to create a Payment
+      // record — the simulator picks an outcome against that record on step 2.
+      // The BNPL off-site redirects and Moyasar card form are deferred to the
+      // real payment milestone; the UX is the same for all three methods.
+      const paymentRes = await paymentsApi.initiate({
+        bookingId: newBookingId,
+      });
 
-        const data = bnplRes.data.data;
-        const redirectUrl = data.redirectUrl || data.checkoutUrl;
+      const config = paymentRes.data.paymentConfig;
+      setPaymentConfig(config);
+      localStorage.setItem(`hostn_payment_${newBookingId}`, paymentRes.data.paymentId);
 
-        // Store payment ID for verification after callback
-        localStorage.setItem(`hostn_bnpl_payment_${newBookingId}`, data.paymentId);
-        localStorage.setItem(`hostn_bnpl_provider_${newBookingId}`, paymentMethod);
-
-        toast.success(isAr ? 'جاري التحويل للدفع بالأقساط...' : 'Redirecting to installment payment...');
-
-        // Redirect to provider checkout
-        window.location.href = redirectUrl;
-      } else {
-        // Card flow — Moyasar
-        const paymentRes = await paymentsApi.initiate({
-          bookingId: newBookingId,
-        });
-
-        const config = paymentRes.data.paymentConfig;
-        setPaymentConfig(config);
-
-        // Store payment ID in localStorage for verification later
-        localStorage.setItem(`hostn_payment_${newBookingId}`, paymentRes.data.paymentId);
-
-        // Move to payment step
-        setStep(2);
-        toast.success(isAr ? 'تم إنشاء الحجز. يرجى إتمام الدفع.' : 'Booking created. Please complete payment.');
-      }
+      setStep(2);
+      toast.success(isAr ? 'تم إنشاء الحجز. يرجى إتمام الدفع.' : 'Booking created. Please complete payment.');
     } catch (error: unknown) {
       const errData = (error as { response?: { data?: { code?: string; message?: string; params?: Record<string, number> } } })?.response?.data;
       const errorMessages: Record<string, { en: string; ar: string }> = {
@@ -244,6 +233,39 @@ function BookingContent() {
       }
     } finally {
       setProcessing(false);
+    }
+  };
+
+  /**
+   * PR K: Payment simulator handler. Sends the chosen outcome to the backend
+   * which updates the Payment + Booking records, then redirects to the
+   * existing payment-callback page with `?simulated=1` so that page reads
+   * the final state from `/payments/:id/status` instead of calling Moyasar.
+   */
+  const handleSimulatePayment = async () => {
+    if (!bookingId) return;
+    const paymentId = typeof window !== 'undefined'
+      ? localStorage.getItem(`hostn_payment_${bookingId}`)
+      : null;
+    if (!paymentId) {
+      toast.error(isAr ? 'لم يتم العثور على معرف الدفع' : 'Payment ID not found');
+      return;
+    }
+    setSimulating(true);
+    setStep(3);
+    try {
+      await paymentsApi.simulate({ paymentId, outcome: simulatedOutcome });
+      // Timeout outcome stays on the "processing" page indefinitely — this
+      // simulates a slow 3DS challenge the guest abandons. For every other
+      // outcome we hop to the callback page which renders success/failure UI.
+      if (simulatedOutcome !== 'timeout') {
+        router.push(`/booking/${bookingId}/payment-callback?simulated=1&paymentId=${paymentId}`);
+      }
+    } catch {
+      toast.error(isAr ? 'فشل تشغيل المحاكاة' : 'Simulation failed');
+      setStep(2);
+    } finally {
+      setSimulating(false);
     }
   };
 
@@ -613,33 +635,56 @@ function BookingContent() {
                   </>
                 )}
 
-                {/* Step 2: Payment Form */}
+                {/* Step 2: Payment Simulator (PR K) */}
                 {step === 2 && paymentConfig && (
                   <div className="bg-white rounded-2xl p-6 shadow-card">
                     <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100">
-                      <Lock className="w-5 h-5 text-green-500" />
+                      <Lock className="w-5 h-5 text-amber-500" />
                       <div>
                         <h2 className="font-bold text-gray-900 text-lg">
-                          {isAr ? 'دفع آمن' : 'Secure Payment'}
+                          {isAr ? 'محاكي الدفع (وضع التجربة)' : 'Payment Simulator (demo mode)'}
                         </h2>
                         <p className="text-xs text-gray-500">
-                          {isAr ? 'بيانات بطاقتك محمية ومشفرة' : 'Your card information is secure and encrypted'}
+                          {isAr
+                            ? 'لم يتم ربط بوابة الدفع الحقيقية بعد. اختر النتيجة لمحاكاة الدفع.'
+                            : 'Real payment gateway is not yet wired up. Pick an outcome to simulate the charge.'}
                         </p>
                       </div>
                     </div>
 
-                    {/* Payment logos */}
-                    <div className="mb-6">
-                      <p className="text-xs text-gray-500 mb-3">{isAr ? 'نقبل' : 'We accept'}</p>
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-8 bg-blue-50 rounded flex items-center justify-center text-xs font-bold text-blue-600">VISA</div>
-                        <div className="w-12 h-8 bg-red-50 rounded flex items-center justify-center text-xs font-bold text-red-600">MC</div>
-                        <div className="w-12 h-8 bg-yellow-50 rounded flex items-center justify-center text-xs font-bold text-yellow-600">mada</div>
-                      </div>
+                    {/* Outcome dropdown */}
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {isAr ? 'اختر نتيجة الدفع' : 'Choose the payment outcome'}
+                    </label>
+                    <select
+                      value={simulatedOutcome}
+                      onChange={(e) => setSimulatedOutcome(e.target.value as SimulatedOutcome)}
+                      disabled={simulating}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none bg-white disabled:opacity-50 mb-4"
+                    >
+                      <option value="approved">{isAr ? '✓ موافق — تم خصم المبلغ' : '✓ Approved — card charged'}</option>
+                      <option value="declined">{isAr ? '✗ رُفض من قبل البنك' : '✗ Declined — card rejected by issuer'}</option>
+                      <option value="insufficient_funds">{isAr ? '✗ رصيد غير كافٍ' : '✗ Declined — insufficient funds'}</option>
+                      <option value="fraud">{isAr ? '✗ حُجب لأسباب أمنية' : '✗ Blocked — fraud check failed'}</option>
+                      <option value="cancelled">{isAr ? '✗ ألغى الضيف الدفع' : '✗ Cancelled by cardholder'}</option>
+                      <option value="timeout">{isAr ? '⏳ معالجة مستمرة (تجاوز المهلة)' : '⏳ Pending / timeout (stuck on 3DS)'}</option>
+                    </select>
+
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800 mb-4">
+                      {isAr
+                        ? 'هذا محاكي مؤقت. في النسخة النهائية ستظهر هنا نموذج الدفع الفعلي (فيزا / ماستر / مدى / تابي / تمارة).'
+                        : 'Temporary simulator. In production this step will show the real gateway form (Visa / Mastercard / mada / Tabby / Tamara).'}
                     </div>
 
-                    {/* Moyasar Form */}
-                    <div className="mysr-form" />
+                    <Button
+                      onClick={handleSimulatePayment}
+                      isLoading={simulating}
+                      size="lg"
+                      className="w-full"
+                      leftIcon={<CreditCard className="w-4 h-4" />}
+                    >
+                      {isAr ? 'تشغيل المحاكاة' : 'Simulate Payment'}
+                    </Button>
                   </div>
                 )}
 
