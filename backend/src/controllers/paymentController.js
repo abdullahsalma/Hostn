@@ -280,11 +280,14 @@ exports.verifyPayment = async (req, res, next) => {
 // instead of running an actual card charge. Every outcome mirrors the state
 // transitions that would happen if the real processor returned that result.
 //
-// Gated by `PAYMENT_SIMULATOR_ENABLED=true` in the environment. Disabling
-// the flag makes the endpoint 404 so production never accidentally accepts
-// a simulated outcome.
+// PR: demo mode is the default today. Explicitly disable by setting
+// `PAYMENT_SIMULATOR_DISABLED=true` on the environment once the real
+// payment integration is live — that'll flip the endpoint back to 404.
+//
+// The check is a GETTER (not a top-level const) so it picks up env var
+// changes after a Railway "Restart" without needing a full rebuild.
 
-const SIMULATOR_ENABLED = process.env.PAYMENT_SIMULATOR_ENABLED === 'true' || !MOYASAR_SECRET_KEY;
+const isSimulatorEnabled = () => process.env.PAYMENT_SIMULATOR_DISABLED !== 'true';
 
 const SIMULATED_OUTCOMES = {
   approved: {
@@ -326,7 +329,7 @@ const SIMULATED_OUTCOMES = {
 // @access  Private
 exports.simulatePayment = async (req, res, next) => {
   try {
-    if (!SIMULATOR_ENABLED) {
+    if (!isSimulatorEnabled()) {
       return res.status(404).json({ success: false, message: 'Not found' });
     }
 
