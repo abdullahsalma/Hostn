@@ -202,9 +202,13 @@ function BookingContent() {
         bookingId: newBookingId,
       });
 
-      const config = paymentRes.data.paymentConfig;
-      setPaymentConfig(config);
-      localStorage.setItem(`hostn_payment_${newBookingId}`, paymentRes.data.paymentId);
+      // Backend returns `{ success: true, data: { paymentId, amount, ... } }`.
+      // The previous code read `paymentRes.data.paymentConfig` /
+      // `paymentRes.data.paymentId` — both undefined — which left
+      // `paymentConfig` null and prevented step 2 from rendering.
+      const payload = paymentRes.data.data;
+      setPaymentConfig(payload);
+      localStorage.setItem(`hostn_payment_${newBookingId}`, payload.paymentId);
 
       setStep(2);
       toast.success(isAr ? 'تم إنشاء الحجز. يرجى إتمام الدفع.' : 'Booking created. Please complete payment.');
