@@ -186,15 +186,17 @@ export default function BookingWidget({ property, initialCheckIn = '', initialCh
     const propDiscPct = property.pricing?.discountPercent ?? 0;
     appliedDiscountPct = propDiscPct;
     discountLabel = propDiscPct > 0 ? (isAr ? 'خصم عام' : 'Global Discount') : '';
-    discount = propDiscPct > 0
-      ? Math.round(subtotal * (propDiscPct / 100))
-      : 0;
+    // PR L: 2-decimal precision — full floats, round to 2dp only at the end.
+    const r2 = (n: number) => Math.round(n * 100) / 100;
+    discount = propDiscPct > 0 ? r2(subtotal * (propDiscPct / 100)) : 0;
     // PR G: service fee = 11% of the post-discount subtotal, pre-VAT.
     const discountedSubtotal = Math.max(0, subtotal - discount);
-    serviceFee = Math.round(discountedSubtotal * SERVICE_FEE_RATE);
-    const taxableAmount = discountedSubtotal + cleaningFee + serviceFee;
-    vat = Math.round(taxableAmount * 0.15);
-    total = taxableAmount + vat;
+    const serviceFeeRaw = discountedSubtotal * SERVICE_FEE_RATE;
+    serviceFee = r2(serviceFeeRaw);
+    const taxableRaw = discountedSubtotal + cleaningFee + serviceFeeRaw;
+    const vatRaw = taxableRaw * 0.15;
+    vat = r2(vatRaw);
+    total = r2(taxableRaw + vatRaw);
   }
 
   // Check if any selected dates are blocked

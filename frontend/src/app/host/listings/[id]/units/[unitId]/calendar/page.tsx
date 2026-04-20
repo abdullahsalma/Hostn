@@ -1205,7 +1205,7 @@ export default function UnitPricingPage() {
               <span className="text-base font-bold text-gray-900" dir="ltr">
                 {weekdayAvg > 0 ? (
                   <>
-                    <SarSymbol size={14} /> {weekdayAvg.toLocaleString('en')}
+                    <SarSymbol size={14} /> {weekdayAvg.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </>
                 ) : (
                   <span className="text-gray-400 font-normal">&mdash;</span>
@@ -1232,7 +1232,7 @@ export default function UnitPricingPage() {
               <span className="text-base font-bold text-gray-900" dir="ltr">
                 {weekendAvg > 0 ? (
                   <>
-                    <SarSymbol size={14} /> {weekendAvg.toLocaleString('en')}
+                    <SarSymbol size={14} /> {weekendAvg.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </>
                 ) : (
                   <span className="text-gray-400 font-normal">&mdash;</span>
@@ -1257,7 +1257,7 @@ export default function UnitPricingPage() {
             >
               <span className="font-medium">{badge.label}</span>
               <span className="mt-1 font-bold text-sm text-gray-900" dir="ltr">
-                {badge.price > 0 ? badge.price.toLocaleString('en') : '\u2014'}
+                {badge.price > 0 ? badge.price.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '\u2014'}
               </span>
             </button>
           ))}
@@ -1557,15 +1557,15 @@ export default function UnitPricingPage() {
                       {effective > 0 ? (
                         <>
                           <span className="text-gray-400 line-through me-1">
-                            <SarSymbol size={8} /> {dayInfo.price.toLocaleString('en')}
+                            <SarSymbol size={8} /> {dayInfo.price.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                           <span className="font-semibold text-gray-900">
-                            <SarSymbol size={9} /> {discounted.toLocaleString('en')}
+                            <SarSymbol size={9} /> {discounted.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         </>
                       ) : (
                         <>
-                          <SarSymbol size={9} /> {dayInfo.price.toLocaleString('en')}
+                          <SarSymbol size={9} /> {dayInfo.price.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </>
                       )}
                     </div>
@@ -1822,7 +1822,7 @@ export default function UnitPricingPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-500">{selectedDateInfo.source}</span>
                   <span className="text-sm font-semibold text-gray-900" dir="ltr">
-                    <SarSymbol size={12} /> {selectedDateInfo.info.price.toLocaleString('en')}
+                    <SarSymbol size={12} /> {selectedDateInfo.info.price.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     <span className="text-xs text-gray-400 ms-1">{t.perNight[lang]}</span>
                   </span>
                 </div>
@@ -1872,11 +1872,11 @@ export default function UnitPricingPage() {
                       <div className="flex items-center gap-2">
                         {selectedDateInfo.effectivePct > 0 && (
                           <span className="text-xs text-gray-400 line-through" dir="ltr">
-                            <SarSymbol size={10} /> {selectedDateInfo.info.price.toLocaleString('en')}
+                            <SarSymbol size={10} /> {selectedDateInfo.info.price.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </span>
                         )}
                         <span className="text-sm font-bold text-gray-900" dir="ltr">
-                          <SarSymbol size={11} /> {selectedDateInfo.priceAfter.toLocaleString('en')}
+                          <SarSymbol size={11} /> {selectedDateInfo.priceAfter.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </div>
                     </div>
