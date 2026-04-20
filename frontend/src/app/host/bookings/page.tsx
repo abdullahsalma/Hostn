@@ -367,7 +367,7 @@ function Row({
         </td>
         <td className="p-3 font-medium text-gray-900">
           {total ? (
-            <span dir="ltr"><SarSymbol /> {total.toLocaleString('en')}</span>
+            <span dir="ltr"><SarSymbol /> {total.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           ) : (
             <span className="text-gray-400">-</span>
           )}
@@ -452,7 +452,7 @@ function Row({
                   />
                   <Field
                     label={t.total[lang]}
-                    value={<span dir="ltr" className="font-semibold"><SarSymbol /> {total.toLocaleString('en')}</span>}
+                    value={<span dir="ltr" className="font-semibold"><SarSymbol /> {total.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>}
                   />
                 </dl>
               </div>
@@ -468,7 +468,7 @@ function Row({
                   {pricing.perNight != null && (
                     <Field
                       label={`${pricing.perNight} × ${nights} ${isAr ? 'ليلة' : 'nights'}`}
-                      value={<span dir="ltr"><SarSymbol /> {(pricing.subtotal ?? pricing.perNight * nights).toLocaleString('en')}</span>}
+                      value={<span dir="ltr"><SarSymbol /> {(pricing.subtotal ?? pricing.perNight * nights).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>}
                     />
                   )}
                   {discountBreakdown.length > 0 ? (
@@ -476,27 +476,27 @@ function Row({
                       <Field
                         key={d.type}
                         label={`${(isAr ? DISCOUNT_LABELS_AR : DISCOUNT_LABELS_EN)[d.type]} ${d.percent}%`}
-                        value={<span dir="ltr" className="text-emerald-700">- <SarSymbol /> {d.amount.toLocaleString('en')}</span>}
+                        value={<span dir="ltr" className="text-emerald-700">- <SarSymbol /> {d.amount.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>}
                       />
                     ))
                   ) : pricing.discount ? (
                     <Field
                       label={t.discount[lang]}
-                      value={<span dir="ltr" className="text-emerald-700">- <SarSymbol /> {pricing.discount.toLocaleString('en')}</span>}
+                      value={<span dir="ltr" className="text-emerald-700">- <SarSymbol /> {pricing.discount.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>}
                     />
                   ) : null}
                   {pricing.cleaningFee ? (
-                    <Field label={t.cleaningFee[lang]} value={<span dir="ltr"><SarSymbol /> {pricing.cleaningFee.toLocaleString('en')}</span>} />
+                    <Field label={t.cleaningFee[lang]} value={<span dir="ltr"><SarSymbol /> {pricing.cleaningFee.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>} />
                   ) : null}
                   {pricing.serviceFee ? (
-                    <Field label={t.serviceFee[lang]} value={<span dir="ltr"><SarSymbol /> {pricing.serviceFee.toLocaleString('en')}</span>} />
+                    <Field label={t.serviceFee[lang]} value={<span dir="ltr"><SarSymbol /> {pricing.serviceFee.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>} />
                   ) : null}
                   {pricing.vat ? (
-                    <Field label={t.vat[lang]} value={<span dir="ltr"><SarSymbol /> {pricing.vat.toLocaleString('en')}</span>} />
+                    <Field label={t.vat[lang]} value={<span dir="ltr"><SarSymbol /> {pricing.vat.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>} />
                   ) : null}
                   <div className="flex items-center justify-between pt-2 mt-2 border-t border-gray-100 text-sm font-semibold text-gray-900">
                     <span>{t.total[lang]}</span>
-                    <span dir="ltr"><SarSymbol /> {total.toLocaleString('en')}</span>
+                    <span dir="ltr"><SarSymbol /> {total.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                 </dl>
               </div>

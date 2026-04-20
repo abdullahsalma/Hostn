@@ -132,7 +132,10 @@ function calculateUnitPricing(unit, checkInDate, checkOutDate) {
       appliedTypes.add(d.type);
     }
     const effectivePct = Math.min(100, stackableSum + nonStackableMax);
-    const nightPrice = Math.round(basePrice * (1 - effectivePct / 100));
+    // PR L: keep full float precision per night — don't round here. We only
+    // round the final displayable fields to 2 decimals below so the cumulative
+    // per-step error that produced `173.00 vs 172.33` is gone.
+    const nightPrice = basePrice * (1 - effectivePct / 100);
 
     subtotalBase += basePrice;
     subtotalAfter += nightPrice;
@@ -140,24 +143,25 @@ function calculateUnitPricing(unit, checkInDate, checkOutDate) {
     current.setDate(current.getDate() + 1);
   }
 
-  const subtotal = subtotalBase;                          // gross (pre-discount) nights
-  const discount = Math.max(0, subtotalBase - subtotalAfter);
-  // Keep `discountPercent` + `discountType` populated for back-compat with
-  // consumers that expect a single headline number. Headline percent is the
-  // effective average across the stay; type is the first applied for labeling.
-  const discountPercent = subtotalBase > 0 ? Math.round((discount / subtotalBase) * 100) : 0;
+  // Helper: round to 2 decimal places (halalas). Used once per output field.
+  const r2 = (n) => Math.round(n * 100) / 100;
+
+  const subtotal = r2(subtotalBase);                        // gross (pre-discount)
+  const discount = r2(Math.max(0, subtotalBase - subtotalAfter));
+  const discountPercent = subtotalBase > 0 ? r2((discount / subtotalBase) * 100) : 0;
   const discountType = appliedTypes.size > 0 ? Array.from(appliedTypes)[0] : '';
 
-  const perNight = nights > 0 ? Math.round(subtotalBase / nights) : 0;
-  const cleaningFee = unit.pricing?.cleaningFee || 0;
-  // PR G: service fee is 11% of the POST-DISCOUNT subtotal, applied before
-  // VAT. Previously 10% of the pre-discount subtotal — which double-charged
-  // on discounted stays.
+  const perNight = nights > 0 ? r2(subtotalBase / nights) : 0;
+  const cleaningFee = r2(unit.pricing?.cleaningFee || 0);
+  // PR G: service fee is 11% of the POST-discount subtotal, pre-VAT.
+  // PR L: all arithmetic done at full precision, rounded to 2dp only once.
   const discountedSubtotal = Math.max(0, subtotalBase - discount);
-  const serviceFee = Math.round(discountedSubtotal * 0.11);
-  const taxableAmount = discountedSubtotal + cleaningFee + serviceFee;
-  const vat = Math.round(taxableAmount * 0.15);
-  const total = taxableAmount + vat;
+  const serviceFeeRaw = discountedSubtotal * 0.11;
+  const serviceFee = r2(serviceFeeRaw);
+  const taxableRaw = discountedSubtotal + cleaningFee + serviceFeeRaw;
+  const vatRaw = taxableRaw * 0.15;
+  const vat = r2(vatRaw);
+  const total = r2(taxableRaw + vatRaw);
 
   return {
     perNight, nights, subtotal, cleaningFee, serviceFee, discount,
@@ -291,15 +295,18 @@ exports.createHold = async (req, res, next) => {
       const perNight = property.pricing.perNight;
       const subtotal = perNight * nights;
       const cleaningFee = property.pricing.cleaningFee || 0;
+      // PR L: 2-decimal precision — round only at the end.
+      const r2 = (n) => Math.round(n * 100) / 100;
       const discount = property.pricing.discountPercent > 0
-        ? Math.round(subtotal * (property.pricing.discountPercent / 100))
+        ? r2(subtotal * (property.pricing.discountPercent / 100))
         : 0;
       // PR G: service fee is 11% post-discount, pre-VAT.
       const discountedSubtotal = Math.max(0, subtotal - discount);
-      const serviceFee = Math.round(discountedSubtotal * 0.11);
-      const taxableAmount = discountedSubtotal + cleaningFee + serviceFee;
-      const vat = Math.round(taxableAmount * 0.15);
-      const total = taxableAmount + vat;
+      const serviceFeeRaw = discountedSubtotal * 0.11;
+      const serviceFee = r2(serviceFeeRaw);
+      const taxableRaw = discountedSubtotal + cleaningFee + serviceFeeRaw;
+      const vat = r2(taxableRaw * 0.15);
+      const total = r2(taxableRaw * 1.15);
       pricing = { perNight, nights, subtotal, cleaningFee, serviceFee, discount, vat, total };
     }
 
@@ -482,15 +489,18 @@ exports.createBooking = async (req, res, next) => {
       const perNight = property.pricing.perNight;
       const subtotal = perNight * nights;
       const cleaningFee = property.pricing.cleaningFee || 0;
+      // PR L: 2-decimal precision — round only at the end.
+      const r2 = (n) => Math.round(n * 100) / 100;
       const discount = property.pricing.discountPercent > 0
-        ? Math.round(subtotal * (property.pricing.discountPercent / 100))
+        ? r2(subtotal * (property.pricing.discountPercent / 100))
         : 0;
       // PR G: service fee is 11% post-discount, pre-VAT.
       const discountedSubtotal = Math.max(0, subtotal - discount);
-      const serviceFee = Math.round(discountedSubtotal * 0.11);
-      const taxableAmount = discountedSubtotal + cleaningFee + serviceFee;
-      const vat = Math.round(taxableAmount * 0.15);
-      const total = taxableAmount + vat;
+      const serviceFeeRaw = discountedSubtotal * 0.11;
+      const serviceFee = r2(serviceFeeRaw);
+      const taxableRaw = discountedSubtotal + cleaningFee + serviceFeeRaw;
+      const vat = r2(taxableRaw * 0.15);
+      const total = r2(taxableRaw * 1.15);
       pricing = { perNight, nights, subtotal, cleaningFee, serviceFee, discount, vat, total };
     }
 

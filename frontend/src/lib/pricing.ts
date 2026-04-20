@@ -247,15 +247,15 @@ export function calculateStayPricing(
   const msPerDay = 1000 * 60 * 60 * 24;
   const nights = Math.round((checkOut.getTime() - checkIn.getTime()) / msPerDay);
 
+  // PR L: full-float precision throughout. The UI rounds to 2 decimals at
+  // display time (via `formatPriceNumber`), so no per-step rounding here.
+  // Keeps `150 × 10% discount + 11% service + 15% VAT` producing 172.33
+  // instead of 173.00 from cumulative per-step `Math.round()`.
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+
   let subtotal = 0;
   let subtotalAfter = 0;
   const appliedTypes = new Set<DiscountType>();
-
-  // Per-type contribution tracking (PR G). For each contributing discount
-  // type we track: how many SAR it saved across the stay, the max percent
-  // seen, and its stackable flag. Non-stackable losers are counted at 0
-  // contribution but still remembered so the UI can strike them out later
-  // if ever needed.
   const byType = new Map<DiscountType, { percent: number; amount: number; stackable: boolean }>();
 
   for (let i = 0; i < nights; i++) {
@@ -283,12 +283,10 @@ export function calculateStayPricing(
     const pct = Math.min(100, stackableSum + maxNonStackable);
 
     subtotal += base;
-    const nightAfter = Math.round(base * (1 - pct / 100));
+    const nightAfter = base * (1 - pct / 100);
     subtotalAfter += nightAfter;
 
     // Attribute this night's savings proportionally to contributing discounts.
-    // Stackable discounts get their share of the stackable-sum portion;
-    // the winning non-stackable gets the non-stackable portion.
     const nightDiscount = base - nightAfter;
     if (nightDiscount > 0 && (stackableSum + maxNonStackable) > 0) {
       const totalPct = stackableSum + maxNonStackable;
@@ -296,8 +294,7 @@ export function calculateStayPricing(
         const ap = applicable[j];
         const counts = ap.stackable || j === winnerIdx;
         if (!counts) continue;
-        // Per-type share of tonight's savings proportional to its percent.
-        const share = Math.round((nightDiscount * ap.percent) / totalPct);
+        const share = (nightDiscount * ap.percent) / totalPct;
         const existing = byType.get(ap.type);
         if (existing) {
           existing.amount += share;
@@ -309,31 +306,40 @@ export function calculateStayPricing(
     }
   }
 
-  const discount = Math.max(0, subtotal - subtotalAfter);
-  const discountPercent = subtotal > 0 ? Math.round((discount / subtotal) * 100) : 0;
-  const perNight = nights > 0 ? Math.round(subtotal / nights) : 0;
-  const cleaningFee = unit.pricing?.cleaningFee || 0;
+  const discountRaw = Math.max(0, subtotal - subtotalAfter);
+  const discountPercent = subtotal > 0 ? r2((discountRaw / subtotal) * 100) : 0;
+  const perNight = nights > 0 ? r2(subtotal / nights) : 0;
+  const cleaningFee = r2(unit.pricing?.cleaningFee || 0);
 
-  // PR G: service fee = 11% of the POST-discount subtotal; VAT is applied
-  // on (discountedSubtotal + cleaning + service), NOT the pre-discount
-  // subtotal.
-  const discountedSubtotal = Math.max(0, subtotal - discount);
-  const serviceFee = Math.round(discountedSubtotal * SERVICE_FEE_RATE);
-  const taxable = discountedSubtotal + cleaningFee + serviceFee;
-  const vat = Math.round(taxable * 0.15);
-  const total = taxable + vat;
+  // Service fee + VAT at full float precision, rounded to 2dp at the end.
+  const discountedSubtotal = Math.max(0, subtotal - discountRaw);
+  const serviceFeeRaw = discountedSubtotal * SERVICE_FEE_RATE;
+  const taxableRaw = discountedSubtotal + cleaningFee + serviceFeeRaw;
+  const vatRaw = taxableRaw * 0.15;
 
   const discountBreakdown: DiscountBreakdownLine[] = Array.from(byType.entries())
     .filter(([, v]) => v.amount > 0)
-    .map(([type, v]) => ({ type, percent: v.percent, amount: v.amount, stackable: v.stackable }))
-    // Sort longest-contribution first so the biggest savings render on top.
+    .map(([type, v]) => ({
+      type,
+      percent: r2(v.percent),
+      amount: r2(v.amount),
+      stackable: v.stackable,
+    }))
     .sort((a, b) => b.amount - a.amount);
 
   return {
-    perNight, nights, subtotal, subtotalAfterDiscount: subtotalAfter,
-    discount, discountPercent, appliedDiscountTypes: Array.from(appliedTypes),
+    perNight,
+    nights,
+    subtotal: r2(subtotal),
+    subtotalAfterDiscount: r2(subtotalAfter),
+    discount: r2(discountRaw),
+    discountPercent,
+    appliedDiscountTypes: Array.from(appliedTypes),
     discountBreakdown,
-    cleaningFee, serviceFee, vat, total,
+    cleaningFee,
+    serviceFee: r2(serviceFeeRaw),
+    vat: r2(vatRaw),
+    total: r2(taxableRaw + vatRaw),
   };
 }
 

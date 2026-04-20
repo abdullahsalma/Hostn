@@ -329,12 +329,15 @@ function BookingContent() {
       : 0;
   }
   // PR G: service fee is 11% of the POST-discount subtotal, pre-VAT.
+  // PR L: full-precision arithmetic, rounded to 2 decimals only at the end.
+  const r2 = (n: number) => Math.round(n * 100) / 100;
   const discountedSubtotal = Math.max(0, subtotal - discount);
-  const serviceFee = Math.round(discountedSubtotal * 0.11);
-  // Saudi Arabia 15% VAT — applied on (discounted subtotal + cleaning + service)
-  const taxableAmount = discountedSubtotal + cleaningFee + serviceFee;
-  const vat = Math.round(taxableAmount * 0.15);
-  const total = taxableAmount + vat;
+  const serviceFeeRaw = discountedSubtotal * 0.11;
+  const serviceFee = r2(serviceFeeRaw);
+  const taxableRaw = discountedSubtotal + cleaningFee + serviceFeeRaw;
+  const vatRaw = taxableRaw * 0.15;
+  const vat = r2(vatRaw);
+  const total = r2(taxableRaw + vatRaw);
 
   // PR I: if any selected date is blocked on the unit (host marked it
   // unavailable, or a confirmed booking claimed it after this hold was

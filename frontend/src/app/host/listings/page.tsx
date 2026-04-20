@@ -633,7 +633,7 @@ export default function HostListingsPage() {
                                     )}
                                     {avg > 0 && (
                                       <span className="font-semibold text-primary-600" dir="ltr">
-                                        <SarSymbol /> {avg.toLocaleString('en')}/{isAr ? '\u0644\u064a\u0644\u0629' : 'night'}
+                                        <SarSymbol /> {avg.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/{isAr ? '\u0644\u064a\u0644\u0629' : 'night'}
                                       </span>
                                     )}
                                   </div>

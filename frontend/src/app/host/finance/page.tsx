@@ -90,11 +90,11 @@ export default function FinancePage() {
             <p className="text-sm text-gray-500">{t.totalPaidOut[lang]}</p>
           </div>
           <p className="text-2xl font-bold text-gray-900">
-            <span dir="ltr"><SarSymbol /> {summary.totalPaidOut.toLocaleString('en')}</span>
+            <span dir="ltr"><SarSymbol /> {summary.totalPaidOut.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </p>
           {summary.lastPayoutDate && (
             <p className="text-xs text-gray-400 mt-1">
-              {t.lastPayout[lang]}: <span dir="ltr"><SarSymbol /> {summary.lastPayoutAmount.toLocaleString('en')}</span>
+              {t.lastPayout[lang]}: <span dir="ltr"><SarSymbol /> {summary.lastPayoutAmount.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               {' \u2014 '}
               {new Date(summary.lastPayoutDate).toLocaleDateString(isAr ? 'ar-SA' : 'en-US', { month: 'short', day: 'numeric' })}
             </p>
@@ -110,7 +110,7 @@ export default function FinancePage() {
             <p className="text-sm text-gray-500">{t.pendingPayout[lang]}</p>
           </div>
           <p className="text-2xl font-bold text-gray-900">
-            <span dir="ltr"><SarSymbol /> {summary.pendingPayout.toLocaleString('en')}</span>
+            <span dir="ltr"><SarSymbol /> {summary.pendingPayout.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </p>
         </div>
 
@@ -123,7 +123,7 @@ export default function FinancePage() {
             <p className="text-sm text-gray-500">{t.totalCommission[lang]}</p>
           </div>
           <p className="text-2xl font-bold text-gray-900">
-            <span dir="ltr"><SarSymbol /> {summary.totalCommission.toLocaleString('en')}</span>
+            <span dir="ltr"><SarSymbol /> {summary.totalCommission.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
           </p>
         </div>
       </div>

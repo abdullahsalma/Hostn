@@ -106,7 +106,7 @@ export default function HostDashboardPage() {
   const statCards = [
     { key: 'totalProperties', value: stats.totalProperties, icon: Building, color: 'text-primary-600 bg-primary-50' },
     { key: 'activeBookings', value: stats.activeBookings, icon: CalendarCheck, color: 'text-emerald-600 bg-emerald-50' },
-    { key: 'totalEarnings', value: <span dir="ltr"><SarSymbol /> {stats.totalEarnings?.toLocaleString('en') || 0}</span>, icon: DollarSign, color: 'text-blue-600 bg-blue-50' },
+    { key: 'totalEarnings', value: <span dir="ltr"><SarSymbol /> {stats.totalEarnings?.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || 0}</span>, icon: DollarSign, color: 'text-blue-600 bg-blue-50' },
     { key: 'averageRating', value: stats.averageRating > 0 ? stats.averageRating.toFixed(1) : (isAr ? 'لا يوجد' : 'N/A'), icon: Star, color: 'text-yellow-600 bg-yellow-50' },
   ];
 
@@ -227,7 +227,7 @@ export default function HostDashboardPage() {
                           {statusLabels[booking.status]?.[lang] || booking.status}
                         </span>
                       </td>
-                      <td className="p-3 font-medium text-gray-900"><span dir="ltr"><SarSymbol /> {(booking.pricing?.total || booking.totalPrice || 0).toLocaleString('en')}</span></td>
+                      <td className="p-3 font-medium text-gray-900"><span dir="ltr"><SarSymbol /> {(booking.pricing?.total || booking.totalPrice || 0).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></td>
                     </tr>
                   );
                 })}

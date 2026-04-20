@@ -252,7 +252,7 @@ export default function UnitsListPage() {
                 {avgPrice(unit.pricing) > 0 && (
                   <p className="text-sm font-bold text-primary-600 mb-3">
                     <span dir="ltr">
-                      <SarSymbol /> {avgPrice(unit.pricing).toLocaleString('en')}
+                      <SarSymbol /> {avgPrice(unit.pricing).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                     {' '}/{' '}{isAr ? 'ليلة' : 'night'}{' '}
                     <span className="font-normal text-gray-400 text-xs">({t.avgPrice[lang]})</span>

@@ -171,13 +171,13 @@ export default function InvoiceDetailPage() {
           <div className="mb-8">
             <h2 className="text-sm font-bold text-gray-800 mb-3">{t.breakdown[lang]}</h2>
             <dl className="space-y-2 text-sm">
-              <Row label={t.grossBookings[lang]} value={<span dir="ltr"><SarSymbol /> {bd.grossBookings.toLocaleString('en')}</span>} />
+              <Row label={t.grossBookings[lang]} value={<span dir="ltr"><SarSymbol /> {bd.grossBookings.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>} />
               <Row label={t.commissionRate[lang]} value={<span dir="ltr">{bd.commissionRate}%</span>} />
-              <Row label={t.commission[lang]} value={<span dir="ltr"><SarSymbol /> {bd.commission.toLocaleString('en')}</span>} />
-              <Row label={t.vat[lang]} value={<span dir="ltr"><SarSymbol /> {bd.vat.toLocaleString('en')}</span>} />
+              <Row label={t.commission[lang]} value={<span dir="ltr"><SarSymbol /> {bd.commission.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>} />
+              <Row label={t.vat[lang]} value={<span dir="ltr"><SarSymbol /> {bd.vat.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>} />
               <div className="flex items-center justify-between pt-3 mt-3 border-t border-gray-200 text-base font-bold text-gray-900">
                 <dt>{t.total[lang]}</dt>
-                <dd dir="ltr"><SarSymbol /> {bd.total.toLocaleString('en')}</dd>
+                <dd dir="ltr"><SarSymbol /> {bd.total.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</dd>
               </div>
             </dl>
           </div>
@@ -209,7 +209,7 @@ export default function InvoiceDetailPage() {
                       <td className="p-3 text-gray-600">{formatDate(b.checkOut)}</td>
                       <td className="p-3 text-end font-medium text-gray-900">
                         {b.pricing?.total ? (
-                          <span dir="ltr"><SarSymbol /> {b.pricing.total.toLocaleString('en')}</span>
+                          <span dir="ltr"><SarSymbol /> {b.pricing.total.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         ) : (
                           <span className="text-gray-400">-</span>
                         )}
