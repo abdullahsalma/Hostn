@@ -252,12 +252,20 @@ export const reviewsApi = {
 // ═══════════════════════════════════════════════════════════════════════════════
 // PAYMENTS
 // ═══════════════════════════════════════════════════════════════════════════════
+export type SimulatedOutcome = 'approved' | 'declined' | 'insufficient_funds' | 'fraud' | 'cancelled' | 'timeout';
+
 export const paymentsApi = {
   initiate: (data: { bookingId: string }) => api.post('/payments/initiate', data),
   verify: (data: { paymentId: string; moyasarPaymentId: string }) =>
     api.post('/payments/verify', data),
   getOne: (id: string) => api.get(`/payments/${id}`),
   getMyPayments: () => api.get('/payments/my-payments'),
+  /** PR K: payment simulator (demo mode). Fire-and-succeed when the backend
+   *  has `PAYMENT_SIMULATOR_ENABLED=true` — otherwise the endpoint returns 404. */
+  simulate: (data: { paymentId: string; outcome: SimulatedOutcome }) =>
+    api.post('/payments/simulate', data),
+  /** PR K: simulator-aware status fetch (skips the Moyasar round-trip). */
+  getStatus: (paymentId: string) => api.get(`/payments/${paymentId}/status`),
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
