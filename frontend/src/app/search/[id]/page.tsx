@@ -364,9 +364,17 @@ function UnitDetailContent() {
       <Header />
       <main className="min-h-screen">
         <div className="container-custom py-8">
-          {/* Breadcrumb: Home > Property Type > Unit Name */}
+          {/* Breadcrumb — PR J: Home > City > Type > Unit Name (city added
+              before type per user feedback). City links to a type-agnostic
+              search in that city; type links to the type filter. */}
           <nav className="text-sm text-gray-500 mb-4">
             <a href="/" className="hover:text-primary-600">{t('breadcrumb.home')}</a>
+            <span className="mx-2">/</span>
+            <a href={`/search?city=${encodeURIComponent(property.location.city)}`} className="hover:text-primary-600">
+              {isAr
+                ? (CITIES.find((c) => c.value.toLowerCase() === property.location.city.toLowerCase())?.ar || property.location.city)
+                : property.location.city}
+            </a>
             <span className="mx-2">/</span>
             <a href={`/search?type=${property.type}`} className="hover:text-primary-600">
               {getPropertyTypeLabel(property.type, language as 'en' | 'ar')}

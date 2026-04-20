@@ -3,11 +3,18 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/context/LanguageContext';
-import { bookingsApi } from '@/lib/api';
+import { bookingsApi, unitsApi } from '@/lib/api';
 import { Loader2, Check, X, ChevronDown, ChevronUp, FileText, ArrowUpDown } from 'lucide-react';
 import SarSymbol from '@/components/ui/SarSymbol';
 import toast from 'react-hot-toast';
 import { usePageTitle } from '@/lib/usePageTitle';
+import {
+  calculateStayPricing,
+  DISCOUNT_LABELS_EN,
+  DISCOUNT_LABELS_AR,
+  type PricingUnit,
+  type DiscountBreakdownLine,
+} from '@/lib/pricing';
 
 interface Booking {
   _id: string;
@@ -107,6 +114,22 @@ export default function HostBookingsPage() {
   const [filter, setFilter] = useState('all');
   const [sortMode, setSortMode] = useState<SortMode>('newest');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  // PR J: cache of unit pricing data keyed by unitId. Fetched on-demand when
+  // a row expands so we can compute the per-type discount breakdown that
+  // matches the guest-side booking page. Units have many fields — we only
+  // need the pricing-relevant subset.
+  const [unitCache, setUnitCache] = useState<Record<string, PricingUnit>>({});
+
+  const fetchUnitPricing = async (unitId: string) => {
+    if (unitCache[unitId]) return;
+    try {
+      const res = await unitsApi.getOne(unitId);
+      const u = res.data.data || res.data;
+      setUnitCache((prev) => ({ ...prev, [unitId]: u as PricingUnit }));
+    } catch {
+      // Silent: breakdown falls back to the aggregate `pricing.discount` line.
+    }
+  };
 
   useEffect(() => {
     loadBookings();
@@ -238,7 +261,14 @@ export default function HostBookingsPage() {
                       key={booking._id}
                       booking={booking}
                       isExpanded={isExpanded}
-                      onToggle={() => setExpandedId(isExpanded ? null : booking._id)}
+                      onToggle={() => {
+                        const nextId = isExpanded ? null : booking._id;
+                        setExpandedId(nextId);
+                        // On expand, fetch unit pricing so we can render the
+                        // per-type discount breakdown (PR J).
+                        if (nextId && booking.unit?._id) fetchUnitPricing(booking.unit._id);
+                      }}
+                      unitPricing={booking.unit?._id ? unitCache[booking.unit._id] : undefined}
                       propertyName={propertyName(booking)}
                       unitName={unitName(booking)}
                       formatDate={formatDate}
@@ -273,6 +303,8 @@ interface RowProps {
   lang: 'en' | 'ar';
   isAr: boolean;
   handleStatusUpdate: (id: string, status: string) => void;
+  /** PR J: optional unit pricing for per-type discount breakdown. */
+  unitPricing?: PricingUnit;
 }
 
 function Row({
@@ -288,13 +320,34 @@ function Row({
   lang,
   isAr,
   handleStatusUpdate,
+  unitPricing,
 }: RowProps) {
+  // PR J: compute the per-type discount breakdown when we have the unit's
+  // full pricing data. Falls back to the legacy single aggregate line when
+  // the unit hasn't been fetched yet or isn't available (e.g., non-unit
+  // property bookings). The aggregate discount amount from `booking.pricing`
+  // is still used when we can't produce a breakdown.
+  const discountBreakdown: DiscountBreakdownLine[] = useMemo(() => {
+    if (!unitPricing) return [];
+    try {
+      const bd = calculateStayPricing(unitPricing, new Date(booking.checkIn), new Date(booking.checkOut));
+      return bd.discountBreakdown || [];
+    } catch {
+      return [];
+    }
+  }, [unitPricing, booking.checkIn, booking.checkOut]);
   return (
     <>
-      <tr className="border-b border-gray-100 hover:bg-gray-50">
+      {/* PR J: whole row is now clickable to toggle expand. Action buttons
+          in the last cell call `stopPropagation` so clicking Accept/Reject
+          doesn't also toggle the panel. */}
+      <tr
+        className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
+        onClick={onToggle}
+      >
         <td className="p-3">
           <button
-            onClick={onToggle}
+            onClick={(e) => { e.stopPropagation(); onToggle(); }}
             className="p-1 rounded-md hover:bg-gray-100 text-gray-400 transition-colors"
             aria-label={isExpanded ? 'Collapse' : 'Expand'}
           >
@@ -319,7 +372,7 @@ function Row({
             <span className="text-gray-400">-</span>
           )}
         </td>
-        <td className="p-3">
+        <td className="p-3" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center gap-2">
             {(booking.status === 'pending' || booking.status === 'held') && (
               <>
@@ -404,7 +457,9 @@ function Row({
                 </dl>
               </div>
 
-              {/* Pricing breakdown */}
+              {/* Pricing breakdown — PR J: order price → discounts → cleaning
+                  → service → vat → total, matching /search and /booking.
+                  Per-type discount lines when unit data has loaded. */}
               <div className="bg-white rounded-xl border border-gray-200 p-4">
                 <h3 className="text-sm font-bold text-gray-800 mb-3 pb-2 border-b border-gray-100">
                   {t.paymentSummary[lang]}
@@ -416,14 +471,25 @@ function Row({
                       value={<span dir="ltr"><SarSymbol /> {(pricing.subtotal ?? pricing.perNight * nights).toLocaleString('en')}</span>}
                     />
                   )}
+                  {discountBreakdown.length > 0 ? (
+                    discountBreakdown.map((d) => (
+                      <Field
+                        key={d.type}
+                        label={`${(isAr ? DISCOUNT_LABELS_AR : DISCOUNT_LABELS_EN)[d.type]} ${d.percent}%`}
+                        value={<span dir="ltr" className="text-emerald-700">- <SarSymbol /> {d.amount.toLocaleString('en')}</span>}
+                      />
+                    ))
+                  ) : pricing.discount ? (
+                    <Field
+                      label={t.discount[lang]}
+                      value={<span dir="ltr" className="text-emerald-700">- <SarSymbol /> {pricing.discount.toLocaleString('en')}</span>}
+                    />
+                  ) : null}
                   {pricing.cleaningFee ? (
                     <Field label={t.cleaningFee[lang]} value={<span dir="ltr"><SarSymbol /> {pricing.cleaningFee.toLocaleString('en')}</span>} />
                   ) : null}
                   {pricing.serviceFee ? (
                     <Field label={t.serviceFee[lang]} value={<span dir="ltr"><SarSymbol /> {pricing.serviceFee.toLocaleString('en')}</span>} />
-                  ) : null}
-                  {pricing.discount ? (
-                    <Field label={t.discount[lang]} value={<span dir="ltr" className="text-red-600">- <SarSymbol /> {pricing.discount.toLocaleString('en')}</span>} />
                   ) : null}
                   {pricing.vat ? (
                     <Field label={t.vat[lang]} value={<span dir="ltr"><SarSymbol /> {pricing.vat.toLocaleString('en')}</span>} />
