@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/context/LanguageContext';
-import { unitsApi, bookingsApi } from '@/lib/api';
+import { unitsApi, bookingsApi, propertiesApi } from '@/lib/api';
 import {
   ArrowLeft,
   ChevronLeft,
@@ -249,6 +249,7 @@ function isWeekendDay(dayIndex: number): boolean {
 
 export default function UnitPricingPage() {
   const params = useParams();
+  const router = useRouter();
   const propertyId = params.id as string;
   const unitId = params.unitId as string;
 
@@ -256,6 +257,34 @@ export default function UnitPricingPage() {
   const lang = language as 'en' | 'ar';
   const isAr = lang === 'ar';
   usePageTitle(isAr ? 'التقويم' : 'Calendar');
+
+  // PR J: property/unit switcher at the top of the page. Host can jump
+  // between their properties and units without going back to /listings.
+  interface SwitcherProperty { _id: string; title: string; titleAr?: string; }
+  interface SwitcherUnit { _id: string; nameEn?: string; nameAr?: string; }
+  const [switcherProperties, setSwitcherProperties] = useState<SwitcherProperty[]>([]);
+  const [switcherUnits, setSwitcherUnits] = useState<SwitcherUnit[]>([]);
+  useEffect(() => {
+    propertiesApi.getMyProperties()
+      .then((res) => setSwitcherProperties(res.data.data || res.data || []))
+      .catch(() => {});
+  }, []);
+  useEffect(() => {
+    if (!propertyId) return;
+    unitsApi.getManage(propertyId)
+      .then((res) => setSwitcherUnits(res.data.data || []))
+      .catch(() => setSwitcherUnits([]));
+  }, [propertyId]);
+  const handlePropertyChange = (newPropId: string) => {
+    if (newPropId === propertyId) return;
+    // Go to the property's unit list so the host can pick which unit's
+    // calendar to view. (Different properties have different units.)
+    router.push(`/listings/${newPropId}/units`);
+  };
+  const handleUnitChange = (newUnitId: string) => {
+    if (newUnitId === unitId) return;
+    router.push(`/listings/${propertyId}/units/${newUnitId}/calendar`);
+  };
 
   /* ── state ── */
   const [unit, setUnit] = useState<Unit | null>(null);
@@ -338,13 +367,15 @@ export default function UnitPricingPage() {
   const nowMonth = new Date().getMonth();
 
   /* ── Fetch unit data ── */
-  const fetchUnit = useCallback(async () => {
+  const fetchUnit = useCallback(async (): Promise<Unit | null> => {
     try {
       const res = await unitsApi.getOne(unitId);
       const data: Unit = res.data.data || res.data;
       setUnit(data);
+      return data;
     } catch {
       toast.error(t.error[lang]);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -654,7 +685,26 @@ export default function UnitPricingPage() {
       toast.success(block ? t.priceBlocked[lang] : t.priceUnblocked[lang]);
       // On block, close popover; on unblock, keep it open so user sees updated state
       if (block) setSelectedDate(null);
-      await fetchUnit();
+      const fresh = await fetchUnit();
+      // PR J: after UNBLOCK, re-seed the special-price input from the
+      // REFRESHED unit data directly (can't use getDayPrice — its `unit`
+      // closure is stale until the next render). Without this, users saw
+      // an empty/zero input even though PR F preserved the price server-side.
+      if (!block && fresh) {
+        const override = (fresh.datePricing || []).find(
+          (dp) => new Date(dp.date).toISOString().slice(0, 10) === selectedDate,
+        );
+        let price = 0;
+        if (override?.price && override.price > 0) {
+          price = override.price;
+        } else {
+          const d = new Date(selectedDate + 'T00:00:00');
+          const dayKey = DAY_KEYS_EN[d.getDay()];
+          const dayPrice = fresh.pricing?.[dayKey];
+          if (typeof dayPrice === 'number') price = dayPrice;
+        }
+        setSpecialPriceInput(price > 0 ? String(price) : '');
+      }
     } catch {
       toast.error(t.error[lang]);
     } finally {
@@ -1065,10 +1115,43 @@ export default function UnitPricingPage() {
           <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
           {t.back[lang]}
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900">{t.title[lang]}</h1>
-        {unitName && (
-          <p className="text-sm text-gray-500 mt-1">{unitName}</p>
-        )}
+        <h1 className="text-2xl font-bold text-gray-900 mb-3">{t.title[lang]}</h1>
+        {/* PR J: property + unit switchers so host can hop between calendars
+            without going back to /listings. */}
+        <div className="flex flex-wrap items-center gap-2">
+          {switcherProperties.length > 0 && (
+            <select
+              value={propertyId}
+              onChange={(e) => handlePropertyChange(e.target.value)}
+              className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+              aria-label={isAr ? 'اختر العقار' : 'Select property'}
+            >
+              {switcherProperties.map((p) => (
+                <option key={p._id} value={p._id}>
+                  {isAr ? (p.titleAr || p.title) : (p.title || p.titleAr)}
+                </option>
+              ))}
+            </select>
+          )}
+          {switcherUnits.length > 1 && (
+            <select
+              value={unitId}
+              onChange={(e) => handleUnitChange(e.target.value)}
+              className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+              aria-label={isAr ? 'اختر الوحدة' : 'Select unit'}
+            >
+              {switcherUnits.map((u) => (
+                <option key={u._id} value={u._id}>
+                  {(isAr ? (u.nameAr || u.nameEn) : (u.nameEn || u.nameAr)) || (isAr ? 'بدون اسم' : 'Untitled')}
+                </option>
+              ))}
+            </select>
+          )}
+          {/* If only one unit exists, still show its name as a static label */}
+          {switcherUnits.length === 1 && unitName && (
+            <span className="text-sm text-gray-500">{unitName}</span>
+          )}
+        </div>
       </div>
 
       {/* ── Tab Toggle (4E) ── */}
